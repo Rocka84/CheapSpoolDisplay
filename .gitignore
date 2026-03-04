@@ -1,0 +1,9 @@
+.pio
+.vscode/
+
+# Build flags
+platformio.ini.local
+
+# General
+.DS_Store
+*.log

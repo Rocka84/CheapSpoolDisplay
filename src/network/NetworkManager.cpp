@@ -1,0 +1,89 @@
+#include "NetworkManager.h"
+#include "../config/ConfigManager.h"
+#include <ArduinoJson.h>
+#include <HTTPClient.h>
+#include <WiFi.h>
+
+void NetworkManager::connectWiFi() {
+  std::string ssid = ConfigManager::getWifiSSID();
+  std::string pass = ConfigManager::getWifiPass();
+
+  if (ssid.empty()) {
+    Serial.println("NetworkManager: No SSID configured. Skipping Wi-Fi.");
+    return;
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    return; // Already connected
+  }
+
+  Serial.printf("NetworkManager: Connecting to Wi-Fi SSID '%s'...\n",
+                ssid.c_str());
+  WiFi.begin(ssid.c_str(), pass.c_str());
+
+  // Wait up to 10 seconds for connection
+  int retries = 0;
+  while (WiFi.status() != WL_CONNECTED && retries < 20) {
+    delay(500);
+    Serial.print(".");
+    retries++;
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("\nNetworkManager: Wi-Fi Connected! IP: %s\n",
+                  WiFi.localIP().toString().c_str());
+  } else {
+    Serial.println("\nNetworkManager: Failed to connect to Wi-Fi.");
+  }
+}
+
+bool NetworkManager::sendWebhookPayload(const std::string &spool_id,
+                                        int toolhead_id) {
+  std::string url = ConfigManager::getWebhookUrl();
+
+  if (url.empty()) {
+    Serial.println(
+        "NetworkManager: No Webhook URL configured. Dropping payload.");
+    return false;
+  }
+
+  // Ensure we're connected to Wi-Fi first
+  if (WiFi.status() != WL_CONNECTED) {
+    connectWiFi();
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("NetworkManager: Aborting Webhook POST, no Wi-Fi.");
+      return false;
+    }
+  }
+
+  // Build the JSON Payload
+  JsonDocument doc;
+  doc["spool_id"] = spool_id;
+  doc["toolhead"] = toolhead_id;
+
+  String jsonString;
+  serializeJson(doc, jsonString);
+
+  // Send HTTP POST
+  HTTPClient http;
+  http.begin(url.c_str());
+  http.addHeader("Content-Type", "application/json");
+
+  Serial.printf("NetworkManager: Sending POST to %s\n", url.c_str());
+  int httpResponseCode = http.POST(jsonString);
+
+  bool success = false;
+  if (httpResponseCode > 0) {
+    Serial.printf("NetworkManager: HTTP Response code: %d\n", httpResponseCode);
+    String response = http.getString();
+    Serial.println(response);
+    if (httpResponseCode >= 200 && httpResponseCode < 300) {
+      success = true;
+    }
+  } else {
+    Serial.printf("NetworkManager: Error code: %d\n", httpResponseCode);
+  }
+
+  http.end();
+  return success;
+}

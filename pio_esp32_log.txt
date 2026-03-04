@@ -1,0 +1,4 @@
+Processing esp32dev (platform: espressif32; board: esp32dev; framework: arduino)
+--------------------------------------------------------------------------------
+Library Manager: Installing paulstoffregen/XPT2046_Touchscreen @ ^1.4
+UnknownPackageError: Could not find the package with 'paulstoffregen/XPT2046_Touchscreen @ ^1.4' requirements

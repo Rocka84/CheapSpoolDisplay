@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CheapSpoolDisplay Installer & Configurator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            text-align: center;
+            padding: 50px 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        h1 { margin-top: 0; color: #111827; }
+        p { line-height: 1.6; color: #4b5563; }
+        .setup-steps {
+            text-align: left;
+            margin: 30px 0;
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        esp-web-install-button {
+            margin: 20px 0;
+        }
+        .console-container {
+            margin-top: 30px;
+            text-align: left;
+            border-top: 2px dashed #e5e7eb;
+            padding-top: 30px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>CheapSpoolDisplay Installer</h1>
+        <p>Welcome! Connect your ESP32 Cheap Yellow Display (CYD) via USB to flash the latest firmware directly from your browser, securely.</p>
+        <p><i>Note: Supported on Google Chrome and Microsoft Edge on Desktop OS.</i></p>
+
+        <!-- ESP Web Tools Button -->
+        <script type="module" src="https://unpkg.com/esp-web-tools@8.0.3/dist/web/install-button.js?module"></script>
+        
+        <esp-web-install-button manifest="manifest.json">
+            <button slot="activate">Connect & Flash Device</button>
+        </esp-web-install-button>
+
+        <div class="setup-steps">
+            <h3>Configuration Instructions</h3>
+            <p>After the flash is complete or if your device is already flashed, you can use the Serial Console below to configure Wi-Fi and Webhooks over USB!</p>
+            <ol>
+                <li>Click <b>Connect Console</b> below and choose your CYD's COM port.</li>
+                <li>Set Wi-Fi: Type <code>set ssid YourNetworkName</code> and hit enter.</li>
+                <li>Set Password: Type <code>set pass YourPassword</code> and hit enter.</li>
+                <li>Set Snapmaker Webhook: Type <code>set url http://your-server-ip:port/webhook</code></li>
+                <li>Verify your settings with: <code>get config</code></li>
+            </ol>
+        </div>
+
+        <div class="console-container">
+            <h3>Serial Configuration Console</h3>
+            <p>Interact with the display's configuration terminal directly:</p>
+            <script type="module" src="https://unpkg.com/esp-web-tools@8.0.3/dist/web/log-viewer.js?module"></script>
+            <esp-web-log-viewer></esp-web-log-viewer>
+        </div>
+    </div>
+
+</body>
+</html>
