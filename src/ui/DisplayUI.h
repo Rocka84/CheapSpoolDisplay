@@ -1,10 +1,14 @@
 #ifndef DISPLAY_UI_H
 #define DISPLAY_UI_H
 
+#ifndef USE_SDL2
 #include <XPT2046_Touchscreen.h>
+#endif
 #include <lvgl.h>
 
+#ifndef USE_SDL2
 extern XPT2046_Touchscreen ts;
+#endif
 
 class DisplayUI {
 public:
@@ -42,6 +46,7 @@ private:
   static lv_obj_t *labelType;
   static lv_obj_t *colorBox;
   static lv_obj_t *labelSpoolId;
+  static lv_obj_t *labelColorHex;
 };
 
 #endif // DISPLAY_UI_H

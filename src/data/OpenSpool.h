@@ -1,6 +1,9 @@
 #ifndef OPENSPOOL_H
 #define OPENSPOOL_H
-
+#ifdef USE_SDL2
+#define ARDUINOJSON_ENABLE_ARDUINO_STRING 0
+#define ARDUINOJSON_ENABLE_PROGMEM 0
+#endif
 #include <ArduinoJson.h>
 #include <string>
 
