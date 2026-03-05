@@ -5,8 +5,10 @@ CheapSpoolDisplay is a firmware project for the ESP32 Cheap Yellow Display (CYD)
 ## Features
 - **NFC Tag Scanning**: Reads NTAG215/216 NFC tags formatted via the OpenSpool JSON specification using a connected MFRC522 SPI module.
 - **Visual Interface**: Provides a modern, touch-friendly UI powered by LVGL to display the filament Brand, Type, Spool ID, and material color.
-- **Webhook Integration**: Configure a target URL to send POST payloads directly from the device after picking a specific 3D printer toolhead (Tool 0-3).
-- **Persistent Configuration**: Serial Terminal allows you to program Wi-Fi credentials and Webhooks directly into flash memory over USB (`set ssid`, `set pass`, `set webhook`).
+- **Webhook Integration**: Configure a target URL to send POST payloads directly from the device to load the spool to the printer.
+  - The "Load" button only appears if a Webhook URL is configured.
+  - If multiple tools are configured (via `set tools <1-6>`), a tool selection dialog will appear after picking load.
+- **Persistent Configuration**: Serial Terminal allows you to program Wi-Fi credentials, Webhooks, and tool counts directly into flash memory over USB (`set wifi`, `set webhook`, `set tools`).
 - **Conditional Connectivity**: Wi-Fi is only active if a Webhook is configured, saving power for offline usage.
 - **Web Installer**: A browser-based GUI built on ESP Web Tools to let users flash the firmware with zero CLI tools and use a browser-based serial console.
 - **Power Management**: Intelligent power saving modes:
@@ -32,7 +34,7 @@ You can flash the firmware and set up your Wi-Fi directly from your PC browser (
 1. Navigate to the online Web Installer: **[Launch CheapSpoolDisplay Web Installer](https://Rocka84.github.io/CheapSpoolDisplay)**
 2. Connect your CYD to your PC via USB.
 3. Click **Connect & Flash Device**.
-4. Once flashed, use the integrated **Serial Console** on the webpage to configure the device (see [Post-Flash Configuration](#post-flash-configuration)).
+4. Once flashed, use the integrated **Logs & Console** on the webpage to configure the device (see [Post-Flash Configuration](#post-flash-configuration)).
 
 ### Option 2: PlatformIO
 1. Clone this repository and open it in VSCode with PlatformIO installed.
@@ -51,6 +53,7 @@ Use the following commands to set your network and webhook details:
 - `set ssid YourWiFiName`
 - `set pass YourWiFiPassword`
 - `set webhook http://your-hook-url/webhook`
+- `set tools 4` (Set number of tools from 1 to 6)
 - `get config` (To verify)
 
 > [!NOTE]
@@ -72,4 +75,13 @@ pio test -e desktop
 To run the **Embedded integration tests** directly on the connected CYD:
 ```bash
 pio test -e test_embedded
+```
+
+### UI Simulator (Desktop)
+You can preview and test the "Premium" LVGL interface directly on your computer without hardware. This is perfect for UI development and layout testing.
+**Requirement**: [SDL2](https://www.libsdl.org/) installed on your system.
+```bash
+# Build and run the desktop simulator
+pio run -e simulator
+./.pio/build/simulator/program
 ```

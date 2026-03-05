@@ -53,9 +53,9 @@ void SerialTerminal::processCommand(const String &cmdLine) {
 
   if (cmd.equalsIgnoreCase("help") || cmd == "?") {
     Serial.println("Available commands:");
-    Serial.println("  set ssid <name>");
-    Serial.println("  set pass <password>");
+    Serial.println("  set wifi <ssid> <password>");
     Serial.println("  set webhook <http://...>");
+    Serial.println("  set tools <1-6>");
     Serial.println("  get config");
     Serial.println("  format (Erases all settings)");
     return;
@@ -64,8 +64,11 @@ void SerialTerminal::processCommand(const String &cmdLine) {
   if (cmd.equalsIgnoreCase("get config")) {
     Serial.println("[Current Config]");
     Serial.printf("SSID    : %s\n", ConfigManager::getWifiSSID().c_str());
-    Serial.printf("PASS    : %s\n", ConfigManager::getWifiPass().c_str());
+    std::string pass = ConfigManager::getWifiPass();
+    std::string redactedPass = pass.empty() ? "" : "********";
+    Serial.printf("PASS    : %s\n", redactedPass.c_str());
     Serial.printf("WEBHOOK : %s\n", ConfigManager::getWebhook().c_str());
+    Serial.printf("TOOLS   : %d\n", ConfigManager::getNumTools());
     return;
   }
 
@@ -91,15 +94,33 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     key.trim();
     value.trim();
 
-    if (key.equalsIgnoreCase("ssid")) {
-      ConfigManager::setWifiSSID(value.c_str());
-      Serial.println("SSID saved.");
-    } else if (key.equalsIgnoreCase("pass")) {
-      ConfigManager::setWifiPass(value.c_str());
-      Serial.println("Password saved.");
+    if (key.equalsIgnoreCase("wifi")) {
+      int thirdSpace = cmd.indexOf(' ', secondSpace + 1);
+      if (thirdSpace == -1) {
+        // Assume the rest of the string is just the SSID (no password network)
+        ConfigManager::setWifiSSID(value.c_str());
+        ConfigManager::setWifiPass("");
+        Serial.println("Saved open Wi-Fi network (no password).");
+      } else {
+        String ssid = cmd.substring(secondSpace + 1, thirdSpace);
+        String pass = cmd.substring(thirdSpace + 1);
+        ssid.trim();
+        pass.trim();
+        ConfigManager::setWifiSSID(ssid.c_str());
+        ConfigManager::setWifiPass(pass.c_str());
+        Serial.println("Wi-Fi credentials saved.");
+      }
     } else if (key.equalsIgnoreCase("webhook")) {
       ConfigManager::setWebhook(value.c_str());
       Serial.println("Webhook saved.");
+    } else if (key.equalsIgnoreCase("tools")) {
+      int num = value.toInt();
+      if (num >= 1 && num <= 6) {
+        ConfigManager::setNumTools(num);
+        Serial.printf("Number of tools saved: %d\n", num);
+      } else {
+        Serial.println("Error: Number of tools must be between 1 and 6.");
+      }
     } else {
       Serial.printf("Error: Unknown key '%s'\n", key.c_str());
     }

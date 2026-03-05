@@ -188,7 +188,7 @@
 
     <div class="container">
         <div class="logo-container">
-            <img src="https://raw.githubusercontent.com/spuder/OpenSpool/main/images/Logo2.svg" alt="OpenSpool Logo">
+            <img src="logo.png" alt="CheapSpoolDisplay Logo">
         </div>
 
         <h1>Flash & Config</h1>
@@ -206,15 +206,15 @@
             <ol>
                 <li>Connect your CYD to this computer via USB.</li>
                 <li>Click <b>Connect & Flash Device</b> to push the firmware.</li>
-                <li>Once complete, click <b>Connect</b> (or Log) in the installer window to open the console and
+                <li>Once complete, click <b>Logs & Console</b> in the installer window to open the console and
                     configure:
                     <ul>
-                        <li><code>set ssid YourNetwork</code></li>
-                        <li><code>set pass YourPassword</code></li>
-                        <li><code>set webhook http://...</code></li>
+                        <li><code>set wifi &lt;ssid&gt; &lt;password&gt;</code> to configure your wireless network</li>
+                        <li><code>set url http://your-hook-url/webhook</code> to set your integration URL</li>
+                        <li><code>set tools &lt;1-6&gt;</code> to set the number of tools (if applicable)</li>
                     </ul>
+                    <p>Type <code>get config</code> anytime to verify your settings.</p>
                 </li>
-                <li>Verify with <code>get config</code> and you're ready!</li>
             </ol>
         </div>
 

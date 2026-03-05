@@ -1,4 +1,5 @@
 #include "ConfigManager.h"
+#include <cstdint>
 
 #ifndef USE_SDL2
 Preferences ConfigManager::preferences;
@@ -61,3 +62,20 @@ void ConfigManager::setWebhook(const std::string &url) {
   preferences.putString("webhook", url.c_str());
 #endif
 }
+
+#ifndef USE_SDL2
+uint8_t ConfigManager::getNumTools() {
+  if (!preferences.isKey("num_tools")) {
+    return 1; // Default to 1 tool
+  }
+  return preferences.getUChar("num_tools", 1);
+}
+
+void ConfigManager::setNumTools(uint8_t tools) {
+  if (tools < 1)
+    tools = 1;
+  if (tools > 6)
+    tools = 6;
+  preferences.putUChar("num_tools", tools);
+}
+#endif

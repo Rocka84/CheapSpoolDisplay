@@ -1,7 +1,8 @@
 #include "DisplayUI.h"
-#ifndef USE_SDL2
 #include "../config/ConfigManager.h"
 #include "../network/NetworkManager.h"
+
+#ifndef USE_SDL2
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 #else
@@ -37,6 +38,7 @@ lv_obj_t *DisplayUI::labelType = nullptr;
 lv_obj_t *DisplayUI::colorBox = nullptr;
 lv_obj_t *DisplayUI::labelSpoolId = nullptr;
 lv_obj_t *DisplayUI::labelColorHex = nullptr;
+lv_obj_t *DisplayUI::loadBtn = nullptr;
 
 // We need to keep track of the spool ID locally for the webhook
 static std::string currentLoadedSpoolId = "";
@@ -87,7 +89,8 @@ void DisplayUI::init() {
   lv_init();
 
 #ifndef USE_SDL2
-  static lv_color_t buf[screenWidth * 10]; // 10 lines buffer
+  static lv_color_t
+      buf[screenWidth * 20]; // Larger buffer for smoother gradients
   lv_display_t *disp = lv_display_create(screenWidth, screenHeight);
   lv_display_set_buffers(disp, buf, NULL, sizeof(buf),
                          LV_DISPLAY_RENDER_MODE_PARTIAL);
@@ -110,15 +113,15 @@ void DisplayUI::init() {
   buildEditScreen();
 
   // Set default dark background for all screens and hide scrollbars
-  auto set_dark = [](lv_obj_t *scr) {
-    lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
+  auto set_premium_bg = [](lv_obj_t *scr) {
+    lv_obj_set_style_bg_color(scr, lv_color_hex(0x0f1118), 0);
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
     lv_obj_set_scrollbar_mode(scr, LV_SCROLLBAR_MODE_OFF);
   };
-  set_dark(scanScreen);
-  set_dark(infoScreen);
-  set_dark(toolSelectionScreen);
-  set_dark(editScreen);
+  set_premium_bg(scanScreen);
+  set_premium_bg(infoScreen);
+  set_premium_bg(toolSelectionScreen);
+  set_premium_bg(editScreen);
 
   // Show initial screen
   showScanScreen();
@@ -128,124 +131,144 @@ void DisplayUI::tick() {
   lv_timer_handler(); // let the GUI do its work
 }
 
-// ... [Screen building logic will be implemented here] ...
+/* --- Premium Helpers --- */
+static void apply_glass_style(lv_obj_t *obj) {
+  lv_obj_set_style_bg_color(obj, lv_color_white(), 0);
+  lv_obj_set_style_bg_opa(obj, LV_OPA_10, 0);
+  lv_obj_set_style_border_color(obj, lv_color_white(), 0);
+  lv_obj_set_style_border_opa(obj, LV_OPA_20, 0);
+  lv_obj_set_style_border_width(obj, 1, 0);
+  lv_obj_set_style_radius(obj, 16, 0);
+  lv_obj_set_scrollbar_mode(obj, LV_SCROLLBAR_MODE_OFF);
+}
+
+static void apply_indigo_btn_style(lv_obj_t *obj) {
+  lv_obj_set_style_bg_color(obj, lv_color_hex(0x5266ff), 0);
+  lv_obj_set_style_radius(obj, 12, 0);
+  lv_obj_set_style_shadow_width(obj, 15, 0);
+  lv_obj_set_style_shadow_color(obj, lv_color_hex(0x000000), 0);
+  lv_obj_set_style_shadow_opa(obj, LV_OPA_40, 0);
+  lv_obj_set_style_shadow_ofs_y(obj, 5, 0);
+  lv_obj_set_style_border_width(obj, 0, 0);
+}
 
 void DisplayUI::buildScanScreen() {
   scanScreen = lv_obj_create(NULL);
   lv_obj_set_scroll_dir(scanScreen, LV_DIR_NONE);
 
-  lv_obj_t *header = lv_label_create(scanScreen);
-  lv_label_set_text(header, "Ready to Scan");
-  lv_obj_set_style_text_color(header, lv_color_white(), 0);
-  lv_obj_align(header, LV_ALIGN_CENTER, 0, 30);
-
-  lv_obj_t *desc = lv_label_create(scanScreen);
-  lv_label_set_text(desc, "Please hold tag to Reader");
-  lv_obj_set_style_text_color(desc, lv_palette_lighten(LV_PALETTE_GREY, 1), 0);
-  lv_obj_align(desc, LV_ALIGN_CENTER, 0, 85);
-
-  // OpenSpool Logo
+  // OpenSpool Logo with glow effect
   lv_obj_t *logo = lv_image_create(scanScreen);
   lv_image_set_src(logo, &img_openspool_logo);
-  lv_obj_align(logo, LV_ALIGN_CENTER, 0, -40);
+  lv_obj_align(logo, LV_ALIGN_CENTER, 0, -50);
+  lv_obj_set_style_shadow_width(logo, 20, 0);
+  lv_obj_set_style_shadow_color(logo, lv_color_hex(0xff4d4d), 0);
+  lv_obj_set_style_shadow_opa(logo, LV_OPA_30, 0);
+
+  lv_obj_t *header = lv_label_create(scanScreen);
+  lv_label_set_text(header, "Ready to Scan");
+  lv_obj_set_style_text_font(header, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_color(header, lv_color_white(), 0);
+  lv_obj_align(header, LV_ALIGN_CENTER, 0, 40);
+
+  lv_obj_t *desc = lv_label_create(scanScreen);
+  lv_label_set_text(desc, "Hold reader over tag");
+  lv_obj_set_style_text_color(desc, lv_color_hex(0x9ca3af), 0);
+  lv_obj_align(desc, LV_ALIGN_CENTER, 0, 75);
 }
 
 void DisplayUI::buildInfoScreen() {
   infoScreen = lv_obj_create(NULL);
   lv_obj_set_scroll_dir(infoScreen, LV_DIR_NONE);
 
-  // Header
+  // Header Title
   lv_obj_t *header = lv_label_create(infoScreen);
-  lv_label_set_text(header, "Spool Information");
-  lv_obj_set_style_text_color(header, lv_palette_main(LV_PALETTE_AMBER), 0);
+  lv_label_set_text(header, "Spool Data");
+  lv_obj_set_style_text_font(header, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_color(header, lv_color_hex(0x5266ff), 0);
   lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 15);
 
-  // Content container (table-like structure)
-  lv_obj_t *cont = lv_obj_create(infoScreen);
-  lv_obj_set_size(cont, 220, 160);
-  lv_obj_align(cont, LV_ALIGN_TOP_MID, 0, 45);
-  lv_obj_set_style_bg_color(cont, lv_palette_main(LV_PALETTE_GREY), 0);
-  lv_obj_set_style_bg_opa(cont, 30, 0); // Subtle background
-  lv_obj_set_style_border_width(cont, 0, 0);
-  lv_obj_set_style_pad_all(cont, 10, 0);
-  lv_obj_set_scrollbar_mode(cont, LV_SCROLLBAR_MODE_OFF);
+  // Glass Card Content
+  lv_obj_t *card = lv_obj_create(infoScreen);
+  lv_obj_set_size(card, 220, 165);
+  lv_obj_align(card, LV_ALIGN_TOP_MID, 0, 50);
+  apply_glass_style(card);
+  lv_obj_set_style_pad_all(card, 12, 0);
 
-  // Helper function to create a "row"
   auto create_row = [&](int y, const char *key, lv_obj_t **val_label) {
-    lv_obj_t *k = lv_label_create(cont);
+    lv_obj_t *k = lv_label_create(card);
     lv_label_set_text(k, key);
-    lv_obj_set_style_text_color(k, lv_palette_lighten(LV_PALETTE_GREY, 1), 0);
+    lv_obj_set_style_text_color(k, lv_color_hex(0x9ca3af), 0);
     lv_obj_align(k, LV_ALIGN_TOP_LEFT, 0, y);
 
-    *val_label = lv_label_create(cont);
-    lv_label_set_text(*val_label, "?");
+    *val_label = lv_label_create(card);
+    lv_label_set_text(*val_label, "---");
     lv_obj_set_style_text_color(*val_label, lv_color_white(), 0);
-    lv_obj_align(*val_label, LV_ALIGN_TOP_LEFT, 70, y);
+    lv_obj_set_style_text_font(*val_label, &lv_font_montserrat_14, 0);
+    lv_obj_align(*val_label, LV_ALIGN_TOP_LEFT, 65, y);
   };
 
-  create_row(0, "Brand:", &labelBrand);
-  create_row(30, "Type:", &labelType);
-  create_row(60, "ID:", &labelSpoolId);
+  create_row(0, "Brand", &labelBrand);
+  create_row(28, "Type", &labelType);
+  create_row(56, "ID", &labelSpoolId);
 
-  // Color row
-  lv_obj_t *cLabel = lv_label_create(cont);
-  lv_label_set_text(cLabel, "Color:");
-  lv_obj_set_style_text_color(cLabel, lv_palette_lighten(LV_PALETTE_GREY, 2),
-                              0);
+  // Color row with enhanced preview
+  lv_obj_t *cLabel = lv_label_create(card);
+  lv_label_set_text(cLabel, "Color");
+  lv_obj_set_style_text_color(cLabel, lv_color_hex(0x9ca3af), 0);
   lv_obj_align(cLabel, LV_ALIGN_TOP_LEFT, 0, 90);
 
-  colorBox = lv_obj_create(cont);
-  lv_obj_set_size(colorBox, 60, 40);
-  lv_obj_align(colorBox, LV_ALIGN_TOP_LEFT, 70, 90);
-  lv_obj_set_style_border_color(colorBox, lv_color_white(), 0);
+  colorBox = lv_obj_create(card);
+  lv_obj_set_size(colorBox, 131, 24);
+  lv_obj_align(colorBox, LV_ALIGN_TOP_LEFT, 65, 87);
+  lv_obj_set_style_radius(colorBox, 6, 0);
   lv_obj_set_style_border_width(colorBox, 1, 0);
+  lv_obj_set_style_border_color(colorBox, lv_color_white(), 0);
+  lv_obj_set_style_border_opa(colorBox, LV_OPA_40, 0);
 
-  labelColorHex = lv_label_create(cont);
-  lv_label_set_text(labelColorHex, "#??????");
+  labelColorHex = lv_label_create(card);
+  lv_label_set_text(labelColorHex, "#------");
+  lv_obj_set_style_text_font(labelColorHex, &lv_font_montserrat_14, 0);
   lv_obj_set_style_text_color(labelColorHex, lv_color_white(), 0);
-  lv_obj_align(labelColorHex, LV_ALIGN_TOP_LEFT, 140, 100);
+  lv_obj_align(labelColorHex, LV_ALIGN_TOP_LEFT, 65, 116);
 
-  // Buttons row - Vertical stack for better ergonomics in portrait
-  lv_obj_t *btnCont = lv_obj_create(infoScreen);
-  lv_obj_set_size(btnCont, 220, 110);
-  lv_obj_align(btnCont, LV_ALIGN_BOTTOM_MID, 0, -10);
-  lv_obj_set_style_bg_opa(btnCont, 0, 0);
-  lv_obj_set_style_border_width(btnCont, 0, 0);
-  lv_obj_set_scrollbar_mode(btnCont, LV_SCROLLBAR_MODE_OFF);
-  lv_obj_set_flex_flow(btnCont, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_flex_align(btnCont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
-                        LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_gap(btnCont, 10, 0);
-
-  lv_obj_t *loadBtn = lv_btn_create(btnCont);
-  lv_obj_set_size(loadBtn, 180, 45);
+  // Bottom Buttons
+  loadBtn = lv_btn_create(infoScreen);
+  lv_obj_set_size(loadBtn, 200, 42);
+  lv_obj_align(loadBtn, LV_ALIGN_BOTTOM_MID, 0, -55);
+  apply_indigo_btn_style(loadBtn);
   lv_obj_add_event_cb(loadBtn, onLoadSpoolButtonClicked, LV_EVENT_CLICKED,
                       NULL);
+
   lv_obj_t *loadLbl = lv_label_create(loadBtn);
-  lv_label_set_text(loadLbl, "Load Spool");
+  lv_label_set_text(loadLbl, "Load to Printer");
   lv_obj_center(loadLbl);
 
-  lv_obj_t *bottomBtns = lv_obj_create(btnCont);
-  lv_obj_set_size(bottomBtns, 180, 45);
-  lv_obj_set_style_bg_opa(bottomBtns, 0, 0);
-  lv_obj_set_style_border_width(bottomBtns, 0, 0);
-  lv_obj_set_style_pad_all(bottomBtns, 0, 0);
-  lv_obj_set_flex_flow(bottomBtns, LV_FLEX_FLOW_ROW);
-  lv_obj_set_flex_align(bottomBtns, LV_FLEX_ALIGN_SPACE_BETWEEN,
-                        LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+#ifndef USE_SDL2
+  // Hide the Load button on physical device if no webhook is configured
+  if (ConfigManager::getWebhook().empty()) {
+    lv_obj_add_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_clear_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
+  }
+#endif
 
-  lv_obj_t *backBtn = lv_btn_create(bottomBtns);
-  lv_obj_set_size(backBtn, 85, 45);
+  // Small sub-buttons
+  lv_obj_t *backBtn = lv_btn_create(infoScreen);
+  lv_obj_set_size(backBtn, 95, 38);
+  lv_obj_align(backBtn, LV_ALIGN_BOTTOM_LEFT, 15, -12);
+  apply_glass_style(backBtn);
   lv_obj_add_event_cb(backBtn, onBackButtonClicked, LV_EVENT_CLICKED, NULL);
   lv_obj_t *backLbl = lv_label_create(backBtn);
   lv_label_set_text(backLbl, "Back");
   lv_obj_center(backLbl);
 
-  lv_obj_t *editBtn = lv_btn_create(bottomBtns);
-  lv_obj_set_size(editBtn, 85, 45);
+  lv_obj_t *editBtn = lv_btn_create(infoScreen);
+  lv_obj_set_size(editBtn, 95, 38);
+  lv_obj_align(editBtn, LV_ALIGN_BOTTOM_RIGHT, -15, -12);
+  apply_glass_style(editBtn);
   lv_obj_add_event_cb(editBtn, onEditButtonClicked, LV_EVENT_CLICKED, NULL);
   lv_obj_t *editLbl = lv_label_create(editBtn);
-  lv_label_set_text(editLbl, "Edit");
+  lv_label_set_text(editLbl, "Edit Tag");
   lv_obj_center(editLbl);
 }
 
@@ -253,59 +276,70 @@ void DisplayUI::buildToolSelectionScreen() {
   toolSelectionScreen = lv_obj_create(NULL);
 
   lv_obj_t *header = lv_label_create(toolSelectionScreen);
-  lv_label_set_text(header, "Select Tool");
+  lv_label_set_text(header, "Assign to Tool");
+  lv_obj_set_style_text_font(header, &lv_font_montserrat_20, 0);
   lv_obj_set_style_text_color(header, lv_color_white(), 0);
   lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 15);
 
-  // Grid for 4 toolheads
   lv_obj_t *grid = lv_obj_create(toolSelectionScreen);
   lv_obj_set_size(grid, 220, 200);
-  lv_obj_align(grid, LV_ALIGN_CENTER, 0, 0);
+  lv_obj_align(grid, LV_ALIGN_CENTER, 0, 5);
   lv_obj_set_style_bg_opa(grid, 0, 0);
   lv_obj_set_style_border_width(grid, 0, 0);
-  lv_obj_set_scrollbar_mode(grid, LV_SCROLLBAR_MODE_OFF);
+  lv_obj_set_scroll_dir(grid, LV_DIR_VER);
+  lv_obj_set_scrollbar_mode(grid, LV_SCROLLBAR_MODE_AUTO);
 
-  for (int i = 0; i < 4; i++) {
+  uint8_t num_tools = ConfigManager::getNumTools();
+  for (int i = 0; i < num_tools; i++) {
     lv_obj_t *tBtn = lv_btn_create(grid);
-    lv_obj_set_size(tBtn, 90, 80);
+    lv_obj_set_size(tBtn, 95, 85);
 
     int col = i % 2;
     int row = i / 2;
-    int x_offset = col == 0 ? -50 : 50;
-    int y_offset = row == 0 ? -45 : 45;
+    lv_obj_align(tBtn, LV_ALIGN_TOP_LEFT, col * 105, row * 95);
+    apply_indigo_btn_style(tBtn);
 
-    lv_obj_align(tBtn, LV_ALIGN_CENTER, x_offset, y_offset);
-
-    // Pass the tool ID as the long form user_data
     lv_obj_add_event_cb(tBtn, onToolButtonClicked, LV_EVENT_CLICKED,
                         (void *)(intptr_t)i);
 
     lv_obj_t *tLbl = lv_label_create(tBtn);
-    lv_label_set_text_fmt(tLbl, "Tool %d", i);
+    lv_label_set_text_fmt(tLbl, "T %d", i);
+    lv_obj_set_style_text_font(tLbl, &lv_font_montserrat_20, 0);
     lv_obj_center(tLbl);
   }
 
   lv_obj_t *backBtn = lv_btn_create(toolSelectionScreen);
-  lv_obj_align(backBtn, LV_ALIGN_BOTTOM_LEFT, 10, -10);
-  // Reusing back button to simply return to scan screen for now
+  lv_obj_set_size(backBtn, 100, 35);
+  lv_obj_align(backBtn, LV_ALIGN_BOTTOM_MID, 0, -10);
+  apply_glass_style(backBtn);
   lv_obj_add_event_cb(backBtn, onBackButtonClicked, LV_EVENT_CLICKED, NULL);
   lv_obj_t *backLbl = lv_label_create(backBtn);
   lv_label_set_text(backLbl, "Cancel");
+  lv_obj_center(backLbl);
 }
 
 void DisplayUI::buildEditScreen() {
   editScreen = lv_obj_create(NULL);
-  // Similar structure to info screen, but with dropdowns/inputs
-  // We will expand this as needed
-  lv_obj_t *label = lv_label_create(editScreen);
-  lv_label_set_text(label, "Edit Screen (Coming Soon)");
-  lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+
+  lv_obj_t *header = lv_label_create(editScreen);
+  lv_label_set_text(header, "Edit Spool");
+  lv_obj_set_style_text_font(header, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_color(header, lv_color_white(), 0);
+  lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 15);
+
+  lv_obj_t *msg = lv_label_create(editScreen);
+  lv_label_set_text(msg, "Feature update pending...");
+  lv_obj_set_style_text_color(msg, lv_color_hex(0x9ca3af), 0);
+  lv_obj_align(msg, LV_ALIGN_CENTER, 0, 0);
 
   lv_obj_t *backBtn = lv_btn_create(editScreen);
-  lv_obj_align(backBtn, LV_ALIGN_BOTTOM_LEFT, 10, -10);
+  lv_obj_set_size(backBtn, 100, 35);
+  lv_obj_align(backBtn, LV_ALIGN_BOTTOM_MID, 0, -10);
+  apply_glass_style(backBtn);
   lv_obj_add_event_cb(backBtn, onBackButtonClicked, LV_EVENT_CLICKED, NULL);
   lv_obj_t *backLbl = lv_label_create(backBtn);
-  lv_label_set_text(backLbl, "Cancel");
+  lv_label_set_text(backLbl, "Back");
+  lv_obj_center(backLbl);
 }
 
 void DisplayUI::showScanScreen() { lv_scr_load(scanScreen); }
@@ -329,6 +363,16 @@ void DisplayUI::showInfoScreen(const char *brand, const char *type,
   // Cache spool ID globally for webhook
   currentLoadedSpoolId = spool_id;
 
+#ifndef USE_SDL2
+  // Hide the Load button on physical device if no webhook is configured
+  // We re-check this every time we open InfoScreen in case config changed
+  if (ConfigManager::getWebhook().empty()) {
+    lv_obj_add_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_clear_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
+  }
+#endif
+
   lv_scr_load(infoScreen);
 }
 
@@ -337,16 +381,23 @@ void DisplayUI::showToolSelectionScreen() { lv_scr_load(toolSelectionScreen); }
 void DisplayUI::showEditScreen() { lv_scr_load(editScreen); }
 
 void DisplayUI::onLoadSpoolButtonClicked(lv_event_t *e) {
-  // Only show tool selection if Webhook is actually configured
+  uint8_t tools = ConfigManager::getNumTools();
+
+  if (tools == 1) {
+    // Immediate Webhook Fire
 #ifndef USE_SDL2
-  if (ConfigManager::getWebhook().length() > 0) {
-    showToolSelectionScreen();
-  } else {
-    Serial.println("No Webhook URL configured. Load Spool action disabled.");
-  }
+    Serial.printf("Single tool mode: Auto-selected Tool 0 for spool %s\n",
+                  currentLoadedSpoolId.c_str());
+    NetworkManager::sendWebhookPayload(currentLoadedSpoolId, 0);
 #else
-  showToolSelectionScreen();
+    printf("Simulator [Single Tool Mode]: Auto-selected Tool 0 for spool %s\n",
+           currentLoadedSpoolId.c_str());
 #endif
+    lv_scr_load(infoScreen); // Stay on Info screen
+  } else {
+    // Show tool grid popup
+    showToolSelectionScreen();
+  }
 }
 
 void DisplayUI::onToolButtonClicked(lv_event_t *e) {
@@ -362,8 +413,8 @@ void DisplayUI::onToolButtonClicked(lv_event_t *e) {
          currentLoadedSpoolId.c_str());
 #endif
 
-  // Return to main scanning screen after loading
-  showScanScreen();
+  // Return to the Info screen after loading
+  lv_scr_load(infoScreen);
 }
 
 void DisplayUI::onEditButtonClicked(lv_event_t *e) { showEditScreen(); }

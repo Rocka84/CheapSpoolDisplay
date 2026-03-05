@@ -47,6 +47,7 @@ private:
   static lv_obj_t *colorBox;
   static lv_obj_t *labelSpoolId;
   static lv_obj_t *labelColorHex;
+  static lv_obj_t *loadBtn;
 };
 
 #endif // DISPLAY_UI_H
