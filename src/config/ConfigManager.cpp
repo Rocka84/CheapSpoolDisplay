@@ -10,7 +10,7 @@ void ConfigManager::init() {
 }
 
 std::string ConfigManager::getWifiSSID() {
-  return preferences.getString("ssid", "").c_str();
+  return std::string(preferences.getString("ssid", "").c_str());
 }
 
 void ConfigManager::setWifiSSID(const std::string &ssid) {
@@ -18,7 +18,7 @@ void ConfigManager::setWifiSSID(const std::string &ssid) {
 }
 
 std::string ConfigManager::getWifiPass() {
-  return preferences.getString("pass", "").c_str();
+  return std::string(preferences.getString("pass", "").c_str());
 }
 
 void ConfigManager::setWifiPass(const std::string &pass) {
@@ -26,7 +26,7 @@ void ConfigManager::setWifiPass(const std::string &pass) {
 }
 
 std::string ConfigManager::getWebhookUrl() {
-  return preferences.getString("wh_url", "").c_str();
+  return std::string(preferences.getString("wh_url", "").c_str());
 }
 
 void ConfigManager::setWebhookUrl(const std::string &url) {

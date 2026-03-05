@@ -1,5 +1,6 @@
 #include "NetworkManager.h"
 #include "../config/ConfigManager.h"
+#include "WebhookFormatter.h"
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
@@ -56,23 +57,37 @@ bool NetworkManager::sendWebhookPayload(const std::string &spool_id,
     }
   }
 
-  // Build the JSON Payload
-  JsonDocument doc;
-  doc["spool_id"] = spool_id;
-  doc["toolhead"] = toolhead_id;
+  bool useGet = (url.find("{spool_id}") != std::string::npos);
 
-  String jsonString;
-  serializeJson(doc, jsonString);
-
-  // Send HTTP POST
   HTTPClient http;
-  http.begin(url.c_str());
-  http.addHeader("Content-Type", "application/json");
-
-  Serial.printf("NetworkManager: Sending POST to %s\n", url.c_str());
-  int httpResponseCode = http.POST(jsonString);
-
+  int httpResponseCode = -1;
   bool success = false;
+
+  if (useGet) {
+    // Interpolate URL for GET requests
+    std::string formattedUrl =
+        WebhookFormatter::formatUrl(url, spool_id, toolhead_id);
+    String finalUrl = String(formattedUrl.c_str());
+
+    Serial.printf("NetworkManager: Sending GET to %s\n", finalUrl.c_str());
+    http.begin(finalUrl);
+    httpResponseCode = http.GET();
+
+  } else {
+    // Standard JSON POST
+    JsonDocument doc;
+    doc["spool_id"] = spool_id;
+    doc["toolhead"] = toolhead_id;
+
+    String jsonString;
+    serializeJson(doc, jsonString);
+
+    Serial.printf("NetworkManager: Sending POST to %s\n", url.c_str());
+    http.begin(url.c_str());
+    http.addHeader("Content-Type", "application/json");
+    httpResponseCode = http.POST(jsonString);
+  }
+
   if (httpResponseCode > 0) {
     Serial.printf("NetworkManager: HTTP Response code: %d\n", httpResponseCode);
     String response = http.getString();

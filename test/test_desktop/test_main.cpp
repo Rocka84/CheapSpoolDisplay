@@ -1,5 +1,7 @@
 #include "../../src/data/OpenSpool.cpp"
 #include "../../src/data/OpenSpool.h"
+#include "../../src/network/WebhookFormatter.cpp"
+#include "../../src/network/WebhookFormatter.h"
 #include <string>
 #include <unity.h>
 
@@ -77,6 +79,31 @@ void test_openspool_deserialization_bad_json(void) {
   TEST_ASSERT_FALSE(result);
 }
 
+void test_webhook_format_no_placeholders(void) {
+  std::string url = "http://example.com/api";
+  TEST_ASSERT_EQUAL_STRING("http://example.com/api",
+                           WebhookFormatter::formatUrl(url, "123", 4).c_str());
+}
+
+void test_webhook_format_spool_id(void) {
+  std::string url = "http://example.com/api?spool={spool_id}";
+  TEST_ASSERT_EQUAL_STRING("http://example.com/api?spool=123",
+                           WebhookFormatter::formatUrl(url, "123", 4).c_str());
+}
+
+void test_webhook_format_toolhead(void) {
+  std::string url = "http://example.com/api?tool={toolhead}";
+  TEST_ASSERT_EQUAL_STRING("http://example.com/api?tool=4",
+                           WebhookFormatter::formatUrl(url, "a", 4).c_str());
+}
+
+void test_webhook_format_both(void) {
+  std::string url = "http://example.com/api?spool={spool_id}&tool={toolhead}";
+  TEST_ASSERT_EQUAL_STRING(
+      "http://example.com/api?spool=abc-def&tool=2",
+      WebhookFormatter::formatUrl(url, "abc-def", 2).c_str());
+}
+
 int main(int argc, char **argv) {
   UNITY_BEGIN();
   RUN_TEST(test_openspool_empty_initialization);
@@ -84,6 +111,10 @@ int main(int argc, char **argv) {
   RUN_TEST(test_openspool_deserialization_valid);
   RUN_TEST(test_openspool_deserialization_invalid_protocol);
   RUN_TEST(test_openspool_deserialization_bad_json);
+  RUN_TEST(test_webhook_format_no_placeholders);
+  RUN_TEST(test_webhook_format_spool_id);
+  RUN_TEST(test_webhook_format_toolhead);
+  RUN_TEST(test_webhook_format_both);
   UNITY_END();
 
   return 0;
