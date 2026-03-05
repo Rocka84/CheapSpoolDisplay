@@ -1,79 +1,229 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CheapSpoolDisplay Installer & Configurator</title>
+    <title>CheapSpoolDisplay | Web Installer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #5266ff;
+            --accent: #ff4d4d;
+            --bg: #0f1118;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f3f4f6;
-            color: #1f2937;
-            text-align: center;
-            padding: 50px 20px;
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top, #1a1f35 0%, var(--bg) 100%);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
+
         .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-width: 650px;
+            width: 90%;
+            margin: 40px auto;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 60px 40px;
+            border-radius: 24px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.8s ease-out;
+            text-align: center;
         }
-        h1 { margin-top: 0; color: #111827; }
-        p { line-height: 1.6; color: #4b5563; }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-container {
+            margin-bottom: 30px;
+            transition: transform 0.3s ease;
+        }
+
+        .logo-container:hover {
+            transform: scale(1.05);
+        }
+
+        .logo-container img {
+            width: 140px;
+            height: auto;
+            filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.1));
+        }
+
+        h1 {
+            font-weight: 800;
+            font-size: 2.5rem;
+            margin: 0;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin: 15px 0 40px;
+            line-height: 1.6;
+        }
+
         .setup-steps {
             text-align: left;
-            margin: 30px 0;
-            background: #f9fafb;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
+            margin: 40px 0;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
         }
+
+        .setup-steps h3 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        ol {
+            padding-left: 20px;
+            margin-bottom: 0;
+        }
+
+        li {
+            margin-bottom: 12px;
+            color: var(--text);
+            font-size: 0.95rem;
+        }
+
+        li code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: inherit;
+            color: #d1d5db;
+        }
+
         esp-web-install-button {
+            --esp-tools-button-color: var(--primary);
+            --esp-tools-button-text-color: #fff;
+            --esp-tools-button-bg-color: #312e81;
             margin: 20px 0;
+            display: inline-block;
         }
-        .console-container {
-            margin-top: 30px;
-            text-align: left;
-            border-top: 2px dashed #e5e7eb;
-            padding-top: 30px;
+
+        esp-web-install-button button {
+            cursor: pointer;
+            padding: 16px 36px !important;
+            font-size: 1.1rem !important;
+            font-weight: 600 !important;
+            border-radius: 12px !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important;
+            border: none;
+            background: var(--primary);
+            color: white;
+        }
+
+        esp-web-install-button button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4) !important;
+            filter: brightness(1.1);
+        }
+
+        footer {
+            margin-top: 50px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container {
+                padding: 40px 20px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <div class="container">
-        <h1>CheapSpoolDisplay Installer</h1>
-        <p>Welcome! Connect your ESP32 Cheap Yellow Display (CYD) via USB to flash the latest firmware directly from your browser, securely.</p>
-        <p><i>Note: Supported on Google Chrome and Microsoft Edge on Desktop OS.</i></p>
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/spuder/OpenSpool/main/images/Logo2.svg" alt="OpenSpool Logo">
+        </div>
 
-        <!-- ESP Web Tools Button -->
+        <h1>Flash & Config</h1>
+        <p class="subtitle">Securely flash your CheapSpoolDisplay firmware and configure settings directly from your
+            browser.</p>
+
         <script type="module" src="https://unpkg.com/esp-web-tools@8.0.3/dist/web/install-button.js?module"></script>
-        
+
         <esp-web-install-button manifest="manifest.json">
             <button slot="activate">Connect & Flash Device</button>
         </esp-web-install-button>
 
         <div class="setup-steps">
-            <h3>Configuration Instructions</h3>
-            <p>After the flash is complete or if your device is already flashed, you can use the Serial Console below to configure Wi-Fi and Webhooks over USB!</p>
+            <h3>Quick Setup Guide</h3>
             <ol>
-                <li>Click <b>Connect Console</b> below and choose your CYD's COM port.</li>
-                <li>Set Wi-Fi: Type <code>set ssid YourNetworkName</code> and hit enter.</li>
-                <li>Set Password: Type <code>set pass YourPassword</code> and hit enter.</li>
-                <li>Set Snapmaker Webhook: Type <code>set url http://your-server-ip:port/webhook</code></li>
-                <li>Verify your settings with: <code>get config</code></li>
+                <li>Connect your CYD to this computer via USB.</li>
+                <li>Click <b>Connect & Flash Device</b> to push the firmware.</li>
+                <li>Once complete, click <b>Connect</b> (or Log) in the installer window to open the console and
+                    configure:
+                    <ul>
+                        <li><code>set ssid YourNetwork</code></li>
+                        <li><code>set pass YourPassword</code></li>
+                        <li><code>set webhook http://...</code></li>
+                    </ul>
+                </li>
+                <li>Verify with <code>get config</code> and you're ready!</li>
             </ol>
         </div>
 
-        <div class="console-container">
-            <h3>Serial Configuration Console</h3>
-            <p>Interact with the display's configuration terminal directly:</p>
-            <script type="module" src="https://unpkg.com/esp-web-tools@8.0.3/dist/web/log-viewer.js?module"></script>
-            <esp-web-log-viewer></esp-web-log-viewer>
-        </div>
+        <footer>
+            Built for <a href="https://openspool.io" target="_blank">OpenSpool</a> | <a
+                href="../README.md">Documentation</a>
+        </footer>
     </div>
 
 </body>
+
 </html>

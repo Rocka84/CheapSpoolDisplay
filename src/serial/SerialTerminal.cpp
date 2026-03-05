@@ -55,7 +55,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.println("Available commands:");
     Serial.println("  set ssid <name>");
     Serial.println("  set pass <password>");
-    Serial.println("  set url <http://...>");
+    Serial.println("  set webhook <http://...>");
     Serial.println("  get config");
     Serial.println("  format (Erases all settings)");
     return;
@@ -63,16 +63,16 @@ void SerialTerminal::processCommand(const String &cmdLine) {
 
   if (cmd.equalsIgnoreCase("get config")) {
     Serial.println("[Current Config]");
-    Serial.printf("SSID  : %s\n", ConfigManager::getWifiSSID().c_str());
-    Serial.printf("PASS  : %s\n", ConfigManager::getWifiPass().c_str());
-    Serial.printf("URL   : %s\n", ConfigManager::getWebhookUrl().c_str());
+    Serial.printf("SSID    : %s\n", ConfigManager::getWifiSSID().c_str());
+    Serial.printf("PASS    : %s\n", ConfigManager::getWifiPass().c_str());
+    Serial.printf("WEBHOOK : %s\n", ConfigManager::getWebhook().c_str());
     return;
   }
 
   if (cmd.equalsIgnoreCase("format")) {
     ConfigManager::setWifiSSID("");
     ConfigManager::setWifiPass("");
-    ConfigManager::setWebhookUrl("");
+    ConfigManager::setWebhook("");
     Serial.println("Configuration formatted/erased.");
     return;
   }
@@ -97,9 +97,9 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     } else if (key.equalsIgnoreCase("pass")) {
       ConfigManager::setWifiPass(value.c_str());
       Serial.println("Password saved.");
-    } else if (key.equalsIgnoreCase("url")) {
-      ConfigManager::setWebhookUrl(value.c_str());
-      Serial.println("Webhook URL saved.");
+    } else if (key.equalsIgnoreCase("webhook")) {
+      ConfigManager::setWebhook(value.c_str());
+      Serial.println("Webhook saved.");
     } else {
       Serial.printf("Error: Unknown key '%s'\n", key.c_str());
     }

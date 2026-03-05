@@ -5,8 +5,9 @@ CheapSpoolDisplay is a firmware project for the ESP32 Cheap Yellow Display (CYD)
 ## Features
 - **NFC Tag Scanning**: Reads NTAG215/216 NFC tags formatted via the OpenSpool JSON specification using a connected MFRC522 SPI module.
 - **Visual Interface**: Provides a modern, touch-friendly UI powered by LVGL to display the filament Brand, Type, Spool ID, and material color.
-- **Snapmaker Webhook Integration**: Configure a target URL to send POST payloads directly from the device after picking a specific 3D printer toolhead (Tool 0-3).
-- **Persistent Configuration**: Serial Terminal allows you to program Wi-Fi credentials and Webhooks directly into flash memory over USB (`set ssid`, `set pass`, `set url`).
+- **Webhook Integration**: Configure a target URL to send POST payloads directly from the device after picking a specific 3D printer toolhead (Tool 0-3).
+- **Persistent Configuration**: Serial Terminal allows you to program Wi-Fi credentials and Webhooks directly into flash memory over USB (`set ssid`, `set pass`, `set webhook`).
+- **Conditional Connectivity**: Wi-Fi is only active if a Webhook is configured, saving power for offline usage.
 - **Web Installer**: A browser-based GUI built on ESP Web Tools to let users flash the firmware with zero CLI tools and use a browser-based serial console.
 - **Power Management**: Intelligent power saving modes:
   - When powered via USB, the display automatically turns off after 60 seconds of inactivity and wakes on touch.
@@ -31,19 +32,34 @@ You can flash the firmware and set up your Wi-Fi directly from your PC browser (
 1. Navigate to the online Web Installer: **[Launch CheapSpoolDisplay Web Installer](https://Rocka84.github.io/CheapSpoolDisplay)**
 2. Connect your CYD to your PC via USB.
 3. Click **Connect & Flash Device**.
-4. Use the integrated Serial Terminal on the webpage to set your Network and Webhook:
-   - `set ssid YourWiFi`
-   - `set pass YourWifiPassword`
-   - `set url http://your-hook-url/`
+4. Once flashed, use the integrated **Serial Console** on the webpage to configure the device (see [Post-Flash Configuration](#post-flash-configuration)).
 
 ### Option 2: PlatformIO
-1. Clone this repository.
-2. Open the project in *PlatformIO* (e.g. via VSCode).
-3. Connect your CYD to your PC via USB.
-4. Run the upload command: 
+1. Clone this repository and open it in VSCode with PlatformIO installed.
+2. Connect your CYD to your PC via USB.
+3. Run the upload command: 
    ```bash
    pio run -t upload
    ```
+4. Once the upload finishes, open the **Serial Monitor** (or run `pio device monitor`) to configure the device (see [Post-Flash Configuration](#post-flash-configuration)).
+
+## Post-Flash Configuration
+Regardless of how you flash, the device stores your settings in non-volatile memory (NVS). Type `help` in the Serial Terminal to see all available commands.
+
+### 1. Set Credentials
+Use the following commands to set your network and webhook details:
+- `set ssid YourWiFiName`
+- `set pass YourWiFiPassword`
+- `set webhook http://your-hook-url/webhook`
+- `get config` (To verify)
+
+> [!NOTE]
+> Wi-Fi will only initialize if a **Webhook** URL is set. If this field is empty, the device remains offline.
+
+### 2. Auto-Method Detection
+The device automatically determines the HTTP method based on your Webhook URL:
+- **GET Mode**: Triggered if the URL contains the `{spool_id}` placeholder (e.g. `http://api.com/load?spool={spool_id}`).
+- **POST Mode**: Default mode. Sends a JSON payload: `{"spool_id": "...", "toolhead": X}`.
 
 ## Testing
 We utilize automated unit tests through PlatformIO (`Unity`). For detailed info, check [TESTING.md](docs/TESTING.md).
@@ -55,5 +71,5 @@ pio test -e desktop
 
 To run the **Embedded integration tests** directly on the connected CYD:
 ```bash
-pio test -e esp32dev
+pio test -e test_embedded
 ```

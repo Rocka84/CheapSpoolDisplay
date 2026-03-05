@@ -339,7 +339,7 @@ void DisplayUI::showEditScreen() { lv_scr_load(editScreen); }
 void DisplayUI::onLoadSpoolButtonClicked(lv_event_t *e) {
   // Only show tool selection if Webhook is actually configured
 #ifndef USE_SDL2
-  if (ConfigManager::getWebhookUrl().length() > 0) {
+  if (ConfigManager::getWebhook().length() > 0) {
     showToolSelectionScreen();
   } else {
     Serial.println("No Webhook URL configured. Load Spool action disabled.");

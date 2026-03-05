@@ -42,18 +42,22 @@ void ConfigManager::setWifiPass(const std::string &pass) {
 #endif
 }
 
-std::string ConfigManager::getWebhookUrl() {
+std::string ConfigManager::getWebhook() {
 #ifndef USE_SDL2
-  if (!preferences.isKey("wh_url"))
+  // We keep "wh_url" as the NVS key for backward compatibility or rename it to
+  // "webhook" User asked to call it "webhook" instead of "url". I will use
+  // "webhook" as the NVS key now for consistency with the new command name.
+  if (!preferences.isKey("webhook")) {
     return "";
-  return std::string(preferences.getString("wh_url", "").c_str());
+  }
+  return std::string(preferences.getString("webhook", "").c_str());
 #else
   return "http://localhost:8080/webhook?spool={spool_id}&tool={toolhead}";
 #endif
 }
 
-void ConfigManager::setWebhookUrl(const std::string &url) {
+void ConfigManager::setWebhook(const std::string &url) {
 #ifndef USE_SDL2
-  preferences.putString("wh_url", url.c_str());
+  preferences.putString("webhook", url.c_str());
 #endif
 }

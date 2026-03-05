@@ -16,8 +16,8 @@ public:
   static std::string getWifiPass();
   static void setWifiPass(const std::string &pass);
 
-  static std::string getWebhookUrl();
-  static void setWebhookUrl(const std::string &url);
+  static std::string getWebhook();
+  static void setWebhook(const std::string &url);
 
 private:
   static Preferences preferences;

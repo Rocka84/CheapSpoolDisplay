@@ -27,7 +27,7 @@ Embedded tests are written against the actual ESP32 silicon. PlatformIO compiles
 ### Running Embedded Tests
 ```bash
 # General run command (Make sure no other Serial Monitors are active)
-pio test -e esp32dev
+pio test -e test_embedded
 ```
 
 ### What is tested embedded?
@@ -37,4 +37,7 @@ pio test -e esp32dev
 ## Troubleshooting Tests
 
 -   **"Uploading stage has failed," or "Error 1":** Ensure the device is plugged in using a data-capable USB cord and that you do not have another Serial terminal or Web Installer actively grabbing the COM port.
--   **Linker Errors during `esp32dev` tests:** If PlatformIO complains about missing definitions (like `loop()` or `setup()`), verify your `platformio.ini` test inclusions. We use `build_src_filter = +<*> -<main.cpp> -<ui/> -<nfc/>` to isolate the `ConfigManager` and `NetworkManager` without double-including Arduino's main system.
+-   **Linker Errors or missing definitions:** Ensure you are using the correct environment. Board tests MUST use `-e test_embedded` to correctly include the project source code while excluding the main application UI and logic.
+```bash
+pio test -e test_embedded
+```

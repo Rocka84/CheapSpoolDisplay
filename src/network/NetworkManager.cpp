@@ -40,11 +40,11 @@ void NetworkManager::connectWiFi() {
 
 bool NetworkManager::sendWebhookPayload(const std::string &spool_id,
                                         int toolhead_id) {
-  std::string url = ConfigManager::getWebhookUrl();
+  std::string url = ConfigManager::getWebhook();
 
   if (url.empty()) {
     Serial.println(
-        "NetworkManager: No Webhook URL configured. Dropping payload.");
+        "NetworkManager: No Webhook configured. Skipping Wi-Fi and payload.");
     return false;
   }
 
@@ -52,7 +52,7 @@ bool NetworkManager::sendWebhookPayload(const std::string &spool_id,
   if (WiFi.status() != WL_CONNECTED) {
     connectWiFi();
     if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("NetworkManager: Aborting Webhook POST, no Wi-Fi.");
+      Serial.println("NetworkManager: Aborting Webhook, no Wi-Fi.");
       return false;
     }
   }
