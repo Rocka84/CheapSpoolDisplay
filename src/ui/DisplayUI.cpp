@@ -74,6 +74,7 @@ static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data) {
 void DisplayUI::init() {
 #ifndef USE_SDL2
   tft.begin();
+  tft.invertDisplay(true);
   tft.setRotation(0); // Portrait
   tft.fillScreen(TFT_BLACK);
 

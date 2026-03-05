@@ -63,9 +63,9 @@ void SerialTerminal::processCommand(const String &cmdLine) {
 
   if (cmd.equalsIgnoreCase("get config")) {
     Serial.println("[Current Config]");
-    Serial.printf("SSID: %s\n", ConfigManager::getWifiSSID().c_str());
-    Serial.printf("PASS: %s\n", ConfigManager::getWifiPass().c_str());
-    Serial.printf("URL : %s\n", ConfigManager::getWebhookUrl().c_str());
+    Serial.printf("SSID  : %s\n", ConfigManager::getWifiSSID().c_str());
+    Serial.printf("PASS  : %s\n", ConfigManager::getWifiPass().c_str());
+    Serial.printf("URL   : %s\n", ConfigManager::getWebhookUrl().c_str());
     return;
   }
 

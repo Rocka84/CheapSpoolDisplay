@@ -12,6 +12,8 @@ void ConfigManager::init() {
 
 std::string ConfigManager::getWifiSSID() {
 #ifndef USE_SDL2
+  if (!preferences.isKey("ssid"))
+    return "";
   return std::string(preferences.getString("ssid", "").c_str());
 #else
   return "Simulator_WiFi";
@@ -26,6 +28,8 @@ void ConfigManager::setWifiSSID(const std::string &ssid) {
 
 std::string ConfigManager::getWifiPass() {
 #ifndef USE_SDL2
+  if (!preferences.isKey("pass"))
+    return "";
   return std::string(preferences.getString("pass", "").c_str());
 #else
   return "simulator_pass";
@@ -40,6 +44,8 @@ void ConfigManager::setWifiPass(const std::string &pass) {
 
 std::string ConfigManager::getWebhookUrl() {
 #ifndef USE_SDL2
+  if (!preferences.isKey("wh_url"))
+    return "";
   return std::string(preferences.getString("wh_url", "").c_str());
 #else
   return "http://localhost:8080/webhook?spool={spool_id}&tool={toolhead}";
