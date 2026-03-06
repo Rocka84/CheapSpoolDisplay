@@ -1,13 +1,14 @@
 #include "PowerManager.h"
+#include "../config/ConfigManager.h"
 #include <esp_sleep.h>
 
 // Assuming we can read battery voltage somewhere, e.g., on some CYD models
 // pin 34 is connected to a divider or LDR that we can hijack, or we just rely
 // on a simple defined constant if the user configures it.
-// For now, many CYD boards have a rudimentary divider on GPIO 34 (LDR).
-// If LDR reading is high, it might be USB. If low, battery. We will use a
-// placeholder logic here that can be calibrated.
-#define BATTERY_SENSE_PIN 34
+// To avoid physically modifying the CYD hardware (like desoldering the LDR on
+// IO34), we use IO35, which is purely an ADC input pin physically broken out on
+// the CYD's P3/CN1 external connector.
+#define BATTERY_SENSE_PIN 35
 
 unsigned long PowerManager::lastActivityTime = 0;
 bool PowerManager::displayIsOff = false;
@@ -57,24 +58,16 @@ void PowerManager::enterDeepSleep() {
 }
 
 bool PowerManager::isPoweredByUSB() {
-  // See HARDWARE_SETUP.md for mod details.
-  // Assuming a 22k/10k voltage divider on the BATTERY_SENSE_PIN (IO34)
-  // connected to V-In. 5V USB source -> ~1.56V at ADC 4.2V LiPo source ->
-  // ~1.31V at ADC 3.7V LiPo source -> ~1.15V at ADC ESP32 ADC maxes at ~3.3V
-  // (4095). 1.56V is roughly ADC value 1935. 1.31V is roughly ADC value 1625.
-  // Threshold set to 1800 to differentiate USB (5V) and Battery (<4.2V)
-
-  int val = analogRead(BATTERY_SENSE_PIN);
-  Serial.printf("Power Sense ADC: %d\n", val);
-
-  return (val > 1800);
+  // Battery feature postponed. Assume USB power always.
+  return true;
 }
 
 void PowerManager::tick() {
   if (displayIsOff)
     return; // Wait for external wake (e.g. touch interrupt)
 
-  if (millis() - lastActivityTime > IDLE_TIMEOUT_MS) {
+  if (millis() - lastActivityTime >
+      (ConfigManager::getScreenTimeout() * 1000UL)) {
     if (isPoweredByUSB()) {
       turnDisplayOff();
     } else {

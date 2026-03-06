@@ -27,9 +27,15 @@ public:
 #ifndef USE_SDL2
   static uint8_t getNumTools();
   static void setNumTools(uint8_t tools);
+
+  static uint16_t getScreenTimeout();
+  static void setScreenTimeout(uint16_t seconds);
 #else
   static uint8_t getNumTools() { return 4; }
   static void setNumTools(uint8_t tools) {}
+
+  static uint16_t getScreenTimeout() { return 60; }
+  static void setScreenTimeout(uint16_t seconds) {}
 #endif
 
 private:

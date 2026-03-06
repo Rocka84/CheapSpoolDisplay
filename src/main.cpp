@@ -61,6 +61,7 @@ void setup() {
 }
 
 void loop() {
+
 #ifndef USE_SDL2
   // Process Serial input
   SerialTerminal::tick();
@@ -74,19 +75,20 @@ void loop() {
   PowerManager::tick();
 
   // If display is off and screen gets touched, wake it up
-  if (PowerManager::isDisplayOff() && ts.touched()) {
+  if (PowerManager::isDisplayOff() && ts.getTouch().zRaw > 0) {
     PowerManager::wakeDisplay();
     delay(500); // Debounce touch
   }
 
   // Reset power manager idle timer on touch
-  if (ts.touched()) {
+  if (ts.getTouch().zRaw > 0) {
     PowerManager::resetIdleTimer();
   }
 #endif
 
-  switch (currentState) {
-  case STATE_SCANNING: {
+  // Check for scanning in both SCANNING and SHOW_INFO states
+  bool tagScanned = false;
+  if (currentState == STATE_SCANNING || currentState == STATE_SHOW_INFO) {
 #ifndef USE_SDL2
     if (NFCReader::scanForTag(currentSpoolData)) {
       PowerManager::resetIdleTimer();
@@ -94,23 +96,25 @@ void loop() {
       Serial.printf(
           "Brand: %s, Type: %s, Color: %s\n", currentSpoolData.brand.c_str(),
           currentSpoolData.type.c_str(), currentSpoolData.color_hex.c_str());
+      tagScanned = true;
+    }
 #else
     static time_t lastModTime = 0;
     struct stat fileStat;
-    bool mockRead = false;
 
-    // Check if mock_spool.json was updated
-    if (stat("mock_spool.json", &fileStat) == 0) {
+    // Check if test/mock_spool.json was updated
+    if (stat("test/mock_spool.json", &fileStat) == 0) {
       if (fileStat.st_mtime > lastModTime) {
         // Updated or first read
         if (lastModTime == 0) {
-          printf("Found mock_spool.json. Reading mock tag...\n");
+          printf("Found test/mock_spool.json. Reading mock tag...\n");
         } else {
-          printf("mock_spool.json changed. Triggering new mock tag read...\n");
+          printf("test/mock_spool.json changed. Triggering new mock tag "
+                 "read...\n");
         }
         lastModTime = fileStat.st_mtime;
 
-        FILE *fp = fopen("mock_spool.json", "r");
+        FILE *fp = fopen("test/mock_spool.json", "r");
         if (fp) {
           fseek(fp, 0, SEEK_END);
           long size = ftell(fp);
@@ -124,9 +128,9 @@ void loop() {
               std::string jsonStr(buffer);
 
               if (OpenSpoolParser::parseJson(jsonStr, currentSpoolData)) {
-                mockRead = true;
+                tagScanned = true;
               } else {
-                printf("Error parsing mock_spool.json!\n");
+                printf("Error parsing test/mock_spool.json!\n");
               }
               free(buffer);
             }
@@ -135,33 +139,33 @@ void loop() {
         }
       }
     }
-
-    if (mockRead) {
 #endif
+  }
 
-      DisplayUI::showInfoScreen(currentSpoolData.brand.c_str(),
-                                currentSpoolData.type.c_str(),
-                                currentSpoolData.color_hex.c_str(),
-                                currentSpoolData.spool_id.c_str());
+  // If a tag was scanned, we always transition to or refresh the Info Screen
+  if (tagScanned) {
+    DisplayUI::showInfoScreen(currentSpoolData);
 
-      currentState = STATE_SHOW_INFO;
-      lastScanTime = millis();
-    }
+    currentState = STATE_SHOW_INFO;
+    lastScanTime = millis();
+  }
+
+  switch (currentState) {
+  case STATE_SCANNING: {
+    // Nothing extra to do here, background scanning is handled above
     break;
   }
 
   case STATE_SHOW_INFO: {
-    // Auto timeout back to scanning mode
-    if (millis() - lastScanTime > INFO_TIMEOUT_MS) {
+    // Auto timeout back to scanning mode, or manual return via UI back button
+    if (millis() - lastScanTime > INFO_TIMEOUT_MS ||
+        DisplayUI::isScanScreenActive()) {
       currentState = STATE_SCANNING;
-      DisplayUI::showScanScreen();
+      if (!DisplayUI::isScanScreenActive()) {
+        DisplayUI::showScanScreen();
+      }
     }
 
-    // Note: The UI "Back" button should also trigger state change.
-    // Since we tied it to immediately shift screens in LVGL callbacks,
-    // we will need to poll a state flag from DisplayUI or have a callback
-    // to update `currentState`. For simplicity here, we assume the UI handles
-    // it or we add a reset mechanism later.
     break;
   }
 

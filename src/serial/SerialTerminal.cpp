@@ -56,6 +56,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.println("  set wifi <ssid> <password>");
     Serial.println("  set webhook <http://...>");
     Serial.println("  set tools <1-6>");
+    Serial.println("  set timeout <seconds>");
     Serial.println("  get config");
     Serial.println("  format (Erases all settings)");
     return;
@@ -69,6 +70,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.printf("PASS    : %s\n", redactedPass.c_str());
     Serial.printf("WEBHOOK : %s\n", ConfigManager::getWebhook().c_str());
     Serial.printf("TOOLS   : %d\n", ConfigManager::getNumTools());
+    Serial.printf("TIMEOUT : %d sec\n", ConfigManager::getScreenTimeout());
     return;
   }
 
@@ -77,6 +79,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     ConfigManager::setWifiPass("");
     ConfigManager::setWebhook("");
     ConfigManager::setNumTools(1);
+    ConfigManager::setScreenTimeout(60);
     Serial.println("Configuration formatted/erased.");
     return;
   }
@@ -121,6 +124,15 @@ void SerialTerminal::processCommand(const String &cmdLine) {
         Serial.printf("Number of tools saved: %d\n", num);
       } else {
         Serial.println("Error: Number of tools must be between 1 and 6.");
+      }
+    } else if (key.equalsIgnoreCase("timeout")) {
+      int num = value.toInt();
+      if (num >= 10 && num <= 3600) {
+        ConfigManager::setScreenTimeout(num);
+        Serial.printf("Screen timeout saved: %d seconds\n", num);
+      } else {
+        Serial.println(
+            "Error: Screen timeout must be between 10 and 3600 seconds.");
       }
     } else {
       Serial.printf("Error: Unknown key '%s'\n", key.c_str());

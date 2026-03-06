@@ -1,0 +1,13 @@
+{
+  "protocol": "openspool",
+  "version": "1.0",
+  "type": "PETG",
+  "color_hex": "FFFFFF",
+  "brand": "Das Filament",
+  "min_temp": "220",
+  "max_temp": "250",
+  "bed_min_temp": "70",
+  "bed_max_temp": "80",
+  "spool_id": 20,
+  "subtype": "Basic"
+}

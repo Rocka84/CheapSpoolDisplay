@@ -2,12 +2,13 @@
 #define DISPLAY_UI_H
 
 #ifndef USE_SDL2
-#include <XPT2046_Touchscreen.h>
+#include <XPT2046_Bitbang.h>
 #endif
+#include "../data/OpenSpool.h"
 #include <lvgl.h>
 
 #ifndef USE_SDL2
-extern XPT2046_Touchscreen ts;
+extern XPT2046_Bitbang ts;
 #endif
 
 class DisplayUI {
@@ -17,10 +18,11 @@ public:
 
   // Screens
   static void showScanScreen();
-  static void showInfoScreen(const char *brand, const char *type,
-                             const char *color_hex, const char *spool_id);
+  static void showInfoScreen(const OpenSpoolData &spool);
   static void showToolSelectionScreen();
   static void showEditScreen();
+
+  static bool isScanScreenActive();
 
 private:
   static void buildScanScreen();
@@ -46,6 +48,11 @@ private:
   static lv_obj_t *labelType;
   static lv_obj_t *colorBox;
   static lv_obj_t *labelSpoolId;
+  static lv_obj_t *labelSubtype;
+  static lv_obj_t *labelLotNr;
+  static lv_obj_t *keyLotNr;
+  static lv_obj_t *labelTemp;
+  static lv_obj_t *labelBedTemp;
   static lv_obj_t *labelColorHex;
   static lv_obj_t *loadBtn;
 };

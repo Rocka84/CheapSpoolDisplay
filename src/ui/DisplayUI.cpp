@@ -3,8 +3,9 @@
 #include "../network/NetworkManager.h"
 
 #ifndef USE_SDL2
+#include <SPI.h>
 #include <TFT_eSPI.h>
-#include <XPT2046_Touchscreen.h>
+#include <XPT2046_Bitbang.h>
 #else
 #include <cstdlib>
 #include <cstring>
@@ -24,7 +25,7 @@ static const uint16_t screenHeight = 320;
 #ifndef USE_SDL2
 // Hardware drivers
 static TFT_eSPI tft = TFT_eSPI(screenWidth, screenHeight);
-XPT2046_Touchscreen ts(TOUCH_CS);
+XPT2046_Bitbang ts(TOUCH_MOSI, TOUCH_MISO, TOUCH_CLK, TOUCH_CS);
 #endif
 
 // LVGL static objects
@@ -37,6 +38,11 @@ lv_obj_t *DisplayUI::labelBrand = nullptr;
 lv_obj_t *DisplayUI::labelType = nullptr;
 lv_obj_t *DisplayUI::colorBox = nullptr;
 lv_obj_t *DisplayUI::labelSpoolId = nullptr;
+lv_obj_t *DisplayUI::labelSubtype = nullptr;
+lv_obj_t *DisplayUI::labelLotNr = nullptr;
+lv_obj_t *DisplayUI::keyLotNr = nullptr;
+lv_obj_t *DisplayUI::labelTemp = nullptr;
+lv_obj_t *DisplayUI::labelBedTemp = nullptr;
 lv_obj_t *DisplayUI::labelColorHex = nullptr;
 lv_obj_t *DisplayUI::loadBtn = nullptr;
 
@@ -55,22 +61,51 @@ static void my_disp_flush(lv_display_t *disp, const lv_area_t *area,
   tft.pushColors((uint16_t *)px_map, w * h, true);
   tft.endWrite();
 
+  static int flushCount = 0;
+  if (flushCount % 100 == 0) {
+    Serial.printf("my_disp_flush called %d times\n", flushCount);
+  }
+  flushCount++;
+
   lv_display_flush_ready(disp);
 }
 
 /* Touch reading */
 static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data) {
-  if (ts.touched()) {
-    TS_Point p = ts.getPoint();
-    // Calibration values for CYD 2.8" touch screen
-    // These may need tweaking per device
-    data->point.x = map(p.x, 200, 3700, 0, screenWidth);
-    data->point.y = map(p.y, 240, 3800, 0, screenHeight);
+  TouchPoint p = ts.getTouch();
+  if (p.zRaw > 0) {
+    // CYD typical portrait mapping:
+    // X and Y are swapped.
+    // X axis comes from yRaw
+    // Y axis comes from xRaw
+    data->point.x = map(p.yRaw, 3800, 240, 0, screenWidth);
+    data->point.y = map(p.xRaw, 200, 3700, 0, screenHeight);
+
+    // Clamp to screen bounds
+    if (data->point.x < 0)
+      data->point.x = 0;
+    if (data->point.x >= screenWidth)
+      data->point.x = screenWidth - 1;
+    if (data->point.y < 0)
+      data->point.y = 0;
+    if (data->point.y >= screenHeight)
+      data->point.y = screenHeight - 1;
+
     data->state = LV_INDEV_STATE_PR;
+    Serial.printf("Touch: raw=(%d,%d) mapped=(%d,%d)\n", p.xRaw, p.yRaw,
+                  data->point.x, data->point.y);
   } else {
     data->state = LV_INDEV_STATE_REL;
   }
 }
+#endif
+
+#ifndef USE_SDL2
+/* Tick providing for LVGL */
+static uint32_t my_tick_get_cb(void) { return millis(); }
+#else
+extern uint32_t millis(void);
+static uint32_t my_tick_get_cb(void) { return millis(); }
 #endif
 
 void DisplayUI::init() {
@@ -82,11 +117,11 @@ void DisplayUI::init() {
 
   // Init Touch
   ts.begin();
-  ts.setRotation(0);
 #endif
 
   // Init LVGL
   lv_init();
+  lv_tick_set_cb(my_tick_get_cb);
 
 #ifndef USE_SDL2
   static lv_color_t
@@ -180,46 +215,48 @@ void DisplayUI::buildInfoScreen() {
   infoScreen = lv_obj_create(NULL);
   lv_obj_set_scroll_dir(infoScreen, LV_DIR_NONE);
 
-  // Header Title
-  lv_obj_t *header = lv_label_create(infoScreen);
-  lv_label_set_text(header, "Spool Data");
-  lv_obj_set_style_text_font(header, &lv_font_montserrat_20, 0);
-  lv_obj_set_style_text_color(header, lv_color_hex(0x5266ff), 0);
-  lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 15);
-
   // Glass Card Content
   lv_obj_t *card = lv_obj_create(infoScreen);
-  lv_obj_set_size(card, 220, 165);
-  lv_obj_align(card, LV_ALIGN_TOP_MID, 0, 50);
+  lv_obj_set_size(
+      card, 220,
+      205); // Taller to use space effectively without overlapping Load button
+  lv_obj_align(card, LV_ALIGN_TOP_MID, 0,
+               10); // Shifted up since header was removed
   apply_glass_style(card);
+  lv_obj_set_scrollbar_mode(card,
+                            LV_SCROLLBAR_MODE_ACTIVE); // Better than ON/AUTO
+  lv_obj_set_scroll_dir(card, LV_DIR_VER); // ONLY vertical scrolling
   lv_obj_set_style_pad_all(card, 12, 0);
 
-  auto create_row = [&](int y, const char *key, lv_obj_t **val_label) {
+  auto create_row = [&](int y, const char *key, lv_obj_t **val_label,
+                        lv_obj_t **key_label = nullptr) {
     lv_obj_t *k = lv_label_create(card);
     lv_label_set_text(k, key);
     lv_obj_set_style_text_color(k, lv_color_hex(0x9ca3af), 0);
     lv_obj_align(k, LV_ALIGN_TOP_LEFT, 0, y);
+    if (key_label)
+      *key_label = k;
 
     *val_label = lv_label_create(card);
     lv_label_set_text(*val_label, "---");
     lv_obj_set_style_text_color(*val_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(*val_label, &lv_font_montserrat_14, 0);
-    lv_obj_align(*val_label, LV_ALIGN_TOP_LEFT, 65, y);
+    lv_obj_align(*val_label, LV_ALIGN_TOP_LEFT, 100, y);
   };
 
   create_row(0, "Brand", &labelBrand);
-  create_row(28, "Type", &labelType);
-  create_row(56, "ID", &labelSpoolId);
+  create_row(30, "Material", &labelType);
 
-  // Color row with enhanced preview
+  // Color row
   lv_obj_t *cLabel = lv_label_create(card);
   lv_label_set_text(cLabel, "Color");
   lv_obj_set_style_text_color(cLabel, lv_color_hex(0x9ca3af), 0);
-  lv_obj_align(cLabel, LV_ALIGN_TOP_LEFT, 0, 90);
+  lv_obj_align(cLabel, LV_ALIGN_TOP_LEFT, 0, 60);
 
   colorBox = lv_obj_create(card);
-  lv_obj_set_size(colorBox, 131, 24);
-  lv_obj_align(colorBox, LV_ALIGN_TOP_LEFT, 65, 87);
+  lv_obj_clear_flag(colorBox, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_size(colorBox, 90, 22);
+  lv_obj_align(colorBox, LV_ALIGN_TOP_LEFT, 100, 57);
   lv_obj_set_style_radius(colorBox, 6, 0);
   lv_obj_set_style_border_width(colorBox, 1, 0);
   lv_obj_set_style_border_color(colorBox, lv_color_white(), 0);
@@ -229,7 +266,13 @@ void DisplayUI::buildInfoScreen() {
   lv_label_set_text(labelColorHex, "#------");
   lv_obj_set_style_text_font(labelColorHex, &lv_font_montserrat_14, 0);
   lv_obj_set_style_text_color(labelColorHex, lv_color_white(), 0);
-  lv_obj_align(labelColorHex, LV_ALIGN_TOP_LEFT, 65, 116);
+  lv_obj_align(labelColorHex, LV_ALIGN_TOP_LEFT, 100, 85);
+
+  create_row(115, "Spool ID", &labelSpoolId);
+  create_row(145, "Subtype", &labelSubtype);
+  create_row(175, "Nozzle T.", &labelTemp);
+  create_row(205, "Bed T.", &labelBedTemp);
+  create_row(235, "Lot Nr", &labelLotNr, &keyLotNr);
 
   // Bottom Buttons
   loadBtn = lv_btn_create(infoScreen);
@@ -344,24 +387,45 @@ void DisplayUI::buildEditScreen() {
 
 void DisplayUI::showScanScreen() { lv_scr_load(scanScreen); }
 
-void DisplayUI::showInfoScreen(const char *brand, const char *type,
-                               const char *color_hex, const char *spool_id) {
-  lv_label_set_text(labelBrand, brand);
-  lv_label_set_text(labelType, type);
-  lv_label_set_text(labelSpoolId, spool_id);
+void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
+  lv_label_set_text(labelBrand, spool.brand.c_str());
+  lv_label_set_text(labelType, spool.type.c_str());
+  lv_label_set_text(labelSpoolId, spool.spool_id.c_str());
+  lv_label_set_text(labelSubtype, spool.subtype.c_str());
+
+  if (spool.lot_nr.empty()) {
+    lv_obj_add_flag(labelLotNr, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(keyLotNr, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_label_set_text(labelLotNr, spool.lot_nr.c_str());
+    lv_obj_clear_flag(labelLotNr, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(keyLotNr, LV_OBJ_FLAG_HIDDEN);
+  }
+
+  std::string tempStr = spool.min_temp + " - " + spool.max_temp;
+  if (tempStr == " - ")
+    tempStr = "";
+  lv_label_set_text(labelTemp, tempStr.c_str());
+
+  std::string bedTempStr = spool.bed_min_temp + " - " + spool.bed_max_temp;
+  if (bedTempStr == " - ")
+    bedTempStr = "";
+  lv_label_set_text(labelBedTemp, bedTempStr.c_str());
 
   // Convert hex string to lv_color_t
   // We assume color_hex is like "#FF0000"
-  if (color_hex && color_hex[0] == '#' && strlen(color_hex) == 7) {
-    uint32_t color_val = strtol(&color_hex[1], NULL, 16);
+  if (!spool.color_hex.empty() && spool.color_hex[0] == '#' &&
+      spool.color_hex.length() == 7) {
+    uint32_t color_val = strtol(&spool.color_hex[1], NULL, 16);
     lv_obj_set_style_bg_color(colorBox, lv_color_hex(color_val), 0);
-    lv_label_set_text(labelColorHex, color_hex);
+    lv_label_set_text(labelColorHex, spool.color_hex.c_str());
   } else {
+    lv_obj_set_style_bg_color(colorBox, lv_color_hex(0x000000), 0);
     lv_label_set_text(labelColorHex, "Unknown");
   }
 
   // Cache spool ID globally for webhook
-  currentLoadedSpoolId = spool_id;
+  currentLoadedSpoolId = spool.spool_id;
 
 #ifndef USE_SDL2
   // Hide the Load button on physical device if no webhook is configured
@@ -373,12 +437,19 @@ void DisplayUI::showInfoScreen(const char *brand, const char *type,
   }
 #endif
 
+#ifndef USE_SDL2
+  Serial.println("DisplayUI: Loading infoScreen into LVGL...");
+#else
+  printf("DisplayUI: Loading infoScreen into LVGL...\n");
+#endif
   lv_scr_load(infoScreen);
 }
 
 void DisplayUI::showToolSelectionScreen() { lv_scr_load(toolSelectionScreen); }
 
 void DisplayUI::showEditScreen() { lv_scr_load(editScreen); }
+
+bool DisplayUI::isScanScreenActive() { return lv_scr_act() == scanScreen; }
 
 void DisplayUI::onLoadSpoolButtonClicked(lv_event_t *e) {
   uint8_t tools = ConfigManager::getNumTools();

@@ -17,7 +17,6 @@ public:
 
 private:
   static MFRC522 mfrc522;
-  static SPIClass spiCard;
 
   // NDEF reading helpers (simplified for OpenSpool JSON payload on NTAG215)
   static std::string readNDEFPayload();

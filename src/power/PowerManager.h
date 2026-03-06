@@ -17,7 +17,6 @@ private:
   static void enterDeepSleep();
 
   static unsigned long lastActivityTime;
-  static const unsigned long IDLE_TIMEOUT_MS = 60000; // 60 seconds
   static bool displayIsOff;
 };
 

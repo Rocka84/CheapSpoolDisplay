@@ -78,4 +78,19 @@ void ConfigManager::setNumTools(uint8_t tools) {
     tools = 6;
   preferences.putUChar("num_tools", tools);
 }
+
+uint16_t ConfigManager::getScreenTimeout() {
+  if (!preferences.isKey("timeout")) {
+    return 60; // Default to 60 seconds
+  }
+  return preferences.getUShort("timeout", 60);
+}
+
+void ConfigManager::setScreenTimeout(uint16_t seconds) {
+  if (seconds < 10)
+    seconds = 10;
+  if (seconds > 3600)
+    seconds = 3600;
+  preferences.putUShort("timeout", seconds);
+}
 #endif

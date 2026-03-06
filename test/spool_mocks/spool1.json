@@ -1,0 +1,13 @@
+{
+  "protocol": "openspool",
+  "version": "1.0",
+  "type": "PLA",
+  "color_hex": "35934B",
+  "brand": "Das Filament",
+  "min_temp": "200",
+  "max_temp": "230",
+  "bed_min_temp": "55",
+  "bed_max_temp": "65",
+  "spool_id": 12,
+  "subtype": "Basic"
+}

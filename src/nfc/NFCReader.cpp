@@ -7,29 +7,59 @@
 #define MISO_PIN 19
 #define MOSI_PIN 23
 
-SPIClass NFCReader::spiCard(VSPI);
+// Touch CS pin for CYD
+#define TOUCH_CS 33
+
 MFRC522 NFCReader::mfrc522(SS_PIN, RST_PIN);
 
 void NFCReader::init() {
-  spiCard.begin(SCK_PIN, MISO_PIN, MOSI_PIN, SS_PIN);
+  // Initialize the global SPI hardware bus for the SD slot pins
+  SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, 255);
+
+  // Explicitly initialize the MFRC522 CS pin
+  pinMode(SS_PIN, OUTPUT);
+  digitalWrite(SS_PIN, HIGH);
+
   mfrc522.PCD_Init();
-  // Optional: test antenna
-  // mfrc522.PCD_DumpVersionToSerial();
+
+  // Diagnostic check
+  byte v = mfrc522.PCD_ReadRegister(mfrc522.VersionReg);
+  Serial.print("MFRC522 Firmware Version: 0x");
+  Serial.println(v, HEX);
+  if (v == 0x00 || v == 0xFF) {
+    Serial.println(
+        "WARNING: Communication failure, is the MFRC522 properly connected?");
+  }
 }
 
 bool NFCReader::scanForTag(OpenSpoolData &data) {
-  if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
+  if (!mfrc522.PICC_IsNewCardPresent()) {
     return false;
   }
+  if (!mfrc522.PICC_ReadCardSerial()) {
+    Serial.println("PICC_ReadCardSerial failed");
+    return false;
+  }
+
+  Serial.println("Tag detected! Attempting to read payload...");
 
   std::string ndefJson = readNDEFPayload();
   // Halt PICC
   mfrc522.PICC_HaltA();
+  // Stop encryption on PCD
+  mfrc522.PCD_StopCrypto1();
 
-  if (ndefJson.empty())
+  if (ndefJson.empty()) {
+    Serial.println("Error: NDEF payload was empty or read failed.");
     return false;
+  }
 
-  return OpenSpoolParser::parseJson(ndefJson, data);
+  Serial.println("Payload extracted. Attempting JSON parse...");
+  bool parsed = OpenSpoolParser::parseJson(ndefJson, data);
+  if (!parsed) {
+    Serial.printf("JSON parse failed. Raw payload:\n%s\n", ndefJson.c_str());
+  }
+  return parsed;
 }
 
 bool NFCReader::writeTag(const OpenSpoolData &data) {
@@ -41,6 +71,7 @@ bool NFCReader::writeTag(const OpenSpoolData &data) {
   bool success = writeNDEFPayload(json);
 
   mfrc522.PICC_HaltA();
+  mfrc522.PCD_StopCrypto1();
   return success;
 }
 
@@ -53,26 +84,47 @@ std::string NFCReader::readNDEFPayload() {
 
   std::string payload = "";
   byte buffer[18];
-  byte size = sizeof(buffer);
 
-  // NTAG215 pages start user memory at page 4. Read up to page 130
-  for (byte page = 4; page < 40; page += 4) {
+  // NTAG215 pages start user memory at page 4. Read up to page 128 (covers up
+  // to 496 bytes)
+  for (byte page = 4; page < 128; page += 4) {
+    byte size = sizeof(buffer);
     MFRC522::StatusCode status = mfrc522.MIFARE_Read(page, buffer, &size);
     if (status == MFRC522::STATUS_OK) {
       for (int i = 0; i < 16; i++) {
         payload += (char)buffer[i];
       }
+
+      // Dump the first chunk so we can see what physical data is on the tag
+      if (page == 4) {
+        Serial.print("Raw Hex (Page 4-7): ");
+        for (int i = 0; i < 16; i++) {
+          if (buffer[i] < 0x10)
+            Serial.print("0");
+          Serial.print(buffer[i], HEX);
+          Serial.print(" ");
+        }
+        Serial.println();
+      }
+
     } else {
+      Serial.printf("MIFARE_Read failed at page %d with status: %s\n", page,
+                    mfrc522.GetStatusCodeName(status));
       break;
     }
   }
 
+  Serial.printf("Total payload length read from tag: %d bytes\n",
+                payload.length());
   // Look for JSON start and end
   size_t start = payload.find("{");
   size_t end = payload.rfind("}");
+  Serial.printf("Found '{' at %d, '}' at %d\n", (int)start, (int)end);
 
   if (start != std::string::npos && end != std::string::npos && end > start) {
-    return payload.substr(start, end - start + 1);
+    std::string jsonStr = payload.substr(start, end - start + 1);
+    Serial.printf("Extracted JSON fragment:\n%s\n", jsonStr.c_str());
+    return jsonStr;
   }
 
   return "";

@@ -356,6 +356,15 @@
                 // Scroll to top
                 window.scrollTo(0, 0);
 
+                // Fix image relative paths to be relative to the markdown file's directory
+                const docDir = doc.path.substring(0, doc.path.lastIndexOf('/') + 1);
+                contentDiv.querySelectorAll('img').forEach(img => {
+                    const src = img.getAttribute('src');
+                    if (src && !src.startsWith('http') && !src.startsWith('/') && !src.startsWith('data:')) {
+                        img.setAttribute('src', docDir + src);
+                    }
+                });
+
                 // Fix internal relative links ending in .md to point to our hash router
                 fixInternalLinks();
 
