@@ -76,6 +76,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     ConfigManager::setWifiSSID("");
     ConfigManager::setWifiPass("");
     ConfigManager::setWebhook("");
+    ConfigManager::setNumTools(1);
     Serial.println("Configuration formatted/erased.");
     return;
   }

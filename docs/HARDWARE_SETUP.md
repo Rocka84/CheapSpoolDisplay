@@ -8,15 +8,17 @@ The MFRC522 communicates via SPI. To keep the screen functional, we connect the 
 
 Please wire your MFRC522 module to the CYD as follows:
 
-| MFRC522 Pin | CYD Pin (SD Slot / Connectors) | Description                                  |
-| :---------- | :----------------------------- | :------------------------------------------- |
-| `3.3V`        | `3.3V`                           | Power supply                                 |
-| `RST`         | `IO22`                           | Reset pin (available on P3/CN1 connector)    |
-| `GND`         | `GND`                            | Ground                                       |
-| `MISO`        | `IO19`                           | VSPI MISO (SD Card slot)                     |
-| `MOSI`        | `IO23`                           | VSPI MOSI (SD Card slot)                     |
-| `SCK`         | `IO18`                           | VSPI SCK (SD Card slot)                      |
-| `SDA` (CS)    | `IO5`                            | VSPI Chip Select (SD Card slot)              |
+| MFRC522 Pin   | CYD Pin (Connector)   | Location Description          |
+| :------------ | :-------------------- | :-----------------------------|
+| `3.3V`        | `3.3V`                | 3.3V rail                     |
+| `RST`         | `IO22`                | Available on P3/CN1 connector |
+| `GND`         | `GND`                 | Ground                        |
+| `MISO`        | `IO19`                | 7th pin of SD connector       |
+| `MOSI`        | `IO23`                | 3rd pin of SD connector       |
+| `SCK`         | `IO18`                | 5th pin of SD connector       |
+| `SDA` (CS)    | `IO5`                 | 2nd pin of SD connector       |
+
+*(Note: The SD card slot counts pins left-to-right when looking at the slot opening.)*
 
 ## 2. Power Detection & Battery Modification
 
