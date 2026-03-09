@@ -11,6 +11,7 @@ CheapSpoolDisplay is a firmware project for the ESP32 Cheap Yellow Display (CYD)
 - **Spoolman Data Enrichment**: Optionally connect to a [Spoolman](https://github.com/Donkie/Spoolman) server to fetch real-time filament names and remaining weight (rounded to 0.1g).
 - **Persistent Configuration**: Serial Terminal allows you to program Wi-Fi credentials, Webhooks, Spoolman URLs, and tool counts directly into flash memory over USB (`set wifi`, `set webhook`, `set spoolman`, `set tools`).
 - **Conditional Connectivity**: Wi-Fi is only active if a Webhook is configured, saving power for offline usage.
+- **International Character Support**: Full support for German umlauts (ä, ö, ü, ß, Ä, Ö, Ü) in filament names and other UI labels via custom fallback fonts.
 - **Web Installer**: A browser-based GUI built on ESP Web Tools to let users flash the firmware with zero CLI tools and use a browser-based serial console.
 - **Power Management**: Intelligent power saving modes:
   - When powered via USB, the display automatically turns off after 60 seconds of inactivity and wakes on touch.

@@ -1,9 +1,10 @@
 #include "data/OpenSpool.h"
 #include "ui/DisplayUI.h"
 
-#ifndef USE_SDL2
 #include "config/ConfigManager.h"
 #include "network/NetworkManager.h"
+
+#ifndef USE_SDL2
 #include "nfc/NFCReader.h"
 #include "power/PowerManager.h"
 #include "serial/SerialTerminal.h"
@@ -44,6 +45,9 @@ void setup() {
   // Initialize UI (Display and LVGL)
   DisplayUI::init();
 
+  // Initialize Config
+  ConfigManager::init();
+
 #ifndef USE_SDL2
   // Initialize NFC
   NFCReader::init();
@@ -51,8 +55,7 @@ void setup() {
   // Initialize Power Manager
   PowerManager::init();
 
-  // Initialize Config & Serial Terminal
-  ConfigManager::init();
+  // Initialize Serial Terminal
   SerialTerminal::init();
 #endif
 
@@ -103,19 +106,19 @@ void loop() {
     static time_t lastModTime = 0;
     struct stat fileStat;
 
-    // Check if test/mock_spool.json was updated
-    if (stat("test/mock_spool.json", &fileStat) == 0) {
+    // Check if simulator/spool.json was updated
+    if (stat("simulator/spool.json", &fileStat) == 0) {
       if (fileStat.st_mtime > lastModTime) {
         // Updated or first read
         if (lastModTime == 0) {
-          printf("Found test/mock_spool.json. Reading mock tag...\n");
+          printf("Found simulator/spool.json. Reading mock tag...\n");
         } else {
-          printf("test/mock_spool.json changed. Triggering new mock tag "
+          printf("simulator/spool.json changed. Triggering new mock tag "
                  "read...\n");
         }
         lastModTime = fileStat.st_mtime;
 
-        FILE *fp = fopen("test/mock_spool.json", "r");
+        FILE *fp = fopen("simulator/spool.json", "r");
         if (fp) {
           fseek(fp, 0, SEEK_END);
           long size = ftell(fp);
@@ -131,7 +134,7 @@ void loop() {
               if (OpenSpoolParser::parseJson(jsonStr, currentSpoolData)) {
                 tagScanned = true;
               } else {
-                printf("Error parsing test/mock_spool.json!\n");
+                printf("Error parsing simulator/spool.json!\n");
               }
               free(buffer);
             }
@@ -145,15 +148,29 @@ void loop() {
 
   // If a tag was scanned, we always transition to or refresh the Info Screen
   if (tagScanned) {
-#ifndef USE_SDL2
     // Enrich with Spoolman data if configured
     if (!ConfigManager::getSpoolmanUrl().empty() &&
         !currentSpoolData.spool_id.empty()) {
+#ifndef USE_SDL2
       Serial.println(
           "Main: Spoolman URL configured, attempting data enrichment...");
-      NetworkManager::fetchSpoolmanData(currentSpoolData);
-    }
+#else
+      printf("Main: Spoolman URL configured (%s), attempting data enrichment "
+             "for spool %s...\n",
+             ConfigManager::getSpoolmanUrl().c_str(),
+             currentSpoolData.spool_id.c_str());
 #endif
+      if (NetworkManager::fetchSpoolmanData(currentSpoolData)) {
+#ifdef USE_SDL2
+        printf("Main: Spoolman enrichment successful for %s\n",
+               currentSpoolData.filament_name.c_str());
+#endif
+      } else {
+#ifdef USE_SDL2
+        printf("Main: Spoolman enrichment failed.\n");
+#endif
+      }
+    }
 
     DisplayUI::showInfoScreen(currentSpoolData);
 

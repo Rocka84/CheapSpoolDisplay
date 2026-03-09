@@ -5,6 +5,9 @@
 #include <Preferences.h>
 #endif
 #include <string>
+#ifdef USE_SDL2
+#include <map>
+#endif
 
 #ifdef USE_SDL2
 #include <stdint.h>
@@ -27,23 +30,18 @@ public:
   static std::string getSpoolmanUrl();
   static void setSpoolmanUrl(const std::string &url);
 
-#ifndef USE_SDL2
   static uint8_t getNumTools();
   static void setNumTools(uint8_t tools);
 
   static uint16_t getScreenTimeout();
   static void setScreenTimeout(uint16_t seconds);
-#else
-  static uint8_t getNumTools() { return 4; }
-  static void setNumTools(uint8_t tools) {}
-
-  static uint16_t getScreenTimeout() { return 60; }
-  static void setScreenTimeout(uint16_t seconds) {}
-#endif
 
 private:
 #ifndef USE_SDL2
   static Preferences preferences;
+#else
+  static std::map<std::string, std::string> simConfig;
+  static void loadSimConfig();
 #endif
 };
 

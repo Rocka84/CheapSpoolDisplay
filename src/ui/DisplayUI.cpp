@@ -16,6 +16,18 @@
 // External assets
 extern "C" {
 extern const lv_image_dsc_t img_openspool_logo;
+LV_FONT_DECLARE(lv_font_german_14);
+LV_FONT_DECLARE(lv_font_german_20);
+}
+
+// Combined fonts pointers
+static const lv_font_t *font_combined_14;
+static const lv_font_t *font_combined_20;
+
+static void setup_combined_fonts() {
+  // Use our generated German fonts directly (contains 0x20-0x7F, 0xA0-0xFF)
+  font_combined_14 = &lv_font_german_14;
+  font_combined_20 = &lv_font_german_20;
 }
 
 // Screen dimensions
@@ -147,21 +159,23 @@ void DisplayUI::init() {
 #endif
 
   // Build screens
+  setup_combined_fonts();
   buildScanScreen();
   buildInfoScreen();
   buildToolSelectionScreen();
   buildEditScreen();
 
   // Set default dark background for all screens and hide scrollbars
-  auto set_premium_bg = [](lv_obj_t *scr) {
+  auto set_premium_scr = [](lv_obj_t *scr) {
     lv_obj_set_style_bg_color(scr, lv_color_hex(0x0f1118), 0);
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
     lv_obj_set_scrollbar_mode(scr, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_text_font(scr, font_combined_14, 0);
   };
-  set_premium_bg(scanScreen);
-  set_premium_bg(infoScreen);
-  set_premium_bg(toolSelectionScreen);
-  set_premium_bg(editScreen);
+  set_premium_scr(scanScreen);
+  set_premium_scr(infoScreen);
+  set_premium_scr(toolSelectionScreen);
+  set_premium_scr(editScreen);
 
   // Show initial screen
   showScanScreen();
@@ -206,7 +220,7 @@ void DisplayUI::buildScanScreen() {
 
   lv_obj_t *header = lv_label_create(scanScreen);
   lv_label_set_text(header, "Ready to Scan");
-  lv_obj_set_style_text_font(header, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(header, font_combined_20, 0);
   lv_obj_set_style_text_color(header, lv_color_white(), 0);
   lv_obj_align(header, LV_ALIGN_CENTER, 0, 40);
 
@@ -232,54 +246,80 @@ void DisplayUI::buildInfoScreen() {
                             LV_SCROLLBAR_MODE_ACTIVE); // Better than ON/AUTO
   lv_obj_set_scroll_dir(card, LV_DIR_VER); // ONLY vertical scrolling
   lv_obj_set_style_pad_all(card, 12, 0);
+  lv_obj_set_style_pad_row(card, 8, 0); // Gap between rows
+  lv_obj_set_flex_flow(card, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(card, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
+                        LV_FLEX_ALIGN_START);
 
-  auto create_row = [&](int y, const char *key, lv_obj_t **val_label,
+  auto create_row = [&](const char *key, lv_obj_t **val_label,
                         lv_obj_t **key_label = nullptr) {
-    lv_obj_t *k = lv_label_create(card);
+    lv_obj_t *row_cont = lv_obj_create(card);
+    lv_obj_set_size(row_cont, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(row_cont, 0, 0);
+    lv_obj_set_style_border_width(row_cont, 0, 0);
+    lv_obj_set_style_pad_all(row_cont, 0, 0);
+    lv_obj_clear_flag(row_cont, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *k = lv_label_create(row_cont);
     lv_label_set_text(k, key);
     lv_obj_set_style_text_color(k, lv_color_hex(0x9ca3af), 0);
-    lv_obj_align(k, LV_ALIGN_TOP_LEFT, 0, y);
+    lv_obj_align(k, LV_ALIGN_TOP_LEFT, 0, 0);
     if (key_label)
-      *key_label = k;
+      *key_label =
+          row_cont; // We store the container as the "key" to hide the whole row
 
-    *val_label = lv_label_create(card);
+    *val_label = lv_label_create(row_cont);
     lv_label_set_text(*val_label, "---");
     lv_obj_set_style_text_color(*val_label, lv_color_white(), 0);
-    lv_obj_set_style_text_font(*val_label, &lv_font_montserrat_14, 0);
-    lv_obj_align(*val_label, LV_ALIGN_TOP_LEFT, 100, y);
+    lv_obj_set_style_text_font(*val_label, font_combined_14, 0);
+    lv_obj_align(*val_label, LV_ALIGN_TOP_LEFT, 100, 0);
   };
 
-  create_row(0, "Brand", &labelBrand);
-  create_row(30, "Filament", &labelFilamentName, &keyFilament);
-  create_row(60, "Material", &labelType);
+  create_row("Brand", &labelBrand);
+  create_row("Filament", &labelFilamentName, &keyFilament);
+  create_row("Material", &labelType);
 
   // Color row
-  lv_obj_t *cLabel = lv_label_create(card);
+  lv_obj_t *color_row = lv_obj_create(card);
+  lv_obj_set_size(color_row, LV_PCT(100), LV_SIZE_CONTENT);
+  lv_obj_set_style_bg_opa(color_row, 0, 0);
+  lv_obj_set_style_border_width(color_row, 0, 0);
+  lv_obj_set_style_pad_all(color_row, 0, 0);
+  lv_obj_clear_flag(color_row, LV_OBJ_FLAG_SCROLLABLE);
+
+  lv_obj_t *cLabel = lv_label_create(color_row);
   lv_label_set_text(cLabel, "Color");
   lv_obj_set_style_text_color(cLabel, lv_color_hex(0x9ca3af), 0);
-  lv_obj_align(cLabel, LV_ALIGN_TOP_LEFT, 0, 90);
+  lv_obj_align(cLabel, LV_ALIGN_TOP_LEFT, 0, 3);
 
-  colorBox = lv_obj_create(card);
+  colorBox = lv_obj_create(color_row);
   lv_obj_clear_flag(colorBox, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_size(colorBox, 90, 22);
-  lv_obj_align(colorBox, LV_ALIGN_TOP_LEFT, 100, 87);
+  lv_obj_align(colorBox, LV_ALIGN_TOP_LEFT, 100, 0);
   lv_obj_set_style_radius(colorBox, 6, 0);
   lv_obj_set_style_border_width(colorBox, 1, 0);
   lv_obj_set_style_border_color(colorBox, lv_color_white(), 0);
   lv_obj_set_style_border_opa(colorBox, LV_OPA_40, 0);
 
-  labelColorHex = lv_label_create(card);
-  lv_label_set_text(labelColorHex, "#------");
-  lv_obj_set_style_text_font(labelColorHex, &lv_font_montserrat_14, 0);
-  lv_obj_set_style_text_color(labelColorHex, lv_color_white(), 0);
-  lv_obj_align(labelColorHex, LV_ALIGN_TOP_LEFT, 100, 115);
+  lv_obj_t *hex_row = lv_obj_create(card);
+  lv_obj_set_size(hex_row, LV_PCT(100), LV_SIZE_CONTENT);
+  lv_obj_set_style_bg_opa(hex_row, 0, 0);
+  lv_obj_set_style_border_width(hex_row, 0, 0);
+  lv_obj_set_style_pad_all(hex_row, 0, 0);
+  lv_obj_clear_flag(hex_row, LV_OBJ_FLAG_SCROLLABLE);
 
-  create_row(145, "Weight", &labelWeight, &keyWeight);
-  create_row(175, "Spool ID", &labelSpoolId);
-  create_row(205, "Subtype", &labelSubtype);
-  create_row(235, "Nozzle T.", &labelTemp);
-  create_row(265, "Bed T.", &labelBedTemp);
-  create_row(295, "Lot Nr", &labelLotNr, &keyLotNr);
+  labelColorHex = lv_label_create(hex_row);
+  lv_label_set_text(labelColorHex, "#------");
+  lv_obj_set_style_text_font(labelColorHex, font_combined_14, 0);
+  lv_obj_set_style_text_color(labelColorHex, lv_color_white(), 0);
+  lv_obj_align(labelColorHex, LV_ALIGN_TOP_LEFT, 100, 0);
+
+  create_row("Weight", &labelWeight, &keyWeight);
+  create_row("Spool ID", &labelSpoolId);
+  create_row("Subtype", &labelSubtype);
+  create_row("Nozzle T.", &labelTemp);
+  create_row("Bed T.", &labelBedTemp);
+  create_row("Lot Nr", &labelLotNr, &keyLotNr);
 
   // Bottom Buttons
   loadBtn = lv_btn_create(infoScreen);
@@ -327,7 +367,7 @@ void DisplayUI::buildToolSelectionScreen() {
 
   lv_obj_t *header = lv_label_create(toolSelectionScreen);
   lv_label_set_text(header, "Assign to Tool");
-  lv_obj_set_style_text_font(header, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(header, font_combined_20, 0);
   lv_obj_set_style_text_color(header, lv_color_white(), 0);
   lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 15);
 
@@ -354,7 +394,7 @@ void DisplayUI::buildToolSelectionScreen() {
 
     lv_obj_t *tLbl = lv_label_create(tBtn);
     lv_label_set_text_fmt(tLbl, "T %d", i);
-    lv_obj_set_style_text_font(tLbl, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(tLbl, font_combined_20, 0);
     lv_obj_center(tLbl);
   }
 
@@ -373,7 +413,7 @@ void DisplayUI::buildEditScreen() {
 
   lv_obj_t *header = lv_label_create(editScreen);
   lv_label_set_text(header, "Edit Spool");
-  lv_obj_set_style_text_font(header, &lv_font_montserrat_20, 0);
+  lv_obj_set_style_text_font(header, font_combined_20, 0);
   lv_obj_set_style_text_color(header, lv_color_white(), 0);
   lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 15);
 
