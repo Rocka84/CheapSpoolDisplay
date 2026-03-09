@@ -5,6 +5,14 @@
 #include <HTTPClient.h>
 #include <WiFi.h>
 
+static bool ensureWiFi() {
+  if (WiFi.status() == WL_CONNECTED) {
+    return true;
+  }
+  NetworkManager::connectWiFi();
+  return (WiFi.status() == WL_CONNECTED);
+}
+
 void NetworkManager::connectWiFi() {
   std::string ssid = ConfigManager::getWifiSSID();
   std::string pass = ConfigManager::getWifiPass();
@@ -49,12 +57,9 @@ bool NetworkManager::sendWebhookPayload(const std::string &spool_id,
   }
 
   // Ensure we're connected to Wi-Fi first
-  if (WiFi.status() != WL_CONNECTED) {
-    connectWiFi();
-    if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("NetworkManager: Aborting Webhook, no Wi-Fi.");
-      return false;
-    }
+  if (!ensureWiFi()) {
+    Serial.println("NetworkManager: Aborting Webhook, no Wi-Fi.");
+    return false;
   }
 
   bool useGet = (url.find("{spool_id}") != std::string::npos);
@@ -97,6 +102,78 @@ bool NetworkManager::sendWebhookPayload(const std::string &spool_id,
     }
   } else {
     Serial.printf("NetworkManager: Error code: %d\n", httpResponseCode);
+  }
+
+  http.end();
+  return success;
+}
+
+bool NetworkManager::fetchSpoolmanData(OpenSpoolData &data) {
+  std::string baseUrl = ConfigManager::getSpoolmanUrl();
+  if (baseUrl.empty() || data.spool_id.empty()) {
+    return false;
+  }
+
+  if (!ensureWiFi()) {
+    Serial.println("NetworkManager: Aborting Spoolman fetch, no Wi-Fi.");
+    return false;
+  }
+
+  // Remove trailing slash if present
+  if (baseUrl.back() == '/') {
+    baseUrl.pop_back();
+  }
+
+  std::string api_url = baseUrl + "/api/v1/spool/" + data.spool_id;
+  Serial.printf("NetworkManager: Fetching Spoolman data from %s\n",
+                api_url.c_str());
+
+  HTTPClient http;
+  http.begin(api_url.c_str());
+  int httpResponseCode = http.GET();
+
+  bool success = false;
+  if (httpResponseCode == 200) {
+    String payload = http.getString();
+    JsonDocument doc;
+    DeserializationError error = deserializeJson(doc, payload);
+
+    if (!error) {
+      // Enrichment logic
+      if (doc.containsKey("filament") && doc["filament"].containsKey("name")) {
+        data.filament_name = doc["filament"]["name"].as<const char *>();
+      }
+
+      if (doc.containsKey("remaining_weight")) {
+        float remaining = doc["remaining_weight"].as<float>();
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%.1fg", remaining);
+        data.remaining_weight = buf;
+      }
+
+      // Total weight = initial_weight + spool_weight
+      float initial = doc["initial_weight"].as<float>();
+      float spool = doc["spool_weight"].as<float>();
+      float total = initial + spool;
+      if (total > 0) {
+        char buf[32];
+        // Format with 1g precision and thousands separator (simple version)
+        if (total >= 1000) {
+          snprintf(buf, sizeof(buf), "%d,%03dg", (int)(total / 1000),
+                   (int)total % 1000);
+        } else {
+          snprintf(buf, sizeof(buf), "%dg", (int)total);
+        }
+        data.total_weight = buf;
+      }
+
+      success = true;
+    } else {
+      Serial.printf("NetworkManager: JSON Parse Error: %s\n", error.c_str());
+    }
+  } else {
+    Serial.printf("NetworkManager: Spoolman HTTP Error: %d\n",
+                  httpResponseCode);
   }
 
   http.end();

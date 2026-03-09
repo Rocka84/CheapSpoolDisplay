@@ -55,6 +55,12 @@ private:
   static lv_obj_t *labelBedTemp;
   static lv_obj_t *labelColorHex;
   static lv_obj_t *loadBtn;
+
+  // Spoolman enrichment UI
+  static lv_obj_t *keyFilament;
+  static lv_obj_t *labelFilamentName;
+  static lv_obj_t *keyWeight;
+  static lv_obj_t *labelWeight;
 };
 
 #endif // DISPLAY_UI_H

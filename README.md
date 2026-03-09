@@ -8,7 +8,8 @@ CheapSpoolDisplay is a firmware project for the ESP32 Cheap Yellow Display (CYD)
 - **Webhook Integration**: Configure a target URL to send POST payloads directly from the device to load the spool to the printer.
   - The "Load" button only appears if a Webhook URL is configured.
   - If multiple tools are configured (via `set tools <1-6>`), a tool selection dialog will appear after picking load.
-- **Persistent Configuration**: Serial Terminal allows you to program Wi-Fi credentials, Webhooks, and tool counts directly into flash memory over USB (`set wifi`, `set webhook`, `set tools`).
+- **Spoolman Data Enrichment**: Optionally connect to a [Spoolman](https://github.com/Donkie/Spoolman) server to fetch real-time filament names and remaining weight (rounded to 0.1g).
+- **Persistent Configuration**: Serial Terminal allows you to program Wi-Fi credentials, Webhooks, Spoolman URLs, and tool counts directly into flash memory over USB (`set wifi`, `set webhook`, `set spoolman`, `set tools`).
 - **Conditional Connectivity**: Wi-Fi is only active if a Webhook is configured, saving power for offline usage.
 - **Web Installer**: A browser-based GUI built on ESP Web Tools to let users flash the firmware with zero CLI tools and use a browser-based serial console.
 - **Power Management**: Intelligent power saving modes:
@@ -23,6 +24,7 @@ CheapSpoolDisplay is a firmware project for the ESP32 Cheap Yellow Display (CYD)
 ## Documentation
 Please see the `docs/` folder for detailed guides:
 - [Hardware Setup & modifications](docs/HARDWARE_SETUP.md)
+- [Spoolman Integration Setup](docs/SPOOLMAN_SETUP.md)
 - [Testing documentation](docs/TESTING.md)
 - [Web Installer Development](docs/WEB_INSTALLER_DEV.md)
 
@@ -53,11 +55,12 @@ Use the following commands to set your network and webhook details:
 - `set ssid YourWiFiName`
 - `set pass YourWiFiPassword`
 - `set webhook http://your-hook-url/webhook`
+- `set spoolman http://your-spoolman-ip:8000`
 - `set tools 4` (Set number of tools from 1 to 6)
 - `get config` (To verify)
 
 > [!NOTE]
-> Wi-Fi will only initialize if a **Webhook** URL is set. If this field is empty, the device remains offline.
+> Wi-Fi will only initialize if a **Webhook** or **Spoolman** URL is set. If these fields are empty, the device remains offline.
 
 ### 2. Auto-Method Detection
 The device automatically determines the HTTP method based on your Webhook URL:

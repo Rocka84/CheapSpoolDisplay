@@ -63,6 +63,23 @@ void ConfigManager::setWebhook(const std::string &url) {
 #endif
 }
 
+std::string ConfigManager::getSpoolmanUrl() {
+#ifndef USE_SDL2
+  if (!preferences.isKey("spoolman")) {
+    return "";
+  }
+  return std::string(preferences.getString("spoolman", "").c_str());
+#else
+  return "http://localhost:8000";
+#endif
+}
+
+void ConfigManager::setSpoolmanUrl(const std::string &url) {
+#ifndef USE_SDL2
+  preferences.putString("spoolman", url.c_str());
+#endif
+}
+
 #ifndef USE_SDL2
 uint8_t ConfigManager::getNumTools() {
   if (!preferences.isKey("num_tools")) {

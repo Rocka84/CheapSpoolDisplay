@@ -24,6 +24,9 @@ public:
   static std::string getWebhook();
   static void setWebhook(const std::string &url);
 
+  static std::string getSpoolmanUrl();
+  static void setSpoolmanUrl(const std::string &url);
+
 #ifndef USE_SDL2
   static uint8_t getNumTools();
   static void setNumTools(uint8_t tools);

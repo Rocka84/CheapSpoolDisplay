@@ -55,6 +55,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.println("Available commands:");
     Serial.println("  set wifi <ssid> <password>");
     Serial.println("  set webhook <http://...>");
+    Serial.println("  set spoolman <http://...>");
     Serial.println("  set tools <1-6>");
     Serial.println("  set timeout <seconds>");
     Serial.println("  get config");
@@ -69,6 +70,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     std::string redactedPass = pass.empty() ? "" : "********";
     Serial.printf("PASS    : %s\n", redactedPass.c_str());
     Serial.printf("WEBHOOK : %s\n", ConfigManager::getWebhook().c_str());
+    Serial.printf("SPOOLMAN: %s\n", ConfigManager::getSpoolmanUrl().c_str());
     Serial.printf("TOOLS   : %d\n", ConfigManager::getNumTools());
     Serial.printf("TIMEOUT : %d sec\n", ConfigManager::getScreenTimeout());
     return;
@@ -78,6 +80,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     ConfigManager::setWifiSSID("");
     ConfigManager::setWifiPass("");
     ConfigManager::setWebhook("");
+    ConfigManager::setSpoolmanUrl("");
     ConfigManager::setNumTools(1);
     ConfigManager::setScreenTimeout(60);
     Serial.println("Configuration formatted/erased.");
@@ -117,6 +120,9 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     } else if (key.equalsIgnoreCase("webhook")) {
       ConfigManager::setWebhook(value.c_str());
       Serial.println("Webhook saved.");
+    } else if (key.equalsIgnoreCase("spoolman")) {
+      ConfigManager::setSpoolmanUrl(value.c_str());
+      Serial.println("Spoolman URL saved.");
     } else if (key.equalsIgnoreCase("tools")) {
       int num = value.toInt();
       if (num >= 1 && num <= 6) {

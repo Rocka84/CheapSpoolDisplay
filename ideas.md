@@ -1,7 +1,7 @@
 Ideas
 -----
 
-1. Enrich the info on the tag with information form Spoolman server
+1. Enrich the info on the display with information from Spoolman server
    * optional, only when spoolman url and wifi is configured
    * wifi must be enabled if spoolman url is configured (atm it's only activated when a webhook is configured)
    * only when spool_id is set
@@ -15,6 +15,7 @@ Ideas
     * must be printable with no or minimal supports
     * unavoidable supports must be builtin and easy to remove
     * usbc must be accessible, all other connectors must be covered
+    * both boards must be mountable
 3. Edit / Create tags
     * when a tag is scanned, show an edit button
     * when edit is pressed, show an edit screen

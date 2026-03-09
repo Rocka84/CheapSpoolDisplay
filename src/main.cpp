@@ -3,6 +3,7 @@
 
 #ifndef USE_SDL2
 #include "config/ConfigManager.h"
+#include "network/NetworkManager.h"
 #include "nfc/NFCReader.h"
 #include "power/PowerManager.h"
 #include "serial/SerialTerminal.h"
@@ -144,6 +145,16 @@ void loop() {
 
   // If a tag was scanned, we always transition to or refresh the Info Screen
   if (tagScanned) {
+#ifndef USE_SDL2
+    // Enrich with Spoolman data if configured
+    if (!ConfigManager::getSpoolmanUrl().empty() &&
+        !currentSpoolData.spool_id.empty()) {
+      Serial.println(
+          "Main: Spoolman URL configured, attempting data enrichment...");
+      NetworkManager::fetchSpoolmanData(currentSpoolData);
+    }
+#endif
+
     DisplayUI::showInfoScreen(currentSpoolData);
 
     currentState = STATE_SHOW_INFO;

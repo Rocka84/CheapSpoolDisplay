@@ -46,6 +46,11 @@ lv_obj_t *DisplayUI::labelBedTemp = nullptr;
 lv_obj_t *DisplayUI::labelColorHex = nullptr;
 lv_obj_t *DisplayUI::loadBtn = nullptr;
 
+lv_obj_t *DisplayUI::keyFilament = nullptr;
+lv_obj_t *DisplayUI::labelFilamentName = nullptr;
+lv_obj_t *DisplayUI::keyWeight = nullptr;
+lv_obj_t *DisplayUI::labelWeight = nullptr;
+
 // We need to keep track of the spool ID locally for the webhook
 static std::string currentLoadedSpoolId = "";
 
@@ -245,18 +250,19 @@ void DisplayUI::buildInfoScreen() {
   };
 
   create_row(0, "Brand", &labelBrand);
-  create_row(30, "Material", &labelType);
+  create_row(30, "Filament", &labelFilamentName, &keyFilament);
+  create_row(60, "Material", &labelType);
 
   // Color row
   lv_obj_t *cLabel = lv_label_create(card);
   lv_label_set_text(cLabel, "Color");
   lv_obj_set_style_text_color(cLabel, lv_color_hex(0x9ca3af), 0);
-  lv_obj_align(cLabel, LV_ALIGN_TOP_LEFT, 0, 60);
+  lv_obj_align(cLabel, LV_ALIGN_TOP_LEFT, 0, 90);
 
   colorBox = lv_obj_create(card);
   lv_obj_clear_flag(colorBox, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_size(colorBox, 90, 22);
-  lv_obj_align(colorBox, LV_ALIGN_TOP_LEFT, 100, 57);
+  lv_obj_align(colorBox, LV_ALIGN_TOP_LEFT, 100, 87);
   lv_obj_set_style_radius(colorBox, 6, 0);
   lv_obj_set_style_border_width(colorBox, 1, 0);
   lv_obj_set_style_border_color(colorBox, lv_color_white(), 0);
@@ -266,13 +272,14 @@ void DisplayUI::buildInfoScreen() {
   lv_label_set_text(labelColorHex, "#------");
   lv_obj_set_style_text_font(labelColorHex, &lv_font_montserrat_14, 0);
   lv_obj_set_style_text_color(labelColorHex, lv_color_white(), 0);
-  lv_obj_align(labelColorHex, LV_ALIGN_TOP_LEFT, 100, 85);
+  lv_obj_align(labelColorHex, LV_ALIGN_TOP_LEFT, 100, 115);
 
-  create_row(115, "Spool ID", &labelSpoolId);
-  create_row(145, "Subtype", &labelSubtype);
-  create_row(175, "Nozzle T.", &labelTemp);
-  create_row(205, "Bed T.", &labelBedTemp);
-  create_row(235, "Lot Nr", &labelLotNr, &keyLotNr);
+  create_row(145, "Weight", &labelWeight, &keyWeight);
+  create_row(175, "Spool ID", &labelSpoolId);
+  create_row(205, "Subtype", &labelSubtype);
+  create_row(235, "Nozzle T.", &labelTemp);
+  create_row(265, "Bed T.", &labelBedTemp);
+  create_row(295, "Lot Nr", &labelLotNr, &keyLotNr);
 
   // Bottom Buttons
   loadBtn = lv_btn_create(infoScreen);
@@ -388,8 +395,19 @@ void DisplayUI::buildEditScreen() {
 void DisplayUI::showScanScreen() { lv_scr_load(scanScreen); }
 
 void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
-  lv_label_set_text(labelBrand, spool.brand.c_str());
-  lv_label_set_text(labelType, spool.type.c_str());
+  OpenSpoolData displayData = spool;
+
+#ifdef USE_SDL2
+  // Simulator: If no spoolman data present, inject mock data for UI testing
+  if (displayData.filament_name.empty()) {
+    displayData.filament_name = "Mock Spoolman Filament";
+    displayData.remaining_weight = "123.4g";
+    displayData.total_weight = "1,000g";
+  }
+#endif
+
+  lv_label_set_text(labelBrand, displayData.brand.c_str());
+  lv_label_set_text(labelType, displayData.type.c_str());
   lv_label_set_text(labelSpoolId, spool.spool_id.c_str());
   lv_label_set_text(labelSubtype, spool.subtype.c_str());
 
@@ -411,6 +429,32 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
   if (bedTempStr == " - ")
     bedTempStr = "";
   lv_label_set_text(labelBedTemp, bedTempStr.c_str());
+
+  // Spoolman enrichment updates
+  if (spool.filament_name.empty()) {
+    lv_obj_add_flag(labelFilamentName, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(keyFilament, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_label_set_text(labelFilamentName, spool.filament_name.c_str());
+    lv_obj_clear_flag(labelFilamentName, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(keyFilament, LV_OBJ_FLAG_HIDDEN);
+  }
+
+  if (spool.remaining_weight.empty() && spool.total_weight.empty()) {
+    lv_obj_add_flag(labelWeight, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(keyWeight, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    std::string weightCombined = spool.remaining_weight;
+    if (!spool.total_weight.empty()) {
+      if (!weightCombined.empty()) {
+        weightCombined += " / ";
+      }
+      weightCombined += spool.total_weight;
+    }
+    lv_label_set_text(labelWeight, weightCombined.c_str());
+    lv_obj_clear_flag(labelWeight, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_clear_flag(keyWeight, LV_OBJ_FLAG_HIDDEN);
+  }
 
   // Convert hex string to lv_color_t
   // We assume color_hex is like "#FF0000"

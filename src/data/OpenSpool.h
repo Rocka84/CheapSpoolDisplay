@@ -21,10 +21,16 @@ struct OpenSpoolData {
   std::string lot_nr;
   std::string subtype;
 
+  // Spoolman enrichment fields
+  std::string filament_name;
+  std::string remaining_weight;
+  std::string total_weight;
+
   OpenSpoolData()
       : protocol("openspool"), version("1"), type(""), color_hex(""), brand(""),
         spool_id(""), min_temp(""), max_temp(""), bed_min_temp(""),
-        bed_max_temp(""), lot_nr(""), subtype("") {}
+        bed_max_temp(""), lot_nr(""), subtype(""), filament_name(""),
+        remaining_weight(""), total_weight("") {}
 };
 
 class OpenSpoolParser {
