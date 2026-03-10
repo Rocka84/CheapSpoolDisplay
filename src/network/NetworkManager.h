@@ -7,7 +7,8 @@
 class NetworkManager {
 public:
   static void connectWiFi();
-  static bool sendWebhookPayload(const std::string &spool_id, int toolhead_id);
+  static bool sendWebhookPayload(const OpenSpoolData &data,
+                                 int toolhead_id = 0);
   static bool fetchSpoolmanData(OpenSpoolData &data);
 };
 

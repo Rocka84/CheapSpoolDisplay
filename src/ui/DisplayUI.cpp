@@ -63,8 +63,8 @@ lv_obj_t *DisplayUI::labelFilamentName = nullptr;
 lv_obj_t *DisplayUI::keyWeight = nullptr;
 lv_obj_t *DisplayUI::labelWeight = nullptr;
 
-// We need to keep track of the spool ID locally for the webhook
-static std::string currentLoadedSpoolId = "";
+// We need to keep track of the spool data locally for the webhook/U1
+static OpenSpoolData currentLoadedData;
 
 /* Display flushing */
 #ifndef USE_SDL2
@@ -335,8 +335,9 @@ void DisplayUI::buildInfoScreen() {
   lv_obj_center(loadLbl);
 
 #ifndef USE_SDL2
-  // Hide the Load button on physical device if no webhook is configured
-  if (ConfigManager::getWebhook().empty()) {
+  // Hide the Load button on physical device if no webhook or U1 is configured
+  if (ConfigManager::getWebhook().empty() &&
+      ConfigManager::getU1Host().empty()) {
     lv_obj_add_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
   } else {
     lv_obj_clear_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
@@ -509,13 +510,14 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
     lv_label_set_text(labelColorHex, "Unknown");
   }
 
-  // Cache spool ID globally for webhook
-  currentLoadedSpoolId = spool.spool_id;
+  // Cache spool data globally for webhook/U1
+  currentLoadedData = spool;
 
 #ifndef USE_SDL2
-  // Hide the Load button on physical device if no webhook is configured
+  // Hide the Load button on physical device if no webhook or U1 is configured
   // We re-check this every time we open InfoScreen in case config changed
-  if (ConfigManager::getWebhook().empty()) {
+  if (ConfigManager::getWebhook().empty() &&
+      ConfigManager::getU1Host().empty()) {
     lv_obj_add_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
   } else {
     lv_obj_clear_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
@@ -543,12 +545,12 @@ void DisplayUI::onLoadSpoolButtonClicked(lv_event_t *e) {
     // Immediate Webhook Fire
 #ifndef USE_SDL2
     Serial.printf("Single tool mode: Auto-selected Tool 0 for spool %s\n",
-                  currentLoadedSpoolId.c_str());
-    NetworkManager::sendWebhookPayload(currentLoadedSpoolId, 0);
+                  currentLoadedData.spool_id.c_str());
 #else
     printf("Simulator [Single Tool Mode]: Auto-selected Tool 0 for spool %s\n",
-           currentLoadedSpoolId.c_str());
+           currentLoadedData.spool_id.c_str());
 #endif
+    NetworkManager::sendWebhookPayload(currentLoadedData, 0);
     lv_scr_load(infoScreen); // Stay on Info screen
   } else {
     // Show tool grid popup
@@ -560,14 +562,14 @@ void DisplayUI::onToolButtonClicked(lv_event_t *e) {
   int toolhead_id = (int)(intptr_t)lv_event_get_user_data(e);
 #ifndef USE_SDL2
   Serial.printf("User selected Tool %d for spool %s\n", toolhead_id,
-                currentLoadedSpoolId.c_str());
-
-  // Fire Webhook synchronously (simple implementation, can be async later)
-  NetworkManager::sendWebhookPayload(currentLoadedSpoolId, toolhead_id);
+                currentLoadedData.spool_id.c_str());
 #else
   printf("User selected Tool %d for spool %s\n", toolhead_id,
-         currentLoadedSpoolId.c_str());
+         currentLoadedData.spool_id.c_str());
 #endif
+
+  // Fire Webhook synchronously (simple implementation, can be async later)
+  NetworkManager::sendWebhookPayload(currentLoadedData, toolhead_id);
 
   // Return to the Info screen after loading
   lv_scr_load(infoScreen);

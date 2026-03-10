@@ -58,6 +58,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.println("  set spoolman <http://...>");
     Serial.println("  set tools <1-6>");
     Serial.println("  set timeout <seconds>");
+    Serial.println("  set u1_host <hostname>");
     Serial.println("  get config");
     Serial.println("  format (Erases all settings)");
     return;
@@ -73,6 +74,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.printf("SPOOLMAN: %s\n", ConfigManager::getSpoolmanUrl().c_str());
     Serial.printf("TOOLS   : %d\n", ConfigManager::getNumTools());
     Serial.printf("TIMEOUT : %d sec\n", ConfigManager::getScreenTimeout());
+    Serial.printf("U1 HOST : %s\n", ConfigManager::getU1Host().c_str());
     return;
   }
 
@@ -83,6 +85,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     ConfigManager::setSpoolmanUrl("");
     ConfigManager::setNumTools(1);
     ConfigManager::setScreenTimeout(60);
+    ConfigManager::setU1Host("");
     Serial.println("Configuration formatted/erased.");
     return;
   }
@@ -140,6 +143,9 @@ void SerialTerminal::processCommand(const String &cmdLine) {
         Serial.println(
             "Error: Screen timeout must be between 10 and 3600 seconds.");
       }
+    } else if (key.equalsIgnoreCase("u1_host")) {
+      ConfigManager::setU1Host(value.c_str());
+      Serial.println("Snapmaker U1 Host saved.");
     } else {
       Serial.printf("Error: Unknown key '%s'\n", key.c_str());
     }

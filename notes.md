@@ -26,7 +26,13 @@ Ideas
     * on save, ask user to present tag and write to it
     * on cancel, go back to info screen
     * on idle screen, show a button to create a new tag
-
+4. Snapmaker U1 Extended Firmware support
+    * feature was merged to extended firmware recently: https://github.com/paxx12/SnapmakerU1-Extended-Firmware/pull/314
+    * Example implementation: https://github.com/wasikuss/snapmaker-u1-remote-rfid-reader
+    * alternative to webhook
+    * sends information as GCODE to the printer similar to example implementation
+    * address of U1 must be configurable
+    * when configured, ignore webhook
 
 Known issues
 ------------

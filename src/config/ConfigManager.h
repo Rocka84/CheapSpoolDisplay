@@ -4,13 +4,11 @@
 #include <Arduino.h>
 #include <Preferences.h>
 #endif
+#include <stdint.h>
 #include <string>
-#ifdef USE_SDL2
-#include <map>
-#endif
 
 #ifdef USE_SDL2
-#include <stdint.h>
+#include <map>
 #endif
 
 class ConfigManager {
@@ -35,6 +33,10 @@ public:
 
   static uint16_t getScreenTimeout();
   static void setScreenTimeout(uint16_t seconds);
+
+  // Snapmaker U1 Settings
+  static std::string getU1Host();
+  static void setU1Host(const std::string &host);
 
 private:
 #ifndef USE_SDL2

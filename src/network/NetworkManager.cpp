@@ -1,5 +1,7 @@
 #include "NetworkManager.h"
 #include "../config/ConfigManager.h"
+#include "../data/OpenSpool.h"
+#include "../utils/Base64.h"
 #include "WebhookFormatter.h"
 #include <ArduinoJson.h>
 #ifndef USE_SDL2
@@ -64,16 +66,17 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb,
 }
 #endif
 
-bool NetworkManager::sendWebhookPayload(const std::string &spool_id,
+bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
                                         int toolhead_id) {
+  std::string spool_id = data.spool_id;
   std::string url = ConfigManager::getWebhook();
+  std::string u1_host = ConfigManager::getU1Host();
 
-  if (url.empty()) {
+  if (url.empty() && u1_host.empty()) {
 #ifndef USE_SDL2
-    Serial.println(
-        "NetworkManager: No Webhook configured. Skipping Wi-Fi and payload.");
+    Serial.println("NetworkManager: No Webhook or U1 configured. Skipping.");
 #else
-    printf("NetworkManager: No Webhook configured.\n");
+    printf("NetworkManager: No Webhook or U1 configured.\n");
 #endif
     return false;
   }
@@ -81,6 +84,82 @@ bool NetworkManager::sendWebhookPayload(const std::string &spool_id,
   // Ensure we're connected to Wi-Fi first
   if (!ensureWiFi()) {
     return false;
+  }
+
+  if (!u1_host.empty()) {
+    // Snapmaker U1 Direct API Integration (OpenSpool U1 Extended Format)
+    JsonDocument doc;
+    doc["channel"] = toolhead_id;
+    JsonObject info = doc["info"].to<JsonObject>();
+
+    info["VENDOR"] = data.brand;
+
+    // Ensure MAIN_TYPE is uppercase as recommended by spec
+    std::string mainType = data.type;
+    for (char &c : mainType)
+      c = toupper(c);
+    info["MAIN_TYPE"] = mainType;
+
+    info["SUB_TYPE"] = data.subtype;
+
+    // Convert HEX to decimal int for RGB_1
+    int rgb = 0;
+    std::string hex = data.color_hex;
+    if (!hex.empty()) {
+      if (hex[0] == '#')
+        hex = hex.substr(1);
+      try {
+        rgb = std::stoi(hex, nullptr, 16);
+      } catch (...) {
+        rgb = 0;
+      }
+    }
+    info["RGB_1"] = rgb;
+    info["ALPHA"] = data.alpha.empty() ? 255 : std::stoi(data.alpha);
+
+    // Temperature parsing
+    auto s2i = [](const std::string &s) {
+      try {
+        return std::stoi(s);
+      } catch (...) {
+        return 0;
+      }
+    };
+    info["HOTEND_MIN_TEMP"] = s2i(data.min_temp);
+    info["HOTEND_MAX_TEMP"] = s2i(data.max_temp);
+    info["BED_TEMP"] = s2i(data.bed_min_temp);
+
+    std::string payload;
+    serializeJson(doc, payload);
+
+    std::string u1_url = "http://" + u1_host;
+    if (u1_host.find(':') == std::string::npos) {
+      u1_url += ":7125";
+    }
+    u1_url += "/printer/filament_detect/set";
+
+#ifndef USE_SDL2
+    HTTPClient http;
+    http.begin(u1_url.c_str());
+    http.addHeader("Content-Type", "application/json");
+    int code = http.POST(payload.c_str());
+    http.end();
+    return (code >= 200 && code < 300);
+#else
+    CURL *curl = curl_easy_init();
+    if (!curl)
+      return false;
+    curl_easy_setopt(curl, CURLOPT_URL, u1_url.c_str());
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload.c_str());
+    struct curl_slist *headers = NULL;
+    headers = curl_slist_append(headers, "Content-Type: application/json");
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    CURLcode res = curl_easy_perform(curl);
+    long code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+    curl_easy_cleanup(curl);
+    return (res == CURLE_OK && code >= 200 && code < 300);
+#endif
   }
 
   bool useGet = (url.find("{spool_id}") != std::string::npos);
@@ -197,13 +276,13 @@ bool NetworkManager::fetchSpoolmanData(OpenSpoolData &data) {
     DeserializationError error = deserializeJson(doc, payload);
 
     if (!error) {
-      if (doc.containsKey("filament") && doc["filament"].containsKey("name")) {
+      if (doc["filament"]["name"].is<const char *>()) {
         data.filament_name = doc["filament"]["name"].as<const char *>();
         printf("NetworkManager:   Enriched filament name: %s\n",
                data.filament_name.c_str());
       }
 
-      if (doc.containsKey("remaining_weight")) {
+      if (doc["remaining_weight"].is<float>()) {
         float remaining = doc["remaining_weight"].as<float>();
         char buf[32];
         snprintf(buf, sizeof(buf), "%.1fg", remaining);

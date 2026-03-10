@@ -1,6 +1,6 @@
 # CheapSpoolDisplay
 
-CheapSpoolDisplay is a firmware project for the ESP32 Cheap Yellow Display (CYD) that allows you to scan, view, and organize your 3D printer filament spools using the OpenSpool NFC tag format.
+CheapSpoolDisplay is a firmware project for the ESP32 Cheap Yellow Display (CYD) that is **dedicated to OpenSpool Tags**. It allows you to scan, view, and organize your 3D printer filament spools using the standardized OpenSpool NFC tag format.
 
 ## Features
 - **NFC Tag Scanning**: Reads NTAG215/216 NFC tags formatted via the OpenSpool JSON specification using a connected MFRC522 SPI module.
@@ -9,6 +9,7 @@ CheapSpoolDisplay is a firmware project for the ESP32 Cheap Yellow Display (CYD)
   - The "Load" button only appears if a Webhook URL is configured.
   - If multiple tools are configured (via `set tools <1-6>`), a tool selection dialog will appear after picking load.
 - **Spoolman Data Enrichment**: Optionally connect to a [Spoolman](https://github.com/Donkie/Spoolman) server to fetch real-time filament names and remaining weight (rounded to 0.1g).
+- **Snapmaker U1 Integration**: Supports Snapmaker U1 Extended Firmware. Sends spool data via `FILAMENT_DT_FIXED` GCODE command using Moonraker's API.
 - **Persistent Configuration**: Serial Terminal allows you to program Wi-Fi credentials, Webhooks, Spoolman URLs, and tool counts directly into flash memory over USB (`set wifi`, `set webhook`, `set spoolman`, `set tools`).
 - **Conditional Connectivity**: Wi-Fi is only active if a Webhook is configured, saving power for offline usage.
 - **International Character Support**: Full support for German umlauts (ä, ö, ü, ß, Ä, Ö, Ü) in filament names and other UI labels via custom fallback fonts.
@@ -57,16 +58,21 @@ Use the following commands to set your network and webhook details:
 - `set pass YourWiFiPassword`
 - `set webhook http://your-hook-url/webhook`
 - `set spoolman http://your-spoolman-ip:8000`
+- `set u1_host your-u1-ip:7125` (Enable Snapmaker U1 GCODE loading)
 - `set tools 4` (Set number of tools from 1 to 6)
 - `get config` (To verify)
 
 > [!NOTE]
-> Wi-Fi will only initialize if a **Webhook** or **Spoolman** URL is set. If these fields are empty, the device remains offline.
+> Wi-Fi will only initialize if a **Webhook**, **Spoolman**, or **Snapmaker U1 Host** is set. If these fields are empty, the device remains offline.
 
 ### 2. Auto-Method Detection
 The device automatically determines the HTTP method based on your Webhook URL:
 - **GET Mode**: Triggered if the URL contains the `{spool_id}` placeholder (e.g. `http://api.com/load?spool={spool_id}`).
 - **POST Mode**: Default mode. Sends a JSON payload: `{"spool_id": "...", "toolhead": X}`.
+
+### 3. Snapmaker U1 Mode
+If `u1_host` is configured, it **overrides** standard webhooks. The device sends a direct HTTP POST request to `/printer/filament_detect/set` using the **OpenSpool U1 Extended Format**. This integration is strictly for OpenSpool-formatted tags.
+This requires the [Snapmaker U1 Extended Firmware](https://github.com/paxx12/SnapmakerU1-Extended-Firmware) (v1.0.0+ with PR #303 support) to be installed on the printer.
 
 ## Testing
 We utilize automated unit tests through PlatformIO (`Unity`). For detailed info, check [TESTING.md](docs/TESTING.md).

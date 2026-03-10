@@ -76,6 +76,16 @@ void ConfigManager::setScreenTimeout(uint16_t seconds) {
   preferences.putUShort("timeout", seconds);
 }
 
+std::string ConfigManager::getU1Host() {
+  if (!preferences.isKey("u1_host"))
+    return "";
+  return std::string(preferences.getString("u1_host", "").c_str());
+}
+
+void ConfigManager::setU1Host(const std::string &host) {
+  preferences.putString("u1_host", host.c_str());
+}
+
 #else
 // SIMULATOR IMPLEMENTATION
 #include <fstream>
@@ -156,5 +166,12 @@ uint16_t ConfigManager::getScreenTimeout() {
 }
 
 void ConfigManager::setScreenTimeout(uint16_t seconds) {}
+
+std::string ConfigManager::getU1Host() {
+  auto it = simConfig.find("u1_host");
+  return (it != simConfig.end()) ? it->second : "";
+}
+
+void ConfigManager::setU1Host(const std::string &host) {}
 
 #endif

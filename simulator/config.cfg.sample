@@ -7,3 +7,4 @@ webhook=http://localhost:8080/webhook?spool={spool_id}&tool={toolhead}
 spoolman=http://localhost:8000
 num_tools=4
 timeout=60
+u1_host=snapmaker-u1.local:7125

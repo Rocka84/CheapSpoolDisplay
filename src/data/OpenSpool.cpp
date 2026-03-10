@@ -43,6 +43,8 @@ bool OpenSpoolParser::parseJson(const std::string &json, OpenSpoolData &data) {
     data.lot_nr = doc["lot_nr"].as<std::string>();
   if (doc["subtype"].is<std::string>())
     data.subtype = doc["subtype"].as<std::string>();
+  if (doc["alpha"].is<std::string>())
+    data.alpha = doc["alpha"].as<std::string>();
 
   // Protocol check according to OpenSpool spec
   if (data.protocol != "openspool") {
@@ -76,6 +78,8 @@ std::string OpenSpoolParser::toJson(const OpenSpoolData &data) {
     doc["lot_nr"] = data.lot_nr;
   if (!data.subtype.empty())
     doc["subtype"] = data.subtype;
+  if (!data.alpha.empty())
+    doc["alpha"] = data.alpha;
 
   std::string output;
   serializeJson(doc, output);
