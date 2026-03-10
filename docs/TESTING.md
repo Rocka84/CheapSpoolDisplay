@@ -63,3 +63,34 @@ pio run -e simulator
 ```
 *Note: The simulator skips hardware-specific code (NFC, Wi-Fi, NVS) and simulates the Premium UI exactly as it appears on the device.*
 
+---
+
+## 4. Webhook Test Server
+
+For local development and testing of the webhook integration, a simple Python-based test server is provided in the `scripts/` directory.
+
+### Running the Test Server
+1.  **Start the server**:
+    ```bash
+    ./scripts/test_webhook_server.py
+    ```
+    The server will start listening on port **8080**.
+
+2.  **Configure the device**:
+    -   Find your computer's local IP address.
+    -   Set the webhook URL on the device or via the serial terminal:
+        ```bash
+        set webhook http://<your-ip>:8080/
+        ```
+
+3.  **Trigger a webhook**:
+    Scan a spool tag. The test server will log the incoming request details, including:
+    -   **HTTP Method** (GET or POST)
+    -   **Full Headers**
+    -   **JSON Payload** (for POST) or **URL Query Parameters** (for GET)
+
+### Why use this?
+-   **No cloud setup**: Test your webhook logic without needing a public endpoint or Spoolman instance.
+-   **Debugging**: See exactly what the device is sending, including content-type and payload structure.
+-   **Simulator support**: The simulator also sends webhooks, allowing for a fully virtual testing loop.
+

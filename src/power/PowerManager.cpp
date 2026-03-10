@@ -35,6 +35,8 @@ void PowerManager::resetIdleTimer() {
 bool PowerManager::isDisplayOff() { return displayIsOff; }
 
 void PowerManager::wakeDisplay() {
+  lastActivityTime =
+      millis(); // Reset timer so we don't immediately sleep again
   digitalWrite(TFT_BL, HIGH);
   displayIsOff = false;
   Serial.println("Display Woke Up");

@@ -15,6 +15,7 @@ class DisplayUI {
 public:
   static void init();
   static void tick();
+  static uint32_t getLastInteractionTime();
 
   // Screens
   static void showScanScreen();

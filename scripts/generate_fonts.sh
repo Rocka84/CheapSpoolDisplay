@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-FONT_FILE="assets/fonts/Montserrat-Regular.ttf"
+FONT_FILE="assets/fonts/Montserrat-SemiBold.ttf"
 
 if [ -z "$FONT_FILE" ]; then
     echo "Error: Montserrat-Regular.ttf not found in assets/fonts/"

@@ -185,6 +185,10 @@ void DisplayUI::tick() {
   lv_timer_handler(); // let the GUI do its work
 }
 
+uint32_t DisplayUI::getLastInteractionTime() {
+  return millis() - lv_display_get_inactive_time(lv_display_get_default());
+}
+
 /* --- Premium Helpers --- */
 static void apply_glass_style(lv_obj_t *obj) {
   lv_obj_set_style_bg_color(obj, lv_color_white(), 0);
@@ -214,9 +218,6 @@ void DisplayUI::buildScanScreen() {
   lv_obj_t *logo = lv_image_create(scanScreen);
   lv_image_set_src(logo, &img_openspool_logo);
   lv_obj_align(logo, LV_ALIGN_CENTER, 0, -50);
-  lv_obj_set_style_shadow_width(logo, 20, 0);
-  lv_obj_set_style_shadow_color(logo, lv_color_hex(0xff4d4d), 0);
-  lv_obj_set_style_shadow_opa(logo, LV_OPA_30, 0);
 
   lv_obj_t *header = lv_label_create(scanScreen);
   lv_label_set_text(header, "Ready to Scan");
@@ -272,7 +273,7 @@ void DisplayUI::buildInfoScreen() {
     lv_label_set_text(*val_label, "---");
     lv_obj_set_style_text_color(*val_label, lv_color_white(), 0);
     lv_obj_set_style_text_font(*val_label, font_combined_14, 0);
-    lv_obj_align(*val_label, LV_ALIGN_TOP_LEFT, 100, 0);
+    lv_obj_align(*val_label, LV_ALIGN_TOP_LEFT, 80, 0);
   };
 
   create_row("Brand", &labelBrand);
@@ -295,7 +296,7 @@ void DisplayUI::buildInfoScreen() {
   colorBox = lv_obj_create(color_row);
   lv_obj_clear_flag(colorBox, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_size(colorBox, 90, 22);
-  lv_obj_align(colorBox, LV_ALIGN_TOP_LEFT, 100, 0);
+  lv_obj_align(colorBox, LV_ALIGN_TOP_LEFT, 80, 0);
   lv_obj_set_style_radius(colorBox, 6, 0);
   lv_obj_set_style_border_width(colorBox, 1, 0);
   lv_obj_set_style_border_color(colorBox, lv_color_white(), 0);
@@ -312,7 +313,7 @@ void DisplayUI::buildInfoScreen() {
   lv_label_set_text(labelColorHex, "#------");
   lv_obj_set_style_text_font(labelColorHex, font_combined_14, 0);
   lv_obj_set_style_text_color(labelColorHex, lv_color_white(), 0);
-  lv_obj_align(labelColorHex, LV_ALIGN_TOP_LEFT, 100, 0);
+  lv_obj_align(labelColorHex, LV_ALIGN_TOP_LEFT, 80, 0);
 
   create_row("Weight", &labelWeight, &keyWeight);
   create_row("Spool ID", &labelSpoolId);

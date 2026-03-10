@@ -81,12 +81,13 @@ void loop() {
   // If display is off and screen gets touched, wake it up
   if (PowerManager::isDisplayOff() && ts.getTouch().zRaw > 0) {
     PowerManager::wakeDisplay();
-    delay(500); // Debounce touch
+    // No delay here, let the normal touch handling reset the timer too
   }
 
   // Reset power manager idle timer on touch
   if (ts.getTouch().zRaw > 0) {
     PowerManager::resetIdleTimer();
+    lastScanTime = millis(); // Also reset info screen timeout
   }
 #endif
 
@@ -186,6 +187,12 @@ void loop() {
 
   case STATE_SHOW_INFO: {
     // Auto timeout back to scanning mode, or manual return via UI back button
+    // Reset timeout if user interacts with the screen
+    uint32_t lastInteraction = DisplayUI::getLastInteractionTime();
+    if (lastInteraction > lastScanTime) {
+      lastScanTime = lastInteraction;
+    }
+
     if (millis() - lastScanTime > INFO_TIMEOUT_MS ||
         DisplayUI::isScanScreenActive()) {
       currentState = STATE_SCANNING;
