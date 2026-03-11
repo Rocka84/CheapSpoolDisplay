@@ -62,6 +62,7 @@ private:
   static lv_obj_t *labelFilamentName;
   static lv_obj_t *keyWeight;
   static lv_obj_t *labelWeight;
+  static lv_obj_t *toolGrid;
 };
 
 #endif // DISPLAY_UI_H

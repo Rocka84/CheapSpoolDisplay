@@ -26,7 +26,7 @@ Ideas
     * on save, ask user to present tag and write to it
     * on cancel, go back to info screen
     * on idle screen, show a button to create a new tag
-4. Snapmaker U1 Extended Firmware support
+4. ~~Snapmaker U1 Extended Firmware support~~ Done!
     * feature was merged to extended firmware recently: https://github.com/paxx12/SnapmakerU1-Extended-Firmware/pull/314
     * Example implementation: https://github.com/wasikuss/snapmaker-u1-remote-rfid-reader
     * alternative to webhook
@@ -39,3 +39,5 @@ Known issues
 
 * ~~When the display goes to sleep for the first time, it does wake on touch but turns off again after about a second. On subsequent behaves the same.~~ Fixed!
 * ~~Ugly bars at edges of the logo on the idle screen~~ Fixed!
+* ~~canceling the tool selection dialog does not go back to the info screen~~ Fixed!
+* ~~on the device I have configured tools to be 4, but the tool selection dialog shows only 1 tool. I have tried to reset the device, but it does not help.~~ Fixed!

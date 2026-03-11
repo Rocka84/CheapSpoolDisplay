@@ -62,6 +62,7 @@ lv_obj_t *DisplayUI::keyFilament = nullptr;
 lv_obj_t *DisplayUI::labelFilamentName = nullptr;
 lv_obj_t *DisplayUI::keyWeight = nullptr;
 lv_obj_t *DisplayUI::labelWeight = nullptr;
+lv_obj_t *DisplayUI::toolGrid = nullptr;
 
 // We need to keep track of the spool data locally for the webhook/U1
 static OpenSpoolData currentLoadedData;
@@ -373,32 +374,15 @@ void DisplayUI::buildToolSelectionScreen() {
   lv_obj_set_style_text_color(header, lv_color_white(), 0);
   lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 15);
 
-  lv_obj_t *grid = lv_obj_create(toolSelectionScreen);
-  lv_obj_set_size(grid, 220, 200);
-  lv_obj_align(grid, LV_ALIGN_CENTER, 0, 5);
-  lv_obj_set_style_bg_opa(grid, 0, 0);
-  lv_obj_set_style_border_width(grid, 0, 0);
-  lv_obj_set_scroll_dir(grid, LV_DIR_VER);
-  lv_obj_set_scrollbar_mode(grid, LV_SCROLLBAR_MODE_AUTO);
+  toolGrid = lv_obj_create(toolSelectionScreen);
+  lv_obj_set_size(toolGrid, 220, 200);
+  lv_obj_align(toolGrid, LV_ALIGN_CENTER, 0, 5);
+  lv_obj_set_style_bg_opa(toolGrid, 0, 0);
+  lv_obj_set_style_border_width(toolGrid, 0, 0);
+  lv_obj_set_scroll_dir(toolGrid, LV_DIR_VER);
+  lv_obj_set_scrollbar_mode(toolGrid, LV_SCROLLBAR_MODE_AUTO);
 
-  uint8_t num_tools = ConfigManager::getNumTools();
-  for (int i = 0; i < num_tools; i++) {
-    lv_obj_t *tBtn = lv_btn_create(grid);
-    lv_obj_set_size(tBtn, 95, 85);
-
-    int col = i % 2;
-    int row = i / 2;
-    lv_obj_align(tBtn, LV_ALIGN_TOP_LEFT, col * 105, row * 95);
-    apply_indigo_btn_style(tBtn);
-
-    lv_obj_add_event_cb(tBtn, onToolButtonClicked, LV_EVENT_CLICKED,
-                        (void *)(intptr_t)i);
-
-    lv_obj_t *tLbl = lv_label_create(tBtn);
-    lv_label_set_text_fmt(tLbl, "T %d", i);
-    lv_obj_set_style_text_font(tLbl, font_combined_20, 0);
-    lv_obj_center(tLbl);
-  }
+  // Placeholder - buttons are built dynamically in showToolSelectionScreen()
 
   lv_obj_t *backBtn = lv_btn_create(toolSelectionScreen);
   lv_obj_set_size(backBtn, 100, 35);
@@ -532,7 +516,31 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
   lv_scr_load(infoScreen);
 }
 
-void DisplayUI::showToolSelectionScreen() { lv_scr_load(toolSelectionScreen); }
+void DisplayUI::showToolSelectionScreen() {
+  // Always rebuild the grid to reflect latest num_tools config
+  lv_obj_clean(toolGrid);
+
+  uint8_t num_tools = ConfigManager::getNumTools();
+  for (int i = 0; i < num_tools; i++) {
+    lv_obj_t *tBtn = lv_btn_create(toolGrid);
+    lv_obj_set_size(tBtn, 95, 85);
+
+    int col = i % 2;
+    int row = i / 2;
+    lv_obj_align(tBtn, LV_ALIGN_TOP_LEFT, col * 105, row * 95);
+    apply_indigo_btn_style(tBtn);
+
+    lv_obj_add_event_cb(tBtn, onToolButtonClicked, LV_EVENT_CLICKED,
+                        (void *)(intptr_t)i);
+
+    lv_obj_t *tLbl = lv_label_create(tBtn);
+    lv_label_set_text_fmt(tLbl, "T %d", i);
+    lv_obj_set_style_text_font(tLbl, font_combined_20, 0);
+    lv_obj_center(tLbl);
+  }
+
+  lv_scr_load(toolSelectionScreen);
+}
 
 void DisplayUI::showEditScreen() { lv_scr_load(editScreen); }
 
@@ -581,4 +589,11 @@ void DisplayUI::onSaveButtonClicked(lv_event_t *e) {
   // Triggers write to NFC
 }
 
-void DisplayUI::onBackButtonClicked(lv_event_t *e) { showScanScreen(); }
+void DisplayUI::onBackButtonClicked(lv_event_t *e) {
+  lv_obj_t *scr = lv_scr_act();
+  if (scr == toolSelectionScreen || scr == editScreen) {
+    lv_scr_load(infoScreen);
+  } else {
+    lv_scr_load(scanScreen);
+  }
+}

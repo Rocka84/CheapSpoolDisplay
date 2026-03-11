@@ -88,7 +88,7 @@ pio test -e test_embedded
 ```
 
 ### UI Simulator (Desktop)
-You can preview and test the "Premium" LVGL interface directly on your computer without hardware. This is perfect for UI development and layout testing.
+You can preview and test the LVGL interface directly on your computer for UI development and layout testing.
 **Requirement**: [SDL2](https://www.libsdl.org/) installed on your system.
 ```bash
 # Build and run the desktop simulator
