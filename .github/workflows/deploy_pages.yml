@@ -18,38 +18,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install PlatformIO
+      - name: Package Documentation
         run: |
-          python -m pip install --upgrade pip
-          pip install platformio
-
-      - name: Build Firmware
-        run: pio run -e esp32dev
-
-      - name: Prepare Web Deployment Folder
-        run: |
-          # Create a deployment directory
-          mkdir -p public
-          
-          # Copy Web Tools frontend
-          cp web/index.html public/
-          cp web/manifest.json public/
-          
-          # Copy compiled binaries into the public folder
-          cp .pio/build/esp32dev/bootloader.bin public/
-          cp .pio/build/esp32dev/partitions.bin public/
-          cp .pio/build/esp32dev/firmware.bin public/
-          
-          # Modify the manifest.json path inside `public/` so the web installer looks locally instead of looking in `.pio/build`
-          sed -i 's|../.pio/build/esp32dev/||g' public/manifest.json
+          chmod +x scripts/copy_docs.sh
+          ./scripts/copy_docs.sh
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./public
+          publish_dir: ./web
