@@ -17,5 +17,6 @@ python -m http.server 8000
 ## 3. Flash the Device
 1. Open Google Chrome or Microsoft Edge.
 2. Navigate to: `http://localhost:8000/web/index.html`
+    * **Note**: Flashing via HTTP will **only** work with `localhost`, not with an IP address.
 3. Connect your CYD board via USB.
 4. Click "Connect & Flash Device".

@@ -20,9 +20,16 @@ Please wire your MFRC522 module to the CYD as follows:
 
 *(Note: With the board oriented as shown in the image below, **Pin 1 is on the far left**.)*
 
-![Annotated CYD Wiring Diagram](wiring_annotated.png)
+![Location of pin 1](pin1.png)
+
+I solder tiny wires from a ribbon cable directly to the pins on the back of the CYD. I strongly recommend using a microscope to do this, as the pins are very small and close together. I also recommend tinning the wires before soldering to make it easier.
+
+![spi_pins_soldered](spi_pins_soldered.png)
 
 ## 2. Power Detection & Battery Modification
+
+> [!WARNING]
+> The Power Management feature and Battery support are not yet implemented in the firmware!
 
 Standard CYD boards do not have an onboard battery charging circuit or a dedicated way to detect if the board is powered via USB (5V) or an external battery.
 

@@ -29,10 +29,6 @@ To enable Spoolman enrichment, you must configure your Spoolman server URL via t
 
 When a tag is scanned and Spoolman data is found:
 - **Filament**: Displays the friendly name of the filament.
-  - **Note**: German umlauts and special characters in filament names are fully supported.
 - **Weight**: Displays `remaining / total` weight.
-  - Remaining weight is rounded to **0.1g**.
-  - Total weight is rounded to **1g** and includes thousands separators.
-  - Example: `123.4g / 1,000g`
 
 If the Spoolman lookup fails or is not configured, these extra rows will simply be hidden, and you will only see the standard OpenSpool tag data.
