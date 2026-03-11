@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CheapSpoolDisplay | Documentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --primary: #5266ff;
+            --accent: #ff4d4d;
+            --bg: #0f1118;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text: #f3f4f6;
+            --text-muted: #9ca3af;
+            --sidebar-width: 280px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0f1118;
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar styling */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(26, 31, 53, 0.8);
+            border-right: 1px solid var(--glass-border);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-weight: 800;
+            font-size: 1.5rem;
+            margin: 0 0 20px 0;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 12px 16px;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+        }
+
+        .nav-link.active {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(82, 102, 255, 0.3);
+        }
+
+        .back-btn {
+            margin-top: auto;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Main content area */
+        .content-container {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 40px 60px;
+            max-width: 900px;
+        }
+
+        /* Markdown Styles */
+        .markdown-body {
+            line-height: 1.6;
+            font-size: 1.05rem;
+        }
+
+        .markdown-body h1 {
+            font-size: 2.2rem;
+            margin-bottom: 24px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .markdown-body h2 {
+            font-size: 1.6rem;
+            margin-top: 40px;
+            margin-bottom: 16px;
+            color: #d1d5db;
+        }
+
+        .markdown-body h3 {
+            font-size: 1.3rem;
+            margin-top: 30px;
+            color: #d1d5db;
+        }
+
+        .markdown-body p {
+            margin-bottom: 18px;
+        }
+
+        .markdown-body a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .markdown-body a:hover {
+            text-decoration: underline;
+        }
+
+        .markdown-body code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #d1d5db;
+        }
+
+        .markdown-body pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 20px;
+        }
+
+        .markdown-body pre code {
+            background: none;
+            padding: 0;
+            color: #e5e7eb;
+        }
+
+        .markdown-body blockquote {
+            border-left: 4px solid var(--primary);
+            margin: 0 0 20px 0;
+            padding: 10px 20px;
+            background: rgba(82, 102, 255, 0.1);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .markdown-body ul,
+        .markdown-body ol {
+            margin-bottom: 20px;
+            padding-left: 24px;
+        }
+
+        .markdown-body li {
+            margin-bottom: 8px;
+        }
+
+        .markdown-body img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid var(--glass-border);
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.5;
+            }
+        }
+
+        .error {
+            color: var(--accent);
+            background: rgba(255, 77, 77, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 77, 77, 0.2);
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+                padding: 20px;
+                border-right: none;
+                border-bottom: 1px solid var(--glass-border);
+            }
+
+            .content-container {
+                margin-left: 0;
+                padding: 20px;
+            }
+
+            .back-btn {
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <h2>Documentation</h2>
+        <div id="nav-container">
+            <!-- Nav links generated by JS -->
+        </div>
+        <a href="index.html" class="back-btn">← Back to Installer</a>
+    </div>
+
+    <div class="content-container">
+        <div id="content" class="markdown-body">
+            <div class="loading">Loading documentation...</div>
+        </div>
+    </div>
+
+    <script>
+        // Define the documentation files mapping
+        // Using paths relative to the web/ directory
+        const docFiles = [
+            { id: 'readme', title: 'Main Readme', path: '../README.md' },
+            { id: 'hardware', title: 'Hardware Setup', path: '../docs/HARDWARE_SETUP.md' },
+            { id: 'spoolman-setup', title: 'Spoolman Setup', path: '../docs/SPOOLMAN_SETUP.md' },
+            { id: 'testing', title: 'Testing Guide', path: '../docs/TESTING.md' },
+            { id: 'web-installer', title: 'Web Installer Dev', path: '../docs/WEB_INSTALLER_DEV.md' }
+        ];
+
+        const navContainer = document.getElementById('nav-container');
+        const contentDiv = document.getElementById('content');
+
+        // Setup Marked.js options
+        marked.setOptions({
+            gfm: true,
+            breaks: true,
+            headerIds: true
+        });
+
+        // Initialize Navigation
+        function initNav() {
+            docFiles.forEach((doc, index) => {
+                const a = document.createElement('a');
+                a.className = 'nav-link';
+                a.textContent = doc.title;
+                a.dataset.id = doc.id;
+
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    loadDoc(doc.id);
+                });
+
+                navContainer.appendChild(a);
+            });
+
+            // Handle browser navigation (back/forward)
+            window.addEventListener('popstate', (e) => {
+                if (e.state && e.state.id) {
+                    loadDoc(e.state.id, false);
+                } else {
+                    loadDoc(docFiles[0].id, false);
+                }
+            });
+
+            // Load initial document based on hash or default to first
+            const hashId = window.location.hash.replace('#', '');
+            const initialDoc = docFiles.find(d => d.id === hashId) || docFiles[0];
+            loadDoc(initialDoc.id, true);
+        }
+
+        // Fetch and render the markdown file
+        async function loadDoc(id, pushState = true) {
+            const doc = docFiles.find(d => d.id === id);
+            if (!doc) return;
+
+            // Update Active State in Sidebar
+            document.querySelectorAll('.nav-link').forEach(el => {
+                el.classList.remove('active');
+                if (el.dataset.id === id) el.classList.add('active');
+            });
+
+            // Update URL Hash
+            if (pushState) {
+                window.history.pushState({ id: id }, doc.title, `#${id}`);
+            }
+            document.title = `CheapSpoolDisplay | ${doc.title}`;
+
+            // Show loading state
+            contentDiv.innerHTML = '<div class="loading">Fetching ' + doc.title + '...</div>';
+
+            try {
+                // Append a timestamp to the URL to prevent the browser from caching the markdown files
+                const fetchUrl = `${doc.path}?t=${new Date().getTime()}`;
+                const response = await fetch(fetchUrl);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const markdown = await response.text();
+                contentDiv.innerHTML = marked.parse(markdown);
+
+                // Scroll to top
+                window.scrollTo(0, 0);
+
+                // Fix image relative paths to be relative to the markdown file's directory
+                const docDir = doc.path.substring(0, doc.path.lastIndexOf('/') + 1);
+                contentDiv.querySelectorAll('img').forEach(img => {
+                    const src = img.getAttribute('src');
+                    if (src && !src.startsWith('http') && !src.startsWith('/') && !src.startsWith('data:')) {
+                        img.setAttribute('src', docDir + src);
+                    }
+                });
+
+                // Fix internal relative links ending in .md to point to our hash router
+                fixInternalLinks();
+
+            } catch (error) {
+                console.error('Error fetching document:', error);
+                contentDiv.innerHTML = `
+                    <div class="error">
+                        <h3>Failed to load documentation</h3>
+                        <p>Could not fetch <code>${doc.path}</code>.</p>
+                        <p>Error details: ${error.message}</p>
+                        <p><em>Note: If you are opening this file directly via file://, CORS policies block local requests. Please run a local HTTP server.</em></p>
+                    </div>`;
+            }
+        }
+
+        // Intercept links inside the markdown that point to other .md files
+        function fixInternalLinks() {
+            const links = contentDiv.querySelectorAll('a');
+            links.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && href.endsWith('.md')) { // Match docs/*.md or README.md
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        // Try to map the link href back to one of our defined paths
+                        // For example, href="docs/TESTING.md" or "TESTING.md"
+                        const targetId = docFiles.find(d =>
+                            d.path.endsWith(href) ||
+                            href.endsWith(d.path.replace('../', ''))
+                        )?.id;
+
+                        if (targetId) {
+                            loadDoc(targetId);
+                        } else {
+                            console.warn("Could not map internal link to a document:", href);
+                        }
+                    });
+                }
+            });
+        }
+
+        // Start
+        initNav();
+    </script>
+</body>
+
+</html>
