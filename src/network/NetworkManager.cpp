@@ -128,6 +128,8 @@ bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
     http.begin(u1_url.c_str());
     http.addHeader("Content-Type", "application/json");
     int code = http.POST(payload.c_str());
+    // Consume response to avoid 'flush() fail on fd' errors
+    http.getString();
     http.end();
     return (code >= 200 && code < 300);
 #else
@@ -172,6 +174,9 @@ bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
 
   if (httpResponseCode >= 200 && httpResponseCode < 300)
     success = true;
+
+  // Consume response to avoid 'flush() fail on fd' errors
+  http.getString();
   http.end();
   return success;
 #else
@@ -229,9 +234,8 @@ bool NetworkManager::fetchSpoolmanData(OpenSpoolData &data) {
   HTTPClient http;
   http.begin(api_url.c_str());
   response_code = http.GET();
-  if (response_code == 200) {
-    payload = http.getString().c_str();
-  }
+  // Always consume response body
+  payload = http.getString().c_str();
   http.end();
 #else
   CURL *curl = curl_easy_init();

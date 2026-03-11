@@ -190,16 +190,14 @@ static void apply_glass_style(lv_obj_t *obj) {
   lv_obj_set_style_border_opa(obj, LV_OPA_20, 0);
   lv_obj_set_style_border_width(obj, 1, 0);
   lv_obj_set_style_radius(obj, 16, 0);
+  lv_obj_set_style_shadow_width(obj, 0, 0);
   lv_obj_set_scrollbar_mode(obj, LV_SCROLLBAR_MODE_OFF);
 }
 
 static void apply_indigo_btn_style(lv_obj_t *obj) {
   lv_obj_set_style_bg_color(obj, lv_color_hex(0x5266ff), 0);
   lv_obj_set_style_radius(obj, 12, 0);
-  lv_obj_set_style_shadow_width(obj, 15, 0);
-  lv_obj_set_style_shadow_color(obj, lv_color_hex(0x000000), 0);
-  lv_obj_set_style_shadow_opa(obj, LV_OPA_40, 0);
-  lv_obj_set_style_shadow_ofs_y(obj, 5, 0);
+  lv_obj_set_style_shadow_width(obj, 0, 0);
   lv_obj_set_style_border_width(obj, 0, 0);
 }
 
@@ -239,6 +237,7 @@ void DisplayUI::buildInfoScreen() {
   lv_obj_set_scrollbar_mode(card,
                             LV_SCROLLBAR_MODE_ACTIVE); // Better than ON/AUTO
   lv_obj_set_scroll_dir(card, LV_DIR_VER); // ONLY vertical scrolling
+  lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLL_ELASTIC);
   lv_obj_set_style_pad_all(card, 12, 0);
   lv_obj_set_style_pad_row(card, 8, 0); // Gap between rows
   lv_obj_set_flex_flow(card, LV_FLEX_FLOW_COLUMN);
@@ -373,6 +372,7 @@ void DisplayUI::buildToolSelectionScreen() {
   lv_obj_set_style_border_width(toolGrid, 0, 0);
   lv_obj_set_scroll_dir(toolGrid, LV_DIR_VER);
   lv_obj_set_scrollbar_mode(toolGrid, LV_SCROLLBAR_MODE_AUTO);
+  lv_obj_remove_flag(toolGrid, LV_OBJ_FLAG_SCROLL_ELASTIC);
 
   // Placeholder - buttons are built dynamically in showToolSelectionScreen()
 
@@ -508,6 +508,14 @@ void DisplayUI::showToolSelectionScreen() {
   lv_obj_clean(toolGrid);
 
   uint8_t num_tools = ConfigManager::getNumTools();
+  if (num_tools <= 4) {
+    lv_obj_set_scrollbar_mode(toolGrid, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_remove_flag(toolGrid, LV_OBJ_FLAG_SCROLLABLE);
+  } else {
+    lv_obj_set_scrollbar_mode(toolGrid, LV_SCROLLBAR_MODE_AUTO);
+    lv_obj_add_flag(toolGrid, LV_OBJ_FLAG_SCROLLABLE);
+  }
+
   for (int i = 0; i < num_tools; i++) {
     lv_obj_t *tBtn = lv_btn_create(toolGrid);
     lv_obj_set_size(tBtn, 95, 85);
