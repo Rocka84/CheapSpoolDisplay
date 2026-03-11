@@ -29,7 +29,6 @@ void NetworkManager::connectWiFi() {
   std::string pass = ConfigManager::getWifiPass();
 
   if (ssid.empty()) {
-    Serial.println("NetworkManager: No SSID configured. Skipping Wi-Fi.");
     return;
   }
 
@@ -37,24 +36,15 @@ void NetworkManager::connectWiFi() {
     return; // Already connected
   }
 
-  Serial.printf("NetworkManager: Connecting to Wi-Fi SSID '%s'...\n",
-                ssid.c_str());
   WiFi.begin(ssid.c_str(), pass.c_str());
 
   // Wait up to 10 seconds for connection
   int retries = 0;
   while (WiFi.status() != WL_CONNECTED && retries < 20) {
     delay(500);
-    Serial.print(".");
     retries++;
   }
 
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("\nNetworkManager: Wi-Fi Connected! IP: %s\n",
-                  WiFi.localIP().toString().c_str());
-  } else {
-    Serial.println("\nNetworkManager: Failed to connect to Wi-Fi.");
-  }
 #endif
 }
 
@@ -73,11 +63,6 @@ bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
   std::string u1_host = ConfigManager::getU1Host();
 
   if (url.empty() && u1_host.empty()) {
-#ifndef USE_SDL2
-    Serial.println("NetworkManager: No Webhook or U1 configured. Skipping.");
-#else
-    printf("NetworkManager: No Webhook or U1 configured.\n");
-#endif
     return false;
   }
 
@@ -251,7 +236,6 @@ bool NetworkManager::fetchSpoolmanData(OpenSpoolData &data) {
 #else
   CURL *curl = curl_easy_init();
   if (curl) {
-    printf("NetworkManager: curl_easy_perform to %s\n", api_url.c_str());
     curl_easy_setopt(curl, CURLOPT_URL, api_url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &payload);
@@ -260,26 +244,18 @@ bool NetworkManager::fetchSpoolmanData(OpenSpoolData &data) {
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
     curl_easy_cleanup(curl);
     if (res != CURLE_OK) {
-      printf("NetworkManager: curl_easy_perform failed: %s\n",
-             curl_easy_strerror(res));
       response_code = 0;
-    } else {
-      printf("NetworkManager: curl_easy_perform success, code: %ld\n",
-             response_code);
     }
   }
 #endif
 
   if (response_code == 200) {
-    printf("NetworkManager: Parsing Spoolman JSON...\n");
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, payload);
 
     if (!error) {
       if (doc["filament"]["name"].is<const char *>()) {
         data.filament_name = doc["filament"]["name"].as<const char *>();
-        printf("NetworkManager:   Enriched filament name: %s\n",
-               data.filament_name.c_str());
       }
 
       if (doc["remaining_weight"].is<float>()) {

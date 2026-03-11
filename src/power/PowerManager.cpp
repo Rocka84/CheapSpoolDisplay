@@ -39,17 +39,14 @@ void PowerManager::wakeDisplay() {
       millis(); // Reset timer so we don't immediately sleep again
   digitalWrite(TFT_BL, HIGH);
   displayIsOff = false;
-  Serial.println("Display Woke Up");
 }
 
 void PowerManager::turnDisplayOff() {
   digitalWrite(TFT_BL, LOW);
   displayIsOff = true;
-  Serial.println("Display Turned Off (USB Power)");
 }
 
 void PowerManager::enterDeepSleep() {
-  Serial.println("Entering Deep Sleep (Battery Power)");
   digitalWrite(TFT_BL, LOW);
 
   // Configure wake up source: EXT0 on Reset button (EN/RST pin handles reboot

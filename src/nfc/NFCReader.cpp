@@ -29,6 +29,9 @@ void NFCReader::init() {
   if (v == 0x00 || v == 0xFF) {
     Serial.println(
         "WARNING: Communication failure, is the MFRC522 properly connected?");
+  } else {
+    // Increase antenna gain to moderate level (38dB) to improve range without saturation
+    mfrc522.PCD_SetAntennaGain(mfrc522.RxGain_avg);
   }
 }
 

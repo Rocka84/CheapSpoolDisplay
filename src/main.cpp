@@ -37,10 +37,9 @@ const unsigned long INFO_TIMEOUT_MS = 30000; // Go back to scan after 30 seconds
 void setup() {
 #ifndef USE_SDL2
   Serial.begin(115200);
-  Serial.println("Starting CheapSpoolDisplay...");
-#else
-  printf("Starting CheapSpoolDisplay Simulator...\n");
 #endif
+
+  // Initialize UI (Display and LVGL)
 
   // Initialize UI (Display and LVGL)
   DisplayUI::init();
@@ -152,25 +151,7 @@ void loop() {
     // Enrich with Spoolman data if configured
     if (!ConfigManager::getSpoolmanUrl().empty() &&
         !currentSpoolData.spool_id.empty()) {
-#ifndef USE_SDL2
-      Serial.println(
-          "Main: Spoolman URL configured, attempting data enrichment...");
-#else
-      printf("Main: Spoolman URL configured (%s), attempting data enrichment "
-             "for spool %s...\n",
-             ConfigManager::getSpoolmanUrl().c_str(),
-             currentSpoolData.spool_id.c_str());
-#endif
-      if (NetworkManager::fetchSpoolmanData(currentSpoolData)) {
-#ifdef USE_SDL2
-        printf("Main: Spoolman enrichment successful for %s\n",
-               currentSpoolData.filament_name.c_str());
-#endif
-      } else {
-#ifdef USE_SDL2
-        printf("Main: Spoolman enrichment failed.\n");
-#endif
-      }
+      NetworkManager::fetchSpoolmanData(currentSpoolData);
     }
 
     DisplayUI::showInfoScreen(currentSpoolData);

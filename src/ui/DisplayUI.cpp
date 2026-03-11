@@ -79,12 +79,6 @@ static void my_disp_flush(lv_display_t *disp, const lv_area_t *area,
   tft.pushColors((uint16_t *)px_map, w * h, true);
   tft.endWrite();
 
-  static int flushCount = 0;
-  if (flushCount % 100 == 0) {
-    Serial.printf("my_disp_flush called %d times\n", flushCount);
-  }
-  flushCount++;
-
   lv_display_flush_ready(disp);
 }
 
@@ -110,8 +104,6 @@ static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data) {
       data->point.y = screenHeight - 1;
 
     data->state = LV_INDEV_STATE_PR;
-    Serial.printf("Touch: raw=(%d,%d) mapped=(%d,%d)\n", p.xRaw, p.yRaw,
-                  data->point.x, data->point.y);
   } else {
     data->state = LV_INDEV_STATE_REL;
   }
@@ -508,11 +500,6 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
   }
 #endif
 
-#ifndef USE_SDL2
-  Serial.println("DisplayUI: Loading infoScreen into LVGL...");
-#else
-  printf("DisplayUI: Loading infoScreen into LVGL...\n");
-#endif
   lv_scr_load(infoScreen);
 }
 
@@ -551,13 +538,6 @@ void DisplayUI::onLoadSpoolButtonClicked(lv_event_t *e) {
 
   if (tools == 1) {
     // Immediate Webhook Fire
-#ifndef USE_SDL2
-    Serial.printf("Single tool mode: Auto-selected Tool 0 for spool %s\n",
-                  currentLoadedData.spool_id.c_str());
-#else
-    printf("Simulator [Single Tool Mode]: Auto-selected Tool 0 for spool %s\n",
-           currentLoadedData.spool_id.c_str());
-#endif
     NetworkManager::sendWebhookPayload(currentLoadedData, 0);
     lv_scr_load(infoScreen); // Stay on Info screen
   } else {
@@ -568,14 +548,6 @@ void DisplayUI::onLoadSpoolButtonClicked(lv_event_t *e) {
 
 void DisplayUI::onToolButtonClicked(lv_event_t *e) {
   int toolhead_id = (int)(intptr_t)lv_event_get_user_data(e);
-#ifndef USE_SDL2
-  Serial.printf("User selected Tool %d for spool %s\n", toolhead_id,
-                currentLoadedData.spool_id.c_str());
-#else
-  printf("User selected Tool %d for spool %s\n", toolhead_id,
-         currentLoadedData.spool_id.c_str());
-#endif
-
   // Fire Webhook synchronously (simple implementation, can be async later)
   NetworkManager::sendWebhookPayload(currentLoadedData, toolhead_id);
 
