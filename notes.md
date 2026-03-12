@@ -26,6 +26,10 @@ Ideas
     * on save, ask user to present tag and write to it
     * on cancel, go back to info screen
     * on idle screen, show a button to create a new tag
+    * for selects use same values as PrintTag-web
+        * source: /home/dilli/src/PrintTag-Web
+        * additional brands: "Das Filament" and "RecyclingFabrik"
+    * open question: How to handle Custom Brand names, is there a onscreen keyboard widget or something like that in lvgl?
 4. ~~Snapmaker U1 Extended Firmware support~~ Done!
     * feature was merged to extended firmware recently: https://github.com/paxx12/SnapmakerU1-Extended-Firmware/pull/314
     * Example implementation: https://github.com/wasikuss/snapmaker-u1-remote-rfid-reader
