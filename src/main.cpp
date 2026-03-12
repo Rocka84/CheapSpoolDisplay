@@ -91,8 +91,10 @@ void loop() {
 #endif
 
   // Check for scanning in both SCANNING and SHOW_INFO states
+  // Crucially, skip if we are in EDITING state or have a write pending to avoid conflicts
   bool tagScanned = false;
-  if (currentState == STATE_SCANNING || currentState == STATE_SHOW_INFO) {
+  if ((currentState == STATE_SCANNING || currentState == STATE_SHOW_INFO) && 
+      !DisplayUI::isEditing() && !DisplayUI::isWritePending()) {
 #ifndef USE_SDL2
     if (NFCReader::scanForTag(currentSpoolData)) {
       PowerManager::resetIdleTimer();
@@ -159,6 +161,26 @@ void loop() {
     currentState = STATE_SHOW_INFO;
     lastScanTime = millis();
   }
+
+#ifndef USE_SDL2
+  if (DisplayUI::isWritePending()) {
+    if (NFCReader::writeTag(DisplayUI::getPendingData())) {
+      DisplayUI::setWritePending(false);
+      DisplayUI::hideWritingOverlay();
+      DisplayUI::showToast("Tag written successfully!", false);
+      
+      currentSpoolData = DisplayUI::getPendingData();
+      DisplayUI::showInfoScreen(currentSpoolData);
+      currentState = STATE_SHOW_INFO;
+      lastScanTime = millis();
+    } else if (millis() - DisplayUI::getWriteStartTime() > 30000) {
+      DisplayUI::setWritePending(false);
+      DisplayUI::hideWritingOverlay();
+      DisplayUI::showToast("Write timed out. Try again.", true);
+      // Stay in editing state/screen
+    }
+  }
+#endif
 
   switch (currentState) {
   case STATE_SCANNING: {

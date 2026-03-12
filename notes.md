@@ -16,7 +16,7 @@ Ideas
     * unavoidable supports must be builtin and easy to remove
     * usbc must be accessible, all other connectors must be covered
     * both boards must be mountable
-3. Edit / Create tags
+3. ~~Edit / Create tags~~ Version 1 Done!
     * when a tag is scanned, show an edit button
     * when edit is pressed, show an edit screen
     * on edit screen, show the current values
@@ -45,3 +45,15 @@ Known issues
 * ~~Ugly bars at edges of the logo on the idle screen~~ Fixed!
 * ~~canceling the tool selection dialog does not go back to the info screen~~ Fixed!
 * ~~on the device I have configured tools to be 4, but the tool selection dialog shows only 1 tool. I have tried to reset the device, but it does not help.~~ Fixed!
+* After loading a spool is loaded, there should be a 
+
+
+Fixes for Edit / Create tag
+---------------------------
+
+* ~~keyboard cant be closed once it's open~~ Fixed!
+* ~~spool id should have a numeric keyboard~~ Fixed!
+* ~~I don't like the color swatches. But I want a preview of the color entered in the hex field~~ Fixed!
+* ~~Longshot: What would it take to get a colorwheel widget in lvgl? Is a downgrade to LVGL 8.x worth it? What would be the downsides?~~ Won't Do!
+* ~~when entering a color, I don't want to enter the # sign. It should be cut off before editing and added back after editing. Put a # left of the input to make this more clear. if possible the keyboard should open in a hex mode~~ Fixed!
+* ~~we need to validate the inputs before allowing to save. Invalid data should be red. At the moment I can put anything in e.g. the color field and it will be saved. This is not what I want.~~ Fixed!

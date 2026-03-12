@@ -14,8 +14,11 @@ bool OpenSpoolParser::parseJson(const std::string &json, OpenSpoolData &data) {
   }
 
   data.protocol = doc["protocol"].as<std::string>();
-  if (doc["version"].is<std::string>())
+  if (doc["version"].is<std::string>()) {
     data.version = doc["version"].as<std::string>();
+  } else if (doc["version"].is<int>()) {
+    data.version = std::to_string(doc["version"].as<int>());
+  }
   if (doc["type"].is<std::string>())
     data.type = doc["type"].as<std::string>();
   if (doc["color_hex"].is<std::string>()) {

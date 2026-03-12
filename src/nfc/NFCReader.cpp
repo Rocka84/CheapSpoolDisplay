@@ -1,3 +1,4 @@
+#include <vector>
 #include "NFCReader.h"
 
 // Hardware pins for CYD SD Card slot
@@ -134,9 +135,55 @@ std::string NFCReader::readNDEFPayload() {
 }
 
 bool NFCReader::writeNDEFPayload(const std::string &json) {
-  // Writing NDEF requires writing CC, TLV blocks.
-  // This is a placeholder for the actual NDEF writing logic.
-  // It involves formatting the card as NDEF and writing the `application/json`
-  // record.
+  // NDEF formatting for NTAG215
+  // Page 3: CC (Capability Container) - E1 10 3E 00 for NTAG215 (504 bytes)
+  byte cc[4] = {0xE1, 0x10, 0x3E, 0x00};
+  MFRC522::StatusCode status = mfrc522.MIFARE_Ultralight_Write(3, cc, 4);
+  if (status != MFRC522::STATUS_OK) {
+    Serial.printf("CC Write failed: %s\n", mfrc522.GetStatusCodeName(status));
+    return false;
+  }
+
+  // Build NDEF Message
+  // TNF 0x02 (Mime Media), Type "application/json"
+  std::string type = "application/json";
+  size_t payloadLen = json.length();
+  size_t ndefLen = 3 + type.length() + payloadLen; // Header + TypeLength + PayloadLength + Type + Payload
+
+  std::vector<byte> ndef;
+  ndef.push_back(0x03); // NDEF Message TLV
+  if (ndefLen < 255) {
+    ndef.push_back((byte)ndefLen);
+  } else {
+    ndef.push_back(0xFF);
+    ndef.push_back((byte)((ndefLen >> 8) & 0xFF));
+    ndef.push_back((byte)(ndefLen & 0xFF));
+  }
+
+  // NDEF Record Header
+  // MB=1, ME=1, CF=0, SR=1, IL=0, TNF=0x02
+  ndef.push_back(0xD2);
+  ndef.push_back((byte)type.length());
+  ndef.push_back((byte)payloadLen);
+  for (char c : type) ndef.push_back((byte)c);
+  for (char c : json) ndef.push_back((byte)c);
+  ndef.push_back(0xFE); // Terminator TLV
+
+  // Pad to 4-byte pages
+  while (ndef.size() % 4 != 0) {
+    ndef.push_back(0x00);
+  }
+
+  // Write pages starting at 4
+  for (size_t i = 0; i < ndef.size(); i += 4) {
+    byte page = 4 + (i / 4);
+    if (page >= 130) break; // NTAG215 limit
+    status = mfrc522.MIFARE_Ultralight_Write(page, &ndef[i], 4);
+    if (status != MFRC522::STATUS_OK) {
+      Serial.printf("Write failed at page %d: %s\n", page, mfrc522.GetStatusCodeName(status));
+      return false;
+    }
+  }
+
   return true;
 }

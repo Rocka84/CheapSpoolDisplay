@@ -6,6 +6,7 @@
 #include <SPI.h>
 #include <TFT_eSPI.h>
 #include <XPT2046_Bitbang.h>
+#include "../nfc/NFCReader.h"
 #else
 #include <cstdlib>
 #include <cstring>
@@ -57,6 +58,27 @@ lv_obj_t *DisplayUI::labelTemp = nullptr;
 lv_obj_t *DisplayUI::labelBedTemp = nullptr;
 lv_obj_t *DisplayUI::labelColorHex = nullptr;
 lv_obj_t *DisplayUI::loadBtn = nullptr;
+lv_obj_t *DisplayUI::createNewBtn = nullptr;
+
+lv_obj_t *DisplayUI::editBrandDropdown = nullptr;
+lv_obj_t *DisplayUI::editCustomBrandRow = nullptr;
+lv_obj_t *DisplayUI::editCustomBrandTextArea = nullptr;
+lv_obj_t *DisplayUI::editTypeDropdown = nullptr;
+lv_obj_t *DisplayUI::editColorHexTextArea = nullptr;
+lv_obj_t *DisplayUI::editColorPreview = nullptr;
+lv_obj_t *DisplayUI::editSaveBtn = nullptr;
+lv_obj_t *DisplayUI::editSpoolIdTextArea = nullptr;
+lv_obj_t *DisplayUI::editLotNrTextArea = nullptr;
+lv_obj_t *DisplayUI::editMinTempTextArea = nullptr;
+lv_obj_t *DisplayUI::editMaxTempTextArea = nullptr;
+lv_obj_t *DisplayUI::editBedMinTextArea = nullptr;
+lv_obj_t *DisplayUI::editBedMaxTextArea = nullptr;
+lv_obj_t *DisplayUI::keyboard = nullptr;
+lv_obj_t *DisplayUI::writingOverlay = nullptr;
+bool DisplayUI::writePending = false;
+uint32_t DisplayUI::writeStartTime = 0;
+lv_obj_t *DisplayUI::toastObj = nullptr;
+lv_timer_t *DisplayUI::toastTimer = nullptr;
 
 lv_obj_t *DisplayUI::keyFilament = nullptr;
 lv_obj_t *DisplayUI::labelFilamentName = nullptr;
@@ -64,8 +86,8 @@ lv_obj_t *DisplayUI::keyWeight = nullptr;
 lv_obj_t *DisplayUI::labelWeight = nullptr;
 lv_obj_t *DisplayUI::toolGrid = nullptr;
 
-// We need to keep track of the spool data locally for the webhook/U1
-static OpenSpoolData currentLoadedData;
+// Static member initialization
+OpenSpoolData DisplayUI::currentLoadedData;
 
 /* Display flushing */
 #ifndef USE_SDL2
@@ -157,9 +179,12 @@ void DisplayUI::init() {
   buildInfoScreen();
   buildToolSelectionScreen();
   buildEditScreen();
+  buildWritingOverlay();
 
   // Set default dark background for all screens and hide scrollbars
   auto set_premium_scr = [](lv_obj_t *scr) {
+    if (!scr)
+      return;
     lv_obj_set_style_bg_color(scr, lv_color_hex(0x0f1118), 0);
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
     lv_obj_set_scrollbar_mode(scr, LV_SCROLLBAR_MODE_OFF);
@@ -179,7 +204,14 @@ void DisplayUI::tick() {
 }
 
 uint32_t DisplayUI::getLastInteractionTime() {
-  return millis() - lv_display_get_inactive_time(lv_display_get_default());
+  lv_display_t *disp = lv_display_get_default();
+  if (!disp)
+    return 0;
+  uint32_t inactive = lv_display_get_inactive_time(disp);
+  uint32_t now = millis();
+  if (inactive > now)
+    return 0;
+  return now - inactive;
 }
 
 /* --- Premium Helpers --- */
@@ -220,6 +252,17 @@ void DisplayUI::buildScanScreen() {
   lv_label_set_text(desc, "Hold reader over tag");
   lv_obj_set_style_text_color(desc, lv_color_hex(0x9ca3af), 0);
   lv_obj_align(desc, LV_ALIGN_CENTER, 0, 75);
+
+  createNewBtn = lv_btn_create(scanScreen);
+  lv_obj_set_size(createNewBtn, 160, 42);
+  lv_obj_align(createNewBtn, LV_ALIGN_BOTTOM_MID, 0, -20);
+  apply_indigo_btn_style(createNewBtn);
+  lv_obj_add_event_cb(createNewBtn, onCreateNewButtonClicked, LV_EVENT_CLICKED,
+                      NULL);
+
+  lv_obj_t *createLbl = lv_label_create(createNewBtn);
+  lv_label_set_text(createLbl, "Create New Tag");
+  lv_obj_center(createLbl);
 }
 
 void DisplayUI::buildInfoScreen() {
@@ -228,18 +271,14 @@ void DisplayUI::buildInfoScreen() {
 
   // Glass Card Content
   lv_obj_t *card = lv_obj_create(infoScreen);
-  lv_obj_set_size(
-      card, 220,
-      205); // Taller to use space effectively without overlapping Load button
-  lv_obj_align(card, LV_ALIGN_TOP_MID, 0,
-               10); // Shifted up since header was removed
+  lv_obj_set_size(card, 220, 205);
+  lv_obj_align(card, LV_ALIGN_TOP_MID, 0, 10);
   apply_glass_style(card);
-  lv_obj_set_scrollbar_mode(card,
-                            LV_SCROLLBAR_MODE_ACTIVE); // Better than ON/AUTO
-  lv_obj_set_scroll_dir(card, LV_DIR_VER); // ONLY vertical scrolling
+  lv_obj_set_scrollbar_mode(card, LV_SCROLLBAR_MODE_ACTIVE);
+  lv_obj_set_scroll_dir(card, LV_DIR_VER);
   lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLL_ELASTIC);
   lv_obj_set_style_pad_all(card, 12, 0);
-  lv_obj_set_style_pad_row(card, 8, 0); // Gap between rows
+  lv_obj_set_style_pad_row(card, 8, 0);
   lv_obj_set_flex_flow(card, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(card, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
                         LV_FLEX_ALIGN_START);
@@ -257,9 +296,7 @@ void DisplayUI::buildInfoScreen() {
     lv_label_set_text(k, key);
     lv_obj_set_style_text_color(k, lv_color_hex(0x9ca3af), 0);
     lv_obj_align(k, LV_ALIGN_TOP_LEFT, 0, 0);
-    if (key_label)
-      *key_label =
-          row_cont; // We store the container as the "key" to hide the whole row
+    if (key_label) *key_label = row_cont;
 
     *val_label = lv_label_create(row_cont);
     lv_label_set_text(*val_label, "---");
@@ -319,24 +356,12 @@ void DisplayUI::buildInfoScreen() {
   lv_obj_set_size(loadBtn, 200, 42);
   lv_obj_align(loadBtn, LV_ALIGN_BOTTOM_MID, 0, -55);
   apply_indigo_btn_style(loadBtn);
-  lv_obj_add_event_cb(loadBtn, onLoadSpoolButtonClicked, LV_EVENT_CLICKED,
-                      NULL);
+  lv_obj_add_event_cb(loadBtn, onLoadSpoolButtonClicked, LV_EVENT_CLICKED, NULL);
 
   lv_obj_t *loadLbl = lv_label_create(loadBtn);
   lv_label_set_text(loadLbl, "Load to Printer");
   lv_obj_center(loadLbl);
 
-#ifndef USE_SDL2
-  // Hide the Load button on physical device if no webhook or U1 is configured
-  if (ConfigManager::getWebhook().empty() &&
-      ConfigManager::getU1Host().empty()) {
-    lv_obj_add_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
-  } else {
-    lv_obj_clear_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
-  }
-#endif
-
-  // Small sub-buttons
   lv_obj_t *backBtn = lv_btn_create(infoScreen);
   lv_obj_set_size(backBtn, 95, 38);
   lv_obj_align(backBtn, LV_ALIGN_BOTTOM_LEFT, 15, -12);
@@ -390,24 +415,203 @@ void DisplayUI::buildEditScreen() {
   editScreen = lv_obj_create(NULL);
 
   lv_obj_t *header = lv_label_create(editScreen);
-  lv_label_set_text(header, "Edit Spool");
+  lv_label_set_text(header, "Edit Spool Data");
   lv_obj_set_style_text_font(header, font_combined_20, 0);
   lv_obj_set_style_text_color(header, lv_color_white(), 0);
-  lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 15);
+  lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 10);
 
-  lv_obj_t *msg = lv_label_create(editScreen);
-  lv_label_set_text(msg, "Feature update pending...");
-  lv_obj_set_style_text_color(msg, lv_color_hex(0x9ca3af), 0);
-  lv_obj_align(msg, LV_ALIGN_CENTER, 0, 0);
+  // Scrollable container for form
+  lv_obj_t *cont = lv_obj_create(editScreen);
+  lv_obj_set_size(cont, 230, 190);
+  lv_obj_align(cont, LV_ALIGN_TOP_MID, 0, 45);
+  lv_obj_set_style_bg_opa(cont, 0, 0);
+  lv_obj_set_style_border_width(cont, 0, 0);
+  lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
+                        LV_FLEX_ALIGN_START);
+  lv_obj_set_style_pad_all(cont, 5, 0);
+  lv_obj_set_style_pad_row(cont, 8, 0);
 
-  lv_obj_t *backBtn = lv_btn_create(editScreen);
-  lv_obj_set_size(backBtn, 100, 35);
-  lv_obj_align(backBtn, LV_ALIGN_BOTTOM_MID, 0, -10);
-  apply_glass_style(backBtn);
-  lv_obj_add_event_cb(backBtn, onBackButtonClicked, LV_EVENT_CLICKED, NULL);
-  lv_obj_t *backLbl = lv_label_create(backBtn);
-  lv_label_set_text(backLbl, "Back");
-  lv_obj_center(backLbl);
+  auto create_label = [&](lv_obj_t *parent, const char *txt) {
+    lv_obj_t *l = lv_label_create(parent);
+    lv_label_set_text(l, txt);
+    lv_obj_set_style_text_color(l, lv_color_hex(0x9ca3af), 0);
+    lv_obj_set_style_margin_top(l, 5, 0);
+    return l;
+  };
+
+  create_label(cont, "Brand");
+  editBrandDropdown = lv_dropdown_create(cont);
+  lv_obj_set_width(editBrandDropdown, LV_PCT(95));
+  lv_dropdown_set_options(
+      editBrandDropdown,
+      "Generic\nBambu Lab\nHatchbox\neSun\nOverture\nSUNLU\nPolymaker\n"
+      "Prusament\nSnapmaker\nJayo\nDas Filament\nRecyclingFabrik\nCustom");
+  lv_obj_add_event_cb(editBrandDropdown, onBrandDropdownChanged, LV_EVENT_VALUE_CHANGED, NULL);
+
+  editCustomBrandRow = lv_obj_create(cont);
+  lv_obj_set_size(editCustomBrandRow, LV_PCT(95), LV_SIZE_CONTENT);
+  lv_obj_set_style_bg_opa(editCustomBrandRow, 0, 0);
+  lv_obj_set_style_border_width(editCustomBrandRow, 0, 0);
+  lv_obj_set_style_pad_all(editCustomBrandRow, 0, 0);
+  lv_obj_set_flex_flow(editCustomBrandRow, LV_FLEX_FLOW_COLUMN);
+  lv_obj_add_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
+
+  lv_obj_t *customBrandLabel = create_label(editCustomBrandRow, "Custom Brand Name");
+  editCustomBrandTextArea = lv_textarea_create(editCustomBrandRow);
+  lv_obj_set_width(editCustomBrandTextArea, LV_PCT(100));
+  lv_textarea_set_one_line(editCustomBrandTextArea, true);
+  lv_obj_add_event_cb(editCustomBrandTextArea, onTextAreaFocused, LV_EVENT_FOCUSED, NULL);
+  lv_obj_add_event_cb(editCustomBrandTextArea, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+
+  create_label(cont, "Material Type");
+  editTypeDropdown = lv_dropdown_create(cont);
+  lv_obj_set_width(editTypeDropdown, LV_PCT(95));
+  lv_dropdown_set_options(editTypeDropdown,
+                          "PLA\nPETG\nABS\nASA\nTPU\nPA\nPA12\nPC\nPEEK\nPVA\n"
+                          "HIPS\nPCTG\nPLA-CF\nPETG-CF\nPA-CF");
+  create_label(cont, "Hex Color (#RRGGBB)");
+  lv_obj_t *hexRow = lv_obj_create(cont);
+  lv_obj_set_size(hexRow, LV_PCT(95), LV_SIZE_CONTENT);
+  lv_obj_set_style_bg_opa(hexRow, 0, 0);
+  lv_obj_set_style_border_width(hexRow, 0, 0);
+  lv_obj_set_style_pad_all(hexRow, 0, 0);
+  lv_obj_set_flex_flow(hexRow, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(hexRow, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+  lv_obj_t *prefix = lv_label_create(hexRow);
+  lv_label_set_text(prefix, "#");
+  lv_obj_set_style_text_color(prefix, lv_color_hex(0x9ca3af), 0);
+  lv_obj_set_style_pad_right(prefix, 5, 0);
+
+  editColorHexTextArea = lv_textarea_create(hexRow);
+  lv_obj_set_flex_grow(editColorHexTextArea, 1);
+  lv_textarea_set_one_line(editColorHexTextArea, true);
+  lv_textarea_set_max_length(editColorHexTextArea, 6);
+  lv_obj_add_event_cb(editColorHexTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
+                      NULL);
+  lv_obj_add_event_cb(editColorHexTextArea, onColorHexChanged, LV_EVENT_VALUE_CHANGED, NULL);
+
+  editColorPreview = lv_obj_create(hexRow);
+  lv_obj_set_size(editColorPreview, 40, 40);
+  lv_obj_set_style_radius(editColorPreview, 5, 0);
+  lv_obj_set_style_border_width(editColorPreview, 1, 0);
+  lv_obj_set_style_border_color(editColorPreview, lv_color_hex(0x374151), 0);
+  lv_obj_set_style_bg_color(editColorPreview, lv_color_hex(0xFFFFFF), 0);
+
+  create_label(cont, "Spool ID");
+  editSpoolIdTextArea = lv_textarea_create(cont);
+  lv_obj_set_width(editSpoolIdTextArea, LV_PCT(95));
+  lv_textarea_set_one_line(editSpoolIdTextArea, true);
+  lv_obj_add_event_cb(editSpoolIdTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
+                      NULL);
+  lv_obj_add_event_cb(editSpoolIdTextArea, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+
+  create_label(cont, "Lot Number");
+  editLotNrTextArea = lv_textarea_create(cont);
+  lv_obj_set_width(editLotNrTextArea, LV_PCT(95));
+  lv_textarea_set_one_line(editLotNrTextArea, true);
+  lv_obj_add_event_cb(editLotNrTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
+                      NULL);
+  lv_obj_add_event_cb(editLotNrTextArea, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+
+  create_label(cont, "Nozzle Temp Min/Max");
+  lv_obj_t *tempRow = lv_obj_create(cont);
+  lv_obj_set_size(tempRow, LV_PCT(95), LV_SIZE_CONTENT);
+  lv_obj_set_style_bg_opa(tempRow, 0, 0);
+  lv_obj_set_style_border_width(tempRow, 0, 0);
+  lv_obj_set_style_pad_all(tempRow, 0, 0);
+  lv_obj_set_flex_flow(tempRow, LV_FLEX_FLOW_ROW);
+  lv_obj_set_style_pad_gap(tempRow, 10, 0);
+
+  editMinTempTextArea = lv_textarea_create(tempRow);
+  lv_obj_set_width(editMinTempTextArea, 70);
+  lv_textarea_set_one_line(editMinTempTextArea, true);
+  lv_obj_add_event_cb(editMinTempTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
+                      NULL);
+  lv_obj_add_event_cb(editMinTempTextArea, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+
+  editMaxTempTextArea = lv_textarea_create(tempRow);
+  lv_obj_set_width(editMaxTempTextArea, 70);
+  lv_textarea_set_one_line(editMaxTempTextArea, true);
+  lv_obj_add_event_cb(editMaxTempTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
+                      NULL);
+  lv_obj_add_event_cb(editMaxTempTextArea, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+
+  create_label(cont, "Bed Temp Min/Max");
+  lv_obj_t *bedTempRow = lv_obj_create(cont);
+  lv_obj_set_size(bedTempRow, LV_PCT(95), LV_SIZE_CONTENT);
+  lv_obj_set_style_bg_opa(bedTempRow, 0, 0);
+  lv_obj_set_style_border_width(bedTempRow, 0, 0);
+  lv_obj_set_style_pad_all(bedTempRow, 0, 0);
+  lv_obj_set_flex_flow(bedTempRow, LV_FLEX_FLOW_ROW);
+  lv_obj_set_style_pad_gap(bedTempRow, 10, 0);
+
+  editBedMinTextArea = lv_textarea_create(bedTempRow);
+  lv_obj_set_width(editBedMinTextArea, 70);
+  lv_textarea_set_one_line(editBedMinTextArea, true);
+  lv_obj_add_event_cb(editBedMinTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
+                      NULL);
+  lv_obj_add_event_cb(editBedMinTextArea, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+
+  editBedMaxTextArea = lv_textarea_create(bedTempRow);
+  lv_obj_set_width(editBedMaxTextArea, 70);
+  lv_textarea_set_one_line(editBedMaxTextArea, true);
+  lv_obj_add_event_cb(editBedMaxTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
+                      NULL);
+  lv_obj_add_event_cb(editBedMaxTextArea, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+
+  // Bottom Buttons
+  lv_obj_t *btnCont = lv_obj_create(editScreen);
+  lv_obj_set_size(btnCont, 240, 50);
+  lv_obj_align(btnCont, LV_ALIGN_BOTTOM_MID, 0, 0);
+  lv_obj_set_style_bg_opa(btnCont, 0, 0);
+  lv_obj_set_style_border_width(btnCont, 0, 0);
+  lv_obj_set_flex_flow(btnCont, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(btnCont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                        LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_style_pad_gap(btnCont, 10, 0);
+
+  lv_obj_t *cancelBtn = lv_btn_create(btnCont);
+  lv_obj_set_size(cancelBtn, 100, 38);
+  apply_glass_style(cancelBtn);
+  lv_obj_add_event_cb(cancelBtn, onCancelEditButtonClicked, LV_EVENT_CLICKED,
+                      NULL);
+  lv_obj_t *cancelLbl = lv_label_create(cancelBtn);
+  lv_label_set_text(cancelLbl, "Cancel");
+  lv_obj_center(cancelLbl);
+
+  editSaveBtn = lv_btn_create(btnCont);
+  lv_obj_set_size(editSaveBtn, 100, 38);
+  apply_indigo_btn_style(editSaveBtn);
+  lv_obj_add_event_cb(editSaveBtn, onSaveButtonClicked, LV_EVENT_CLICKED, NULL);
+  lv_obj_t *saveLbl = lv_label_create(editSaveBtn);
+  lv_label_set_text(saveLbl, "Save Tag");
+  lv_obj_center(saveLbl);
+
+  // Keyboard (initially hidden)
+  keyboard = lv_keyboard_create(editScreen);
+  lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_event_cb(keyboard, onKeyboardEvent, LV_EVENT_ALL, NULL);
+}
+
+void DisplayUI::buildWritingOverlay() {
+  writingOverlay = lv_obj_create(lv_layer_top());
+  lv_obj_set_size(writingOverlay, screenWidth, screenHeight);
+  lv_obj_set_style_bg_color(writingOverlay, lv_color_black(), 0);
+  lv_obj_set_style_bg_opa(writingOverlay, LV_OPA_70, 0);
+  lv_obj_add_flag(writingOverlay, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_clear_flag(writingOverlay, LV_OBJ_FLAG_SCROLLABLE);
+
+  lv_obj_t *spinner = lv_spinner_create(writingOverlay);
+  lv_obj_set_size(spinner, 60, 60);
+  lv_obj_align(spinner, LV_ALIGN_CENTER, 0, -20);
+
+  lv_obj_t *msg = lv_label_create(writingOverlay);
+  lv_label_set_text(msg, "Writing to tag...\nPlease hold still");
+  lv_obj_set_style_text_align(msg, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_set_style_text_color(msg, lv_color_white(), 0);
+  lv_obj_align(msg, LV_ALIGN_CENTER, 0, 40);
 }
 
 void DisplayUI::showScanScreen() { lv_scr_load(scanScreen); }
@@ -491,7 +695,6 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
 
 #ifndef USE_SDL2
   // Hide the Load button on physical device if no webhook or U1 is configured
-  // We re-check this every time we open InfoScreen in case config changed
   if (ConfigManager::getWebhook().empty() &&
       ConfigManager::getU1Host().empty()) {
     lv_obj_add_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
@@ -537,7 +740,94 @@ void DisplayUI::showToolSelectionScreen() {
   lv_scr_load(toolSelectionScreen);
 }
 
-void DisplayUI::showEditScreen() { lv_scr_load(editScreen); }
+void DisplayUI::showEditScreen() {
+  // Populate from currentLoadedData
+  lv_dropdown_set_selected_highlight(editBrandDropdown, false);
+  // Manual search for brand in list
+  const char *opts = lv_dropdown_get_options(editBrandDropdown);
+  std::string options(opts);
+  size_t pos = options.find(currentLoadedData.brand);
+
+  if (!currentLoadedData.brand.empty() && pos != std::string::npos) {
+    int idx = 0;
+    size_t current_pos = 0;
+    bool found = false;
+    while (current_pos != std::string::npos) {
+      size_t next_pos = options.find('\n', current_pos);
+      std::string opt = (next_pos == std::string::npos) ? options.substr(current_pos) : options.substr(current_pos, next_pos - current_pos);
+      if (opt == currentLoadedData.brand) {
+        lv_dropdown_set_selected(editBrandDropdown, idx);
+        lv_obj_add_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
+        found = true;
+        break;
+      }
+      if (next_pos == std::string::npos) break;
+      current_pos = next_pos + 1;
+      idx++;
+    }
+
+    if (!found) {
+      // It's a custom brand even if the string exists as a substring elsewhere
+      lv_dropdown_set_selected(editBrandDropdown, 12); // "Custom"
+      lv_obj_clear_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
+      lv_textarea_set_text(editCustomBrandTextArea, currentLoadedData.brand.c_str());
+    }
+  } else if (!currentLoadedData.brand.empty()) {
+    // Brand not in list
+    lv_dropdown_set_selected(editBrandDropdown, 12); // "Custom"
+    lv_obj_clear_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
+    lv_textarea_set_text(editCustomBrandTextArea, currentLoadedData.brand.c_str());
+  } else {
+    lv_dropdown_set_selected(editBrandDropdown, 0); // Default Generic
+    lv_obj_add_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
+  }
+
+  lv_dropdown_set_selected_highlight(editTypeDropdown, false);
+  const char *type_opts = lv_dropdown_get_options(editTypeDropdown);
+  std::string type_options(type_opts);
+  pos = type_options.find(currentLoadedData.type);
+  if (pos != std::string::npos) {
+    int idx = 0;
+    for (size_t i = 0; i < pos; i++) {
+      if (type_options[i] == '\n')
+        idx++;
+    }
+    lv_dropdown_set_selected(editTypeDropdown, idx);
+  } else {
+    lv_dropdown_set_selected(editTypeDropdown, 0); // Default PLA
+  }
+
+  if (currentLoadedData.color_hex[0] == '#') {
+    lv_textarea_set_text(editColorHexTextArea, currentLoadedData.color_hex.c_str() + 1);
+  } else {
+    lv_textarea_set_text(editColorHexTextArea, currentLoadedData.color_hex.c_str());
+  }
+  lv_textarea_set_text(editSpoolIdTextArea, currentLoadedData.spool_id.c_str());
+  lv_textarea_set_text(editLotNrTextArea, currentLoadedData.lot_nr.c_str());
+  lv_textarea_set_text(editMinTempTextArea, currentLoadedData.min_temp.c_str());
+  lv_textarea_set_text(editMaxTempTextArea, currentLoadedData.max_temp.c_str());
+  lv_textarea_set_text(editBedMinTextArea, currentLoadedData.bed_min_temp.c_str());
+  lv_textarea_set_text(editBedMaxTextArea, currentLoadedData.bed_max_temp.c_str());
+
+  // Sync color preview
+  if (currentLoadedData.color_hex[0] == '#' && currentLoadedData.color_hex.length() == 7) {
+    uint32_t color = strtol(currentLoadedData.color_hex.c_str() + 1, NULL, 16);
+    lv_obj_set_style_bg_color(editColorPreview, lv_color_hex(color), 0);
+  }
+
+  // Initial validation
+  updateSaveButtonState();
+
+  lv_scr_load(editScreen);
+}
+
+void DisplayUI::showEditScreenForNew() {
+  currentLoadedData = OpenSpoolData();
+  currentLoadedData.brand = "Generic";
+  currentLoadedData.type = "PLA";
+  currentLoadedData.color_hex = "#FFFFFF";
+  showEditScreen();
+}
 
 bool DisplayUI::isScanScreenActive() { return lv_scr_act() == scanScreen; }
 
@@ -565,8 +855,100 @@ void DisplayUI::onToolButtonClicked(lv_event_t *e) {
 
 void DisplayUI::onEditButtonClicked(lv_event_t *e) { showEditScreen(); }
 
+void DisplayUI::onCreateNewButtonClicked(lv_event_t *e) {
+  showEditScreenForNew();
+}
+
+
+void DisplayUI::onColorHexChanged(lv_event_t *e) {
+  const char *txt = lv_textarea_get_text(editColorHexTextArea);
+  if (txt && strlen(txt) == 6) {
+    uint32_t color = strtol(txt, NULL, 16);
+    lv_obj_set_style_bg_color(editColorPreview, lv_color_hex(color), 0);
+  }
+}
+
+void DisplayUI::onBrandDropdownChanged(lv_event_t *e) {
+  uint32_t selected = lv_dropdown_get_selected(editBrandDropdown);
+  if (selected == 12) { // "Custom"
+    lv_obj_clear_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
+    validateField(editCustomBrandTextArea);
+  } else {
+    lv_obj_add_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
+    updateSaveButtonState();
+  }
+}
+
+void DisplayUI::onKeyboardEvent(lv_event_t *e) {
+  lv_event_code_t code = lv_event_get_code(e);
+  if (code == LV_EVENT_READY || code == LV_EVENT_CANCEL) {
+    lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
+  }
+}
+
 void DisplayUI::onSaveButtonClicked(lv_event_t *e) {
-  // Triggers write to NFC
+  if (!validateAll()) {
+    return; // Don't save if validation fails
+  }
+  // Extract values from UI
+  uint32_t selectedBrand = lv_dropdown_get_selected(editBrandDropdown);
+  if (selectedBrand == 12) { // Custom
+    currentLoadedData.brand = lv_textarea_get_text(editCustomBrandTextArea);
+  } else {
+    char brand[64];
+    lv_dropdown_get_selected_str(editBrandDropdown, brand, sizeof(brand));
+    currentLoadedData.brand = brand;
+  }
+
+  char type[32];
+  lv_dropdown_get_selected_str(editTypeDropdown, type, sizeof(type));
+  currentLoadedData.type = type;
+
+  std::string hexText = lv_textarea_get_text(editColorHexTextArea);
+  currentLoadedData.color_hex = "#" + hexText;
+  currentLoadedData.spool_id = lv_textarea_get_text(editSpoolIdTextArea);
+  currentLoadedData.lot_nr = lv_textarea_get_text(editLotNrTextArea);
+  currentLoadedData.min_temp = lv_textarea_get_text(editMinTempTextArea);
+  currentLoadedData.max_temp = lv_textarea_get_text(editMaxTempTextArea);
+  currentLoadedData.bed_min_temp = lv_textarea_get_text(editBedMinTextArea);
+  currentLoadedData.bed_max_temp = lv_textarea_get_text(editBedMaxTextArea);
+  currentLoadedData.protocol = "openspool"; // Ensure protocol is set
+
+#ifndef USE_SDL2
+  // Hardware: Trigger non-blocking write
+  if (writingOverlay)
+    lv_obj_clear_flag(writingOverlay, LV_OBJ_FLAG_HIDDEN);
+  
+  writePending = true;
+  writeStartTime = millis();
+  
+  // Return for hardware, polling will happen in main loop
+  return;
+#else
+  // Simulator: Update mock tag file (keep synchronous)
+  std::string json = OpenSpoolParser::toJson(currentLoadedData);
+  FILE *fp = fopen("simulator/spool.json", "w");
+  bool success = false;
+  if (fp) {
+    fputs(json.c_str(), fp);
+    fclose(fp);
+    success = true;
+  }
+  if (success) {
+    showToast("Tag written successfully!", false);
+    showInfoScreen(currentLoadedData);
+  } else {
+    showToast("Failed to write tag!", true);
+  }
+#endif
+}
+
+void DisplayUI::onCancelEditButtonClicked(lv_event_t *e) {
+  if (currentLoadedData.protocol.empty()) {
+    showScanScreen();
+  } else {
+    showInfoScreen(currentLoadedData);
+  }
 }
 
 void DisplayUI::onBackButtonClicked(lv_event_t *e) {
@@ -576,4 +958,151 @@ void DisplayUI::onBackButtonClicked(lv_event_t *e) {
   } else {
     lv_scr_load(scanScreen);
   }
+}
+
+void DisplayUI::onTextAreaFocused(lv_event_t *e) {
+  lv_obj_t *ta = (lv_obj_t *)lv_event_get_target(e);
+  lv_keyboard_set_textarea(keyboard, ta);
+  lv_obj_clear_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
+  // Auto switch to numeric mode for temps and Spool ID
+  if (ta == editMinTempTextArea || ta == editMaxTempTextArea ||
+      ta == editBedMinTextArea || ta == editBedMaxTextArea ||
+      ta == editSpoolIdTextArea) {
+    lv_keyboard_set_mode(keyboard, LV_KEYBOARD_MODE_NUMBER);
+  } else if (ta == editColorHexTextArea) {
+    lv_keyboard_set_mode(keyboard, LV_KEYBOARD_MODE_TEXT_UPPER);
+  } else {
+    lv_keyboard_set_mode(keyboard, LV_KEYBOARD_MODE_TEXT_LOWER);
+  }
+}
+
+void DisplayUI::onTextAreaChanged(lv_event_t *e) {
+  updateSaveButtonState();
+}
+
+bool DisplayUI::validateField(lv_obj_t *ta) {
+  const char *txt = lv_textarea_get_text(ta);
+  bool valid = true;
+
+  if (ta == editColorHexTextArea) {
+    if (strlen(txt) != 6) {
+      valid = false;
+    } else {
+      for (int i = 0; i < 6; i++) {
+        char c = toupper(txt[i]);
+        if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))) {
+          valid = false;
+          break;
+        }
+      }
+    }
+  } else if (ta == editSpoolIdTextArea) {
+    if (strlen(txt) > 0) {
+      long val = strtol(txt, NULL, 10);
+      if (val < 0) valid = false;
+    }
+  } else if (ta == editMinTempTextArea || ta == editMaxTempTextArea) {
+    long val = strtol(txt, NULL, 10);
+    if (val < 0 || val > 450) valid = false;
+  } else if (ta == editBedMinTextArea || ta == editBedMaxTextArea) {
+    long val = strtol(txt, NULL, 10);
+    if (val < 0 || val > 150) valid = false;
+  } else if (ta == editCustomBrandTextArea) {
+    uint32_t selected = lv_dropdown_get_selected(editBrandDropdown);
+    if (selected == 12 && strlen(txt) == 0) valid = false;
+  }
+
+  if (valid) {
+    lv_obj_set_style_border_color(ta, lv_color_hex(0x374151), 0); // Default dark border
+    lv_obj_set_style_border_width(ta, 1, 0);
+  } else {
+    lv_obj_set_style_border_color(ta, lv_color_hex(0xef4444), 0); // Red border
+    lv_obj_set_style_border_width(ta, 2, 0);
+  }
+
+  return valid;
+}
+
+bool DisplayUI::validateAll() {
+  bool all_valid = true;
+  if (!validateField(editColorHexTextArea)) all_valid = false;
+  if (!validateField(editSpoolIdTextArea)) all_valid = false;
+  if (!validateField(editMinTempTextArea)) all_valid = false;
+  if (!validateField(editMaxTempTextArea)) all_valid = false;
+  if (!validateField(editBedMinTextArea)) all_valid = false;
+  if (!validateField(editBedMaxTextArea)) all_valid = false;
+  if (lv_dropdown_get_selected(editBrandDropdown) == 12) {
+    if (!validateField(editCustomBrandTextArea)) all_valid = false;
+  }
+  return all_valid;
+}
+
+void DisplayUI::updateSaveButtonState() {
+  if (editSaveBtn == nullptr) return;
+  
+  if (validateAll()) {
+    lv_obj_clear_state(editSaveBtn, LV_STATE_DISABLED);
+  } else {
+    lv_obj_add_state(editSaveBtn, LV_STATE_DISABLED);
+  }
+}
+
+void DisplayUI::showToast(const char *msg, bool is_error) {
+  if (toastObj) {
+    lv_obj_del(toastObj);
+    toastObj = nullptr;
+  }
+  if (toastTimer) {
+    lv_timer_del(toastTimer);
+    toastTimer = nullptr;
+  }
+
+  toastObj = lv_obj_create(lv_layer_top());
+  lv_obj_set_size(toastObj, LV_PCT(80), LV_SIZE_CONTENT);
+  lv_obj_align(toastObj, LV_ALIGN_TOP_MID, 0, 20);
+  
+  if (is_error) {
+    lv_obj_set_style_bg_color(toastObj, lv_color_hex(0x7f1d1d), 0); // Dark red
+  } else {
+    lv_obj_set_style_bg_color(toastObj, lv_color_hex(0x064e3b), 0); // Dark green
+  }
+  
+  lv_obj_set_style_bg_opa(toastObj, LV_OPA_90, 0);
+  lv_obj_set_style_border_width(toastObj, 1, 0);
+  lv_obj_set_style_border_color(toastObj, lv_color_white(), 0);
+  lv_obj_set_style_radius(toastObj, 10, 0);
+  lv_obj_set_style_shadow_width(toastObj, 20, 0);
+  lv_obj_set_style_shadow_color(toastObj, lv_color_black(), 0);
+  
+  lv_obj_t *l = lv_label_create(toastObj);
+  lv_label_set_text(l, msg);
+  lv_obj_set_style_text_color(l, lv_color_white(), 0);
+  lv_obj_set_width(l, LV_PCT(100));
+  lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_center(l);
+
+  toastTimer = lv_timer_create(onToastTimer, 3000, NULL);
+}
+
+void DisplayUI::onToastTimer(lv_timer_t *t) {
+  if (toastObj) {
+    lv_obj_del(toastObj);
+    toastObj = nullptr;
+  }
+  lv_timer_del(t);
+  toastTimer = nullptr;
+}
+
+void DisplayUI::hideWritingOverlay() {
+  if (writingOverlay) {
+    lv_obj_add_flag(writingOverlay, LV_OBJ_FLAG_HIDDEN);
+  }
+}
+
+const OpenSpoolData& DisplayUI::getPendingData() {
+  return currentLoadedData;
+}
+
+bool DisplayUI::isEditing() {
+  return lv_scr_act() == editScreen;
 }

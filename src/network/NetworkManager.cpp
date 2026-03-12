@@ -140,6 +140,7 @@ bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
     struct curl_slist *headers = NULL;
     headers = curl_slist_append(headers, "Content-Type: application/json");
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
     CURLcode res = curl_easy_perform(curl);
     long code = 0;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
@@ -202,7 +203,7 @@ bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
     headers = curl_slist_append(headers, "Content-Type: application/json");
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
   }
-
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
   CURLcode res = curl_easy_perform(curl);
   long response_code = 0;
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
@@ -243,6 +244,7 @@ bool NetworkManager::fetchSpoolmanData(OpenSpoolData &data) {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &payload);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
     CURLcode res = curl_easy_perform(curl);
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
     curl_easy_cleanup(curl);
