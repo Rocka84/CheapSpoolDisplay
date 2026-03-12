@@ -59,7 +59,7 @@ Before running the simulator, you must have the **SDL2** development libraries i
 To build and launch the simulator window:
 ```bash
 pio run -e simulator
-./.pio/build/simulator/program
+./simulator/program
 ```
 *Note: The simulator skips hardware-specific code (NFC, Wi-Fi, NVS) and simulates the Premium UI exactly as it appears on the device.*
 

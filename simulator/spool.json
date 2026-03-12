@@ -1,13 +1,13 @@
 {
   "protocol": "openspool",
   "version": "1.0",
-  "type": "PETG",
-  "color_hex": "FFFFFF",
-  "brand": "Ääöüß ýéèàçłŁ",
-  "min_temp": "220",
-  "max_temp": "250",
-  "bed_min_temp": "70",
-  "bed_max_temp": "80",
-  "spool_id": 20,
+  "type": "PLA",
+  "color_hex": "35934B",
+  "brand": "Generic äßýé",
+  "min_temp": "200",
+  "max_temp": "230",
+  "bed_min_temp": "55",
+  "bed_max_temp": "65",
+  "spool_id": 12,
   "subtype": "Basic"
 }

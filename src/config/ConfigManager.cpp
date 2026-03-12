@@ -57,8 +57,8 @@ uint8_t ConfigManager::getNumTools() {
 void ConfigManager::setNumTools(uint8_t tools) {
   if (tools < 1)
     tools = 1;
-  if (tools > 6)
-    tools = 6;
+  if (tools > 16)
+    tools = 16;
   preferences.putUChar("num_tools", tools);
 }
 

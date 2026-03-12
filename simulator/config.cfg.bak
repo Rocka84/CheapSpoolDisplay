@@ -1,0 +1,7 @@
+wifi_ssid=Simulator_WiFi
+wifi_pass=simulator_pass
+webhook=http://localhost:7125/webhook?spool={spool_id}&tool={toolhead}
+spoolman=http://mctop:7912/
+num_tools=4
+timeout=60
+u1_host=localhost:7125

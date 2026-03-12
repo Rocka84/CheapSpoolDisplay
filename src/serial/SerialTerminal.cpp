@@ -56,7 +56,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.println("  set wifi <ssid> <password>");
     Serial.println("  set webhook <http://...>");
     Serial.println("  set spoolman <http://...>");
-    Serial.println("  set tools <1-6>");
+    Serial.println("  set tools <1-16>");
     Serial.println("  set timeout <seconds>");
     Serial.println("  set u1_host <hostname>");
     Serial.println("  get config");
@@ -128,11 +128,11 @@ void SerialTerminal::processCommand(const String &cmdLine) {
       Serial.println("Spoolman URL saved.");
     } else if (key.equalsIgnoreCase("tools")) {
       int num = value.toInt();
-      if (num >= 1 && num <= 6) {
+      if (num >= 1 && num <= 16) {
         ConfigManager::setNumTools(num);
         Serial.printf("Number of tools saved: %d\n", num);
       } else {
-        Serial.println("Error: Number of tools must be between 1 and 6.");
+        Serial.println("Error: Number of tools must be between 1 and 16.");
       }
     } else if (key.equalsIgnoreCase("timeout")) {
       int num = value.toInt();
