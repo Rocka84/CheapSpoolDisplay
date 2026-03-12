@@ -209,9 +209,14 @@
                     configure:
                     <ul>
                         <li><code>set wifi &lt;ssid&gt; &lt;password&gt;</code> to configure your wireless network</li>
-                        <li><code>set url http://your-hook-url/webhook</code> to set your integration URL</li>
-                        <li><code>set tools &lt;1-6&gt;</code> to set the number of tools (if applicable)</li>
-                        <li><code>set timeout &lt;seconds&gt;</code> to set screen auto-off time</li>
+                        <li><code>set spoolman &lt;url&gt;</code> to enable Spoolman enrichment</li>
+                        <li><code>set u1_host &lt;ip&gt;</code> to enable Snapmaker U1 integration</li>
+                        <li><code>set webhook &lt;url&gt;</code> to set your webhook URL</li>
+                        <li><code>set tools &lt;1-16&gt;</code> to set the number of tools (default 1 or 4 if
+                            <code>u1_host</code> is set)
+                        </li>
+                        <li><code>set timeout &lt;seconds&gt;</code> to set screen auto-off time
+                        </li>
                     </ul>
                     <p>Type <code>get config</code> anytime to verify your settings.</p>
                 </li>
