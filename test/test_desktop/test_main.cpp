@@ -104,6 +104,73 @@ void test_webhook_format_both(void) {
       WebhookFormatter::formatUrl(url, "abc-def", 2).c_str());
 }
 
+void test_openspool_color_normalization(void) {
+  std::string json = "{\"protocol\":\"openspool\",\"color_hex\":\"FF0000\"}";
+  OpenSpoolData data;
+  OpenSpoolParser::parseJson(json, data);
+  TEST_ASSERT_EQUAL_STRING("#FF0000", data.color_hex.c_str());
+
+  json = "{\"protocol\":\"openspool\",\"color_hex\":\"#00FF00\"}";
+  OpenSpoolParser::parseJson(json, data);
+  TEST_ASSERT_EQUAL_STRING("#00FF00", data.color_hex.c_str());
+}
+
+void test_openspool_spool_id_types(void) {
+  std::string json = "{\"protocol\":\"openspool\",\"spool_id\":12345}";
+  OpenSpoolData data;
+  OpenSpoolParser::parseJson(json, data);
+  TEST_ASSERT_EQUAL_STRING("12345", data.spool_id.c_str());
+
+  json = "{\"protocol\":\"openspool\",\"spool_id\":\"abc-789\"}";
+  OpenSpoolParser::parseJson(json, data);
+  TEST_ASSERT_EQUAL_STRING("abc-789", data.spool_id.c_str());
+}
+
+void test_openspool_enrichment_valid(void) {
+  std::string json = "{"
+                     "\"filament\":{\"name\":\"Galaxy Black\"},"
+                     "\"remaining_weight\":450.5,"
+                     "\"initial_weight\":750,"
+                     "\"spool_weight\":250"
+                     "}";
+  OpenSpoolData data;
+  bool result = OpenSpoolParser::enrichFromSpoolman(json, data);
+
+  TEST_ASSERT_TRUE(result);
+  TEST_ASSERT_EQUAL_STRING("Galaxy Black", data.filament_name.c_str());
+  TEST_ASSERT_EQUAL_STRING("450.5g", data.remaining_weight.c_str());
+  TEST_ASSERT_EQUAL_STRING("1,000g", data.total_weight.c_str());
+}
+
+void test_openspool_enrichment_partial(void) {
+  std::string json = "{\"filament\":{\"name\":\"Only Name\"}}";
+  OpenSpoolData data;
+  bool result = OpenSpoolParser::enrichFromSpoolman(json, data);
+
+  TEST_ASSERT_TRUE(result);
+  TEST_ASSERT_EQUAL_STRING("Only Name", data.filament_name.c_str());
+  TEST_ASSERT_EQUAL_STRING("", data.remaining_weight.c_str());
+}
+
+void test_webhook_format_multi_placeholders(void) {
+  std::string url = "http://api.com/{spool_id}/{spool_id}/{toolhead}";
+  std::string result = WebhookFormatter::formatUrl(url, "abc", 1);
+  TEST_ASSERT_EQUAL_STRING("http://api.com/abc/abc/1", result.c_str());
+}
+
+void test_webhook_format_malformed_placeholder(void) {
+  std::string url = "http://api.com/{spool_id"; // No closing brace
+  std::string result = WebhookFormatter::formatUrl(url, "abc", 1);
+  TEST_ASSERT_EQUAL_STRING("http://api.com/{spool_id", result.c_str());
+}
+
+void test_openspool_deserialization_no_protocol(void) {
+  std::string json = "{\"version\":\"1\",\"type\":\"PLA\"}";
+  OpenSpoolData data;
+  bool result = OpenSpoolParser::parseJson(json, data);
+  TEST_ASSERT_FALSE(result);
+}
+
 int main(int argc, char **argv) {
   UNITY_BEGIN();
   RUN_TEST(test_openspool_empty_initialization);
@@ -111,10 +178,17 @@ int main(int argc, char **argv) {
   RUN_TEST(test_openspool_deserialization_valid);
   RUN_TEST(test_openspool_deserialization_invalid_protocol);
   RUN_TEST(test_openspool_deserialization_bad_json);
+  RUN_TEST(test_openspool_deserialization_no_protocol);
+  RUN_TEST(test_openspool_color_normalization);
+  RUN_TEST(test_openspool_spool_id_types);
+  RUN_TEST(test_openspool_enrichment_valid);
+  RUN_TEST(test_openspool_enrichment_partial);
   RUN_TEST(test_webhook_format_no_placeholders);
   RUN_TEST(test_webhook_format_spool_id);
   RUN_TEST(test_webhook_format_toolhead);
   RUN_TEST(test_webhook_format_both);
+  RUN_TEST(test_webhook_format_multi_placeholders);
+  RUN_TEST(test_webhook_format_malformed_placeholder);
   UNITY_END();
 
   return 0;

@@ -8,8 +8,12 @@ bool OpenSpoolParser::parseJson(const std::string &json, OpenSpoolData &data) {
     return false;
   }
 
-  if (doc["protocol"].is<std::string>())
-    data.protocol = doc["protocol"].as<std::string>();
+  if (!doc["protocol"].is<std::string>() ||
+      doc["protocol"].as<std::string>() != "openspool") {
+    return false;
+  }
+
+  data.protocol = doc["protocol"].as<std::string>();
   if (doc["version"].is<std::string>())
     data.version = doc["version"].as<std::string>();
   if (doc["type"].is<std::string>())
@@ -49,6 +53,45 @@ bool OpenSpoolParser::parseJson(const std::string &json, OpenSpoolData &data) {
   // Protocol check according to OpenSpool spec
   if (data.protocol != "openspool") {
     return false;
+  }
+
+  return true;
+}
+
+bool OpenSpoolParser::enrichFromSpoolman(const std::string &json,
+                                         OpenSpoolData &data) {
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, json);
+
+  if (error) {
+    return false;
+  }
+
+  if (doc["filament"]["name"].is<std::string>()) {
+    data.filament_name = doc["filament"]["name"].as<std::string>();
+  }
+
+  if (doc["remaining_weight"].is<float>()) {
+    float remaining = doc["remaining_weight"].as<float>();
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%.1fg", remaining);
+    data.remaining_weight = buf;
+  }
+
+  if (doc["initial_weight"].is<float>() && doc["spool_weight"].is<float>()) {
+    float initial = doc["initial_weight"].as<float>();
+    float spool = doc["spool_weight"].as<float>();
+    float total = initial + spool;
+    if (total > 0) {
+      char buf[32];
+      if (total >= 1000) {
+        snprintf(buf, sizeof(buf), "%d,%03dg", (int)(total / 1000),
+                 (int)total % 1000);
+      } else {
+        snprintf(buf, sizeof(buf), "%dg", (int)total);
+      }
+      data.total_weight = buf;
+    }
   }
 
   return true;

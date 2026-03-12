@@ -1,7 +1,6 @@
 #include "NetworkManager.h"
 #include "../config/ConfigManager.h"
 #include "../data/OpenSpool.h"
-#include "../utils/Base64.h"
 #include "WebhookFormatter.h"
 #include <ArduinoJson.h>
 #ifndef USE_SDL2
@@ -254,36 +253,7 @@ bool NetworkManager::fetchSpoolmanData(OpenSpoolData &data) {
 #endif
 
   if (response_code == 200) {
-    JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, payload);
-
-    if (!error) {
-      if (doc["filament"]["name"].is<const char *>()) {
-        data.filament_name = doc["filament"]["name"].as<const char *>();
-      }
-
-      if (doc["remaining_weight"].is<float>()) {
-        float remaining = doc["remaining_weight"].as<float>();
-        char buf[32];
-        snprintf(buf, sizeof(buf), "%.1fg", remaining);
-        data.remaining_weight = buf;
-      }
-
-      float initial = doc["initial_weight"].as<float>();
-      float spool = doc["spool_weight"].as<float>();
-      float total = initial + spool;
-      if (total > 0) {
-        char buf[32];
-        if (total >= 1000) {
-          snprintf(buf, sizeof(buf), "%d,%03dg", (int)(total / 1000),
-                   (int)total % 1000);
-        } else {
-          snprintf(buf, sizeof(buf), "%dg", (int)total);
-        }
-        data.total_weight = buf;
-      }
-      return true;
-    }
+    return OpenSpoolParser::enrichFromSpoolman(payload, data);
   }
   return false;
 }

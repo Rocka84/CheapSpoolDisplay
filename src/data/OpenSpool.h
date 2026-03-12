@@ -37,6 +37,7 @@ struct OpenSpoolData {
 class OpenSpoolParser {
 public:
   static bool parseJson(const std::string &json, OpenSpoolData &data);
+  static bool enrichFromSpoolman(const std::string &json, OpenSpoolData &data);
   static std::string toJson(const OpenSpoolData &data);
 };
 
