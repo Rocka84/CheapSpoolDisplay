@@ -50,7 +50,7 @@ void ConfigManager::setSpoolmanUrl(const std::string &url) {
 
 uint8_t ConfigManager::getNumTools() {
   if (!preferences.isKey("num_tools"))
-    return 1;
+    return getU1Host().empty() ? 1 : 4;
   return preferences.getUChar("num_tools", 1);
 }
 
@@ -149,7 +149,7 @@ uint8_t ConfigManager::getNumTools() {
     } catch (...) {
     }
   }
-  return 4;
+  return getU1Host().empty() ? 1 : 4;
 }
 
 void ConfigManager::setNumTools(uint8_t tools) {}
