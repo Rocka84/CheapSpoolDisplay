@@ -27,11 +27,26 @@ struct OpenSpoolData {
   std::string remaining_weight;
   std::string total_weight;
 
-  OpenSpoolData()
-      : protocol("openspool"), version("1"), type(""), color_hex(""), brand(""),
-        spool_id(""), min_temp(""), max_temp(""), bed_min_temp(""),
-        bed_max_temp(""), lot_nr(""), subtype(""), alpha(""), filament_name(""),
-        remaining_weight(""), total_weight("") {}
+  OpenSpoolData() { reset(); }
+
+  void reset() {
+    protocol = "openspool";
+    version = "1";
+    type = "";
+    color_hex = "";
+    brand = "";
+    spool_id = "";
+    min_temp = "";
+    max_temp = "";
+    bed_min_temp = "";
+    bed_max_temp = "";
+    lot_nr = "";
+    subtype = "";
+    alpha = "";
+    filament_name = "";
+    remaining_weight = "";
+    total_weight = "";
+  }
 };
 
 class OpenSpoolParser {

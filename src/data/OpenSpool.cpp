@@ -1,6 +1,7 @@
 #include "OpenSpool.h"
 
 bool OpenSpoolParser::parseJson(const std::string &json, OpenSpoolData &data) {
+  data.reset();
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, json);
 
