@@ -427,18 +427,19 @@ void DisplayUI::buildEditScreen() {
   lv_obj_set_style_text_font(header, font_combined_20, 0);
   lv_obj_set_style_text_color(header, lv_color_white(), 0);
   lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 10);
+  lv_obj_remove_flag(editScreen, LV_OBJ_FLAG_SCROLLABLE);
 
-  // Scrollable container for form
+  // Scrollable container for form (Main content area)
   lv_obj_t *cont = lv_obj_create(editScreen);
-  lv_obj_set_size(cont, 230, 190);
-  lv_obj_align(cont, LV_ALIGN_TOP_MID, 0, 45);
+  lv_obj_set_size(cont, 240, 220); // Width back to 240, Height to fit between header and footer
+  lv_obj_align(cont, LV_ALIGN_TOP_MID, 0, 40);
   lv_obj_set_style_bg_opa(cont, 0, 0);
   lv_obj_set_style_border_width(cont, 0, 0);
   lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
                         LV_FLEX_ALIGN_START);
   lv_obj_set_style_pad_all(cont, 5, 0);
-  lv_obj_set_style_pad_row(cont, 8, 0);
+  lv_obj_set_style_pad_row(cont, 4, 0); // Reduced gap for more compactness
 
   auto create_label = [&](lv_obj_t *parent, const char *txt) {
     lv_obj_t *l = lv_label_create(parent);
@@ -581,16 +582,21 @@ void DisplayUI::buildEditScreen() {
   lv_obj_add_event_cb(editBedMaxTextArea, onTextAreaChanged,
                       LV_EVENT_VALUE_CHANGED, NULL);
 
-  // Bottom Buttons
+  // Bottom Buttons (Fixed Footer)
   lv_obj_t *btnCont = lv_obj_create(editScreen);
-  lv_obj_set_size(btnCont, 240, 50);
+  lv_obj_set_size(btnCont, 240, 50); // Width back to 240
   lv_obj_align(btnCont, LV_ALIGN_BOTTOM_MID, 0, 0);
-  lv_obj_set_style_bg_opa(btnCont, 0, 0);
+  lv_obj_set_style_bg_color(btnCont, lv_color_hex(0x111827), 0);
+  lv_obj_set_style_bg_opa(btnCont, LV_OPA_COVER, 0);
+  lv_obj_set_style_border_side(btnCont, LV_BORDER_SIDE_NONE, 0);
   lv_obj_set_style_border_width(btnCont, 0, 0);
+  lv_obj_set_style_border_color(btnCont, lv_color_hex(0x374151), 0);
+  lv_obj_set_style_radius(btnCont, 0, 0);
   lv_obj_set_flex_flow(btnCont, LV_FLEX_FLOW_ROW);
   lv_obj_set_flex_align(btnCont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_gap(btnCont, 10, 0);
+  lv_obj_set_style_pad_gap(btnCont, 20, 0);
+  lv_obj_remove_flag(btnCont, LV_OBJ_FLAG_SCROLLABLE);
 
   lv_obj_t *cancelBtn = lv_btn_create(btnCont);
   lv_obj_set_size(cancelBtn, 100, 38);
@@ -1014,6 +1020,12 @@ void DisplayUI::onBrandDropdownChanged(lv_event_t *e) {
 void DisplayUI::onKeyboardEvent(lv_event_t *e) {
   lv_event_code_t code = lv_event_get_code(e);
   if (code == LV_EVENT_READY || code == LV_EVENT_CANCEL) {
+    if (code == LV_EVENT_READY) {
+      lv_obj_t *ta = lv_keyboard_get_textarea(keyboard);
+      if (ta == promptSpoolIdTextArea) {
+        onLoadPrefilledButtonClicked(NULL);
+      }
+    }
     lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
   }
 }
