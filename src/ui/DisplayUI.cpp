@@ -19,6 +19,7 @@ extern "C" {
 extern const lv_image_dsc_t img_openspool_logo;
 LV_FONT_DECLARE(lv_font_german_14);
 LV_FONT_DECLARE(lv_font_german_20);
+LV_FONT_DECLARE(lv_font_montserrat_14);
 }
 
 // Combined fonts pointers
@@ -456,6 +457,8 @@ void DisplayUI::buildEditScreen() {
       editBrandDropdown,
       "Generic\nBambu Lab\nHatchbox\neSun\nOverture\nSUNLU\nPolymaker\n"
       "Prusament\nSnapmaker\nJayo\nDas Filament\nRecyclingFabrik\nCustom");
+  lv_obj_set_style_text_font(editBrandDropdown, &lv_font_montserrat_14,
+                             LV_PART_INDICATOR);
   lv_obj_add_event_cb(editBrandDropdown, onBrandDropdownChanged,
                       LV_EVENT_VALUE_CHANGED, NULL);
 
@@ -483,6 +486,8 @@ void DisplayUI::buildEditScreen() {
   lv_dropdown_set_options(editTypeDropdown,
                           "PLA\nPETG\nABS\nASA\nTPU\nPA\nPA12\nPC\nPEEK\nPVA\n"
                           "HIPS\nPCTG\nPLA-CF\nPETG-CF\nPA-CF");
+  lv_obj_set_style_text_font(editTypeDropdown, &lv_font_montserrat_14,
+                             LV_PART_INDICATOR);
   create_label(cont, "Hex Color (#RRGGBB)");
   lv_obj_t *hexRow = lv_obj_create(cont);
   lv_obj_set_size(hexRow, LV_PCT(95), LV_SIZE_CONTENT);

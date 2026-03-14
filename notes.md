@@ -37,6 +37,16 @@ Ideas
     * sends information as GCODE to the printer similar to example implementation
     * address of U1 must be configurable
     * when configured, ignore webhook
+5. Support Snapmaker Proprietary tags
+    * Complexity: High.
+    * Official Snapmaker tags on spools use Mifare Classic 1K tags (ISO14443A)
+    * Proprietary encrypted format with RSA signatures (hard to write, but readable)
+    * Sector keys are derived per-tag via HKDF-SHA256 from a master salt key and tag UID
+    * Would require:
+        * ESP32 crypto library (SHA256/HKDF)
+        * Master Salt Key (from firmware or user)
+        * Mifare Classic authentication and multi-sector reading logic
+        * Binary data parsing to map fields
 
 Known issues
 ------------
@@ -45,7 +55,6 @@ Known issues
 * ~~Ugly bars at edges of the logo on the idle screen~~ Fixed!
 * ~~canceling the tool selection dialog does not go back to the info screen~~ Fixed!
 * ~~on the device I have configured tools to be 4, but the tool selection dialog shows only 1 tool. I have tried to reset the device, but it does not help.~~ Fixed!
-* After loading a spool is loaded, there should be a 
 
 
 Fixes for Edit / Create tag
@@ -62,6 +71,3 @@ Fixes for Edit / Create tag
 Prepared prompts
 ----------------
 
-When entering a id the dialog and hit enter or the chckmark in the virtual keyboard, do the same as if I click the Load button.
-
-Also, on the Edit screen, the area with cancel and Save buttons must not be scollable. Lastly, again on the Edit screen, the gap between the form and the buttons is too big, that space could be used to make the form a little big higher.
