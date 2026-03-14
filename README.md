@@ -2,7 +2,8 @@
 
 CheapSpoolDisplay is a firmware project for the ESP32 Cheap Yellow Display (CYD) that is **dedicated to OpenSpool Tags**. It allows you to scan, view, and organize your 3D printer filament spools using the standardized OpenSpool NFC tag format.
 
-![Scan Screen](./docs/screen_scan.png) ![Spool Info Screen](./docs/screen_info.png) ![Tool Selection Screen](./docs/screen_tools.png)
+![Scan Screen](./docs/screen_scan.png) ![Spool Info Screen](./docs/screen_info.png)
+![Tool Selection Screen](./docs/screen_tools.png) ![Edit Screen](./docs/screen_edit.png)
 
 ## Features
 - **NFC Tag Scanning**: Reads NTAG215/216 NFC tags formatted via the OpenSpool JSON specification using a connected MFRC522 SPI module.
