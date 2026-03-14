@@ -12,9 +12,9 @@ CheapSpoolDisplay can be configured via a Serial Terminal (115200 baud) when con
 | `set spoolman http://<ip>:<port>` | Set the Spoolman server URL |
 | `set webhook http://...` | Set the webhook URL |
 | `set u1_host <ip>:<port>` | Set the Snapmaker U1 host URL |
-| `set num_tools <1-16>` | Set the number of toolheads |
+| `set tools <1-16>` | Set the number of toolheads |
 | `set timeout <seconds>` | Set the screen timeout |
-| `reset config` | Reset all configuration to defaults |
+| `format` | Erases all configuration and resets to defaults |
 
 ## Configuration Keys
 
@@ -44,7 +44,7 @@ Configures the address of your printer's Moonraker API (default port is usually 
 
 ### Number of Tools
 
-`set num_tools <1-16>`
+`set tools <1-16>`
 
 Configures how many toolheads your printer has. Up to 4 tools result in a fixed layout; more than 4 will use a scrollable 2-column grid.
 
@@ -67,7 +67,7 @@ set spoolman http://192.168.1.50:8000
 set u1_host 192.168.1.70
 
 # Set 16 tools instead of 1
-set num_tools 16
+set tools 16
 
 # Enable 5 minute screen timeout
 set timeout 300

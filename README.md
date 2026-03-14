@@ -2,7 +2,11 @@
 
 CheapSpoolDisplay is a firmware project for the ESP32 Cheap Yellow Display (CYD) that is **dedicated to OpenSpool Tags**. It allows you to scan, view, and organize your 3D printer filament spools using the standardized OpenSpool NFC tag format.
 
-![Scan Screen](./docs/screen_scan.png) ![Spool Info Screen](./docs/screen_info.png) ![Tool Selection Screen](./docs/screen_tools.png)
+![Scan Screen](./docs/screen_scan.png) ![Spool Info Screen](./docs/screen_info.png)
+![Tool Selection Screen](./docs/screen_tools.png) ![Edit Screen](./docs/screen_edit.png)
+
+## Quickstart
+Follow the [Quickstart Guide](docs/QUICKSTART.md) to get your device flashed and configured.
 
 ## Features
 - **NFC Tag Scanning**: Reads NTAG215/216 NFC tags formatted via the OpenSpool JSON specification using a connected MFRC522 SPI module.
@@ -16,7 +20,7 @@ CheapSpoolDisplay is a firmware project for the ESP32 Cheap Yellow Display (CYD)
 - **MFRC522 RFID SPI Module**
 
 ## Documentation
-Please see the `docs/` folder for detailed guides:
+- [Quickstart Guide](docs/QUICKSTART.md)
 - [Hardware Setup & modifications](docs/HARDWARE_SETUP.md)
 - [Spoolman Integration Setup](docs/SPOOLMAN_SETUP.md)
 - [Testing documentation](docs/TESTING.md)
@@ -49,7 +53,7 @@ Use the following commands to set your network and webhook details:
 - `set webhook http://your-hook-url/webhook?spool={spool_id}&tool={toolhead}`
 - `set spoolman http://your-spoolman-ip:8000`
 - `set u1_host your-u1-ip:7125` (Enable Snapmaker U1 loading)
-- `set tools 4` (Set number of tools from 1 to 6)
+- `set tools 4` (Set number of tools from 1 to 16)
 - `get config` (To verify)
 
 > [!NOTE]
