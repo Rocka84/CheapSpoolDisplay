@@ -3,10 +3,10 @@
 #include "../network/NetworkManager.h"
 
 #ifndef USE_SDL2
+#include "../nfc/NFCReader.h"
 #include <SPI.h>
 #include <TFT_eSPI.h>
 #include <XPT2046_Bitbang.h>
-#include "../nfc/NFCReader.h"
 #else
 #include <cstdlib>
 #include <cstring>
@@ -75,6 +75,10 @@ lv_obj_t *DisplayUI::editBedMinTextArea = nullptr;
 lv_obj_t *DisplayUI::editBedMaxTextArea = nullptr;
 lv_obj_t *DisplayUI::keyboard = nullptr;
 lv_obj_t *DisplayUI::writingOverlay = nullptr;
+lv_obj_t *DisplayUI::fetchingOverlay = nullptr;
+lv_obj_t *DisplayUI::spoolIdPromptScreen = nullptr;
+lv_obj_t *DisplayUI::promptSpoolIdTextArea = nullptr;
+lv_obj_t *DisplayUI::promptLoadBtn = nullptr;
 bool DisplayUI::writePending = false;
 uint32_t DisplayUI::writeStartTime = 0;
 lv_obj_t *DisplayUI::toastObj = nullptr;
@@ -179,7 +183,9 @@ void DisplayUI::init() {
   buildInfoScreen();
   buildToolSelectionScreen();
   buildEditScreen();
+  buildSpoolIdPromptScreen();
   buildWritingOverlay();
+  buildFetchingOverlay();
 
   // Set default dark background for all screens and hide scrollbars
   auto set_premium_scr = [](lv_obj_t *scr) {
@@ -296,7 +302,8 @@ void DisplayUI::buildInfoScreen() {
     lv_label_set_text(k, key);
     lv_obj_set_style_text_color(k, lv_color_hex(0x9ca3af), 0);
     lv_obj_align(k, LV_ALIGN_TOP_LEFT, 0, 0);
-    if (key_label) *key_label = row_cont;
+    if (key_label)
+      *key_label = row_cont;
 
     *val_label = lv_label_create(row_cont);
     lv_label_set_text(*val_label, "---");
@@ -356,7 +363,8 @@ void DisplayUI::buildInfoScreen() {
   lv_obj_set_size(loadBtn, 200, 42);
   lv_obj_align(loadBtn, LV_ALIGN_BOTTOM_MID, 0, -55);
   apply_indigo_btn_style(loadBtn);
-  lv_obj_add_event_cb(loadBtn, onLoadSpoolButtonClicked, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(loadBtn, onLoadSpoolButtonClicked, LV_EVENT_CLICKED,
+                      NULL);
 
   lv_obj_t *loadLbl = lv_label_create(loadBtn);
   lv_label_set_text(loadLbl, "Load to Printer");
@@ -447,7 +455,8 @@ void DisplayUI::buildEditScreen() {
       editBrandDropdown,
       "Generic\nBambu Lab\nHatchbox\neSun\nOverture\nSUNLU\nPolymaker\n"
       "Prusament\nSnapmaker\nJayo\nDas Filament\nRecyclingFabrik\nCustom");
-  lv_obj_add_event_cb(editBrandDropdown, onBrandDropdownChanged, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(editBrandDropdown, onBrandDropdownChanged,
+                      LV_EVENT_VALUE_CHANGED, NULL);
 
   editCustomBrandRow = lv_obj_create(cont);
   lv_obj_set_size(editCustomBrandRow, LV_PCT(95), LV_SIZE_CONTENT);
@@ -457,12 +466,15 @@ void DisplayUI::buildEditScreen() {
   lv_obj_set_flex_flow(editCustomBrandRow, LV_FLEX_FLOW_COLUMN);
   lv_obj_add_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
 
-  lv_obj_t *customBrandLabel = create_label(editCustomBrandRow, "Custom Brand Name");
+  lv_obj_t *customBrandLabel =
+      create_label(editCustomBrandRow, "Custom Brand Name");
   editCustomBrandTextArea = lv_textarea_create(editCustomBrandRow);
   lv_obj_set_width(editCustomBrandTextArea, LV_PCT(100));
   lv_textarea_set_one_line(editCustomBrandTextArea, true);
-  lv_obj_add_event_cb(editCustomBrandTextArea, onTextAreaFocused, LV_EVENT_FOCUSED, NULL);
-  lv_obj_add_event_cb(editCustomBrandTextArea, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(editCustomBrandTextArea, onTextAreaFocused,
+                      LV_EVENT_FOCUSED, NULL);
+  lv_obj_add_event_cb(editCustomBrandTextArea, onTextAreaChanged,
+                      LV_EVENT_VALUE_CHANGED, NULL);
 
   create_label(cont, "Material Type");
   editTypeDropdown = lv_dropdown_create(cont);
@@ -477,7 +489,8 @@ void DisplayUI::buildEditScreen() {
   lv_obj_set_style_border_width(hexRow, 0, 0);
   lv_obj_set_style_pad_all(hexRow, 0, 0);
   lv_obj_set_flex_flow(hexRow, LV_FLEX_FLOW_ROW);
-  lv_obj_set_flex_align(hexRow, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_flex_align(hexRow, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                        LV_FLEX_ALIGN_CENTER);
 
   lv_obj_t *prefix = lv_label_create(hexRow);
   lv_label_set_text(prefix, "#");
@@ -490,7 +503,8 @@ void DisplayUI::buildEditScreen() {
   lv_textarea_set_max_length(editColorHexTextArea, 6);
   lv_obj_add_event_cb(editColorHexTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
                       NULL);
-  lv_obj_add_event_cb(editColorHexTextArea, onColorHexChanged, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(editColorHexTextArea, onColorHexChanged,
+                      LV_EVENT_VALUE_CHANGED, NULL);
 
   editColorPreview = lv_obj_create(hexRow);
   lv_obj_set_size(editColorPreview, 40, 40);
@@ -505,7 +519,8 @@ void DisplayUI::buildEditScreen() {
   lv_textarea_set_one_line(editSpoolIdTextArea, true);
   lv_obj_add_event_cb(editSpoolIdTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
                       NULL);
-  lv_obj_add_event_cb(editSpoolIdTextArea, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(editSpoolIdTextArea, onTextAreaChanged,
+                      LV_EVENT_VALUE_CHANGED, NULL);
 
   create_label(cont, "Lot Number");
   editLotNrTextArea = lv_textarea_create(cont);
@@ -513,7 +528,8 @@ void DisplayUI::buildEditScreen() {
   lv_textarea_set_one_line(editLotNrTextArea, true);
   lv_obj_add_event_cb(editLotNrTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
                       NULL);
-  lv_obj_add_event_cb(editLotNrTextArea, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(editLotNrTextArea, onTextAreaChanged,
+                      LV_EVENT_VALUE_CHANGED, NULL);
 
   create_label(cont, "Nozzle Temp Min/Max");
   lv_obj_t *tempRow = lv_obj_create(cont);
@@ -529,14 +545,16 @@ void DisplayUI::buildEditScreen() {
   lv_textarea_set_one_line(editMinTempTextArea, true);
   lv_obj_add_event_cb(editMinTempTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
                       NULL);
-  lv_obj_add_event_cb(editMinTempTextArea, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(editMinTempTextArea, onTextAreaChanged,
+                      LV_EVENT_VALUE_CHANGED, NULL);
 
   editMaxTempTextArea = lv_textarea_create(tempRow);
   lv_obj_set_width(editMaxTempTextArea, 70);
   lv_textarea_set_one_line(editMaxTempTextArea, true);
   lv_obj_add_event_cb(editMaxTempTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
                       NULL);
-  lv_obj_add_event_cb(editMaxTempTextArea, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(editMaxTempTextArea, onTextAreaChanged,
+                      LV_EVENT_VALUE_CHANGED, NULL);
 
   create_label(cont, "Bed Temp Min/Max");
   lv_obj_t *bedTempRow = lv_obj_create(cont);
@@ -552,14 +570,16 @@ void DisplayUI::buildEditScreen() {
   lv_textarea_set_one_line(editBedMinTextArea, true);
   lv_obj_add_event_cb(editBedMinTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
                       NULL);
-  lv_obj_add_event_cb(editBedMinTextArea, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(editBedMinTextArea, onTextAreaChanged,
+                      LV_EVENT_VALUE_CHANGED, NULL);
 
   editBedMaxTextArea = lv_textarea_create(bedTempRow);
   lv_obj_set_width(editBedMaxTextArea, 70);
   lv_textarea_set_one_line(editBedMaxTextArea, true);
   lv_obj_add_event_cb(editBedMaxTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
                       NULL);
-  lv_obj_add_event_cb(editBedMaxTextArea, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_add_event_cb(editBedMaxTextArea, onTextAreaChanged,
+                      LV_EVENT_VALUE_CHANGED, NULL);
 
   // Bottom Buttons
   lv_obj_t *btnCont = lv_obj_create(editScreen);
@@ -589,8 +609,8 @@ void DisplayUI::buildEditScreen() {
   lv_label_set_text(saveLbl, "Save Tag");
   lv_obj_center(saveLbl);
 
-  // Keyboard (initially hidden)
-  keyboard = lv_keyboard_create(editScreen);
+  // Keyboard (initially hidden, on top layer to be shared)
+  keyboard = lv_keyboard_create(lv_layer_top());
   lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
   lv_obj_add_event_cb(keyboard, onKeyboardEvent, LV_EVENT_ALL, NULL);
 }
@@ -740,6 +760,69 @@ void DisplayUI::showToolSelectionScreen() {
   lv_scr_load(toolSelectionScreen);
 }
 
+void DisplayUI::buildSpoolIdPromptScreen() {
+  spoolIdPromptScreen = lv_obj_create(NULL);
+  lv_obj_set_style_bg_color(spoolIdPromptScreen,
+                            lv_palette_main(LV_PALETTE_GREY), 0);
+
+  lv_obj_t *cont = lv_obj_create(spoolIdPromptScreen);
+  lv_obj_set_size(cont, 280, 180);
+  lv_obj_center(cont);
+  lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                        LV_FLEX_ALIGN_CENTER);
+
+  lv_obj_t *label = lv_label_create(cont);
+  lv_label_set_text(label, "Load from Spoolman:");
+
+  promptSpoolIdTextArea = lv_textarea_create(cont);
+  lv_textarea_set_one_line(promptSpoolIdTextArea, true);
+  lv_obj_set_width(promptSpoolIdTextArea, 200);
+  lv_textarea_set_placeholder_text(promptSpoolIdTextArea, "ID");
+  lv_obj_add_event_cb(promptSpoolIdTextArea, onTextAreaFocused,
+                      LV_EVENT_FOCUSED, NULL);
+  lv_obj_add_event_cb(promptSpoolIdTextArea, onTextAreaFocused,
+                      LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(promptSpoolIdTextArea, onTextAreaChanged,
+                      LV_EVENT_VALUE_CHANGED, NULL);
+
+  lv_obj_t *btn_cont = lv_obj_create(cont);
+  lv_obj_set_size(btn_cont, 240, 60);
+  lv_obj_set_flex_flow(btn_cont, LV_FLEX_FLOW_ROW);
+  lv_obj_set_flex_align(btn_cont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
+                        LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_style_pad_all(btn_cont, 0, 0);
+  lv_obj_set_style_border_width(btn_cont, 0, 0);
+  lv_obj_set_style_bg_opa(btn_cont, 0, 0);
+
+  promptLoadBtn = lv_button_create(btn_cont);
+  lv_obj_t *load_lbl = lv_label_create(promptLoadBtn);
+  lv_label_set_text(load_lbl, "Load");
+  lv_obj_add_event_cb(promptLoadBtn, onLoadPrefilledButtonClicked,
+                      LV_EVENT_CLICKED, NULL);
+  lv_obj_add_state(promptLoadBtn, LV_STATE_DISABLED);
+
+  lv_obj_t *skip_btn = lv_button_create(btn_cont);
+  lv_obj_t *skip_lbl = lv_label_create(skip_btn);
+  lv_label_set_text(skip_lbl, "Skip");
+  lv_obj_add_event_cb(skip_btn, onSkipPrefilledButtonClicked, LV_EVENT_CLICKED,
+                      NULL);
+}
+
+void DisplayUI::buildFetchingOverlay() {
+  fetchingOverlay = lv_obj_create(lv_layer_top());
+  lv_obj_set_size(fetchingOverlay, LV_PCT(100), LV_PCT(100));
+  lv_obj_set_style_bg_color(fetchingOverlay, lv_color_black(), 0);
+  lv_obj_set_style_bg_opa(fetchingOverlay, LV_OPA_70, 0);
+
+  lv_obj_t *label = lv_label_create(fetchingOverlay);
+  lv_label_set_text(label, "Fetching from Spoolman...");
+  lv_obj_set_style_text_color(label, lv_color_white(), 0);
+  lv_obj_center(label);
+
+  lv_obj_add_flag(fetchingOverlay, LV_OBJ_FLAG_HIDDEN);
+}
+
 void DisplayUI::showEditScreen() {
   // Populate from currentLoadedData
   lv_dropdown_set_selected_highlight(editBrandDropdown, false);
@@ -754,14 +837,18 @@ void DisplayUI::showEditScreen() {
     bool found = false;
     while (current_pos != std::string::npos) {
       size_t next_pos = options.find('\n', current_pos);
-      std::string opt = (next_pos == std::string::npos) ? options.substr(current_pos) : options.substr(current_pos, next_pos - current_pos);
+      std::string opt =
+          (next_pos == std::string::npos)
+              ? options.substr(current_pos)
+              : options.substr(current_pos, next_pos - current_pos);
       if (opt == currentLoadedData.brand) {
         lv_dropdown_set_selected(editBrandDropdown, idx);
         lv_obj_add_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
         found = true;
         break;
       }
-      if (next_pos == std::string::npos) break;
+      if (next_pos == std::string::npos)
+        break;
       current_pos = next_pos + 1;
       idx++;
     }
@@ -770,13 +857,15 @@ void DisplayUI::showEditScreen() {
       // It's a custom brand even if the string exists as a substring elsewhere
       lv_dropdown_set_selected(editBrandDropdown, 12); // "Custom"
       lv_obj_clear_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
-      lv_textarea_set_text(editCustomBrandTextArea, currentLoadedData.brand.c_str());
+      lv_textarea_set_text(editCustomBrandTextArea,
+                           currentLoadedData.brand.c_str());
     }
   } else if (!currentLoadedData.brand.empty()) {
     // Brand not in list
     lv_dropdown_set_selected(editBrandDropdown, 12); // "Custom"
     lv_obj_clear_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
-    lv_textarea_set_text(editCustomBrandTextArea, currentLoadedData.brand.c_str());
+    lv_textarea_set_text(editCustomBrandTextArea,
+                         currentLoadedData.brand.c_str());
   } else {
     lv_dropdown_set_selected(editBrandDropdown, 0); // Default Generic
     lv_obj_add_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
@@ -798,19 +887,24 @@ void DisplayUI::showEditScreen() {
   }
 
   if (currentLoadedData.color_hex[0] == '#') {
-    lv_textarea_set_text(editColorHexTextArea, currentLoadedData.color_hex.c_str() + 1);
+    lv_textarea_set_text(editColorHexTextArea,
+                         currentLoadedData.color_hex.c_str() + 1);
   } else {
-    lv_textarea_set_text(editColorHexTextArea, currentLoadedData.color_hex.c_str());
+    lv_textarea_set_text(editColorHexTextArea,
+                         currentLoadedData.color_hex.c_str());
   }
   lv_textarea_set_text(editSpoolIdTextArea, currentLoadedData.spool_id.c_str());
   lv_textarea_set_text(editLotNrTextArea, currentLoadedData.lot_nr.c_str());
   lv_textarea_set_text(editMinTempTextArea, currentLoadedData.min_temp.c_str());
   lv_textarea_set_text(editMaxTempTextArea, currentLoadedData.max_temp.c_str());
-  lv_textarea_set_text(editBedMinTextArea, currentLoadedData.bed_min_temp.c_str());
-  lv_textarea_set_text(editBedMaxTextArea, currentLoadedData.bed_max_temp.c_str());
+  lv_textarea_set_text(editBedMinTextArea,
+                       currentLoadedData.bed_min_temp.c_str());
+  lv_textarea_set_text(editBedMaxTextArea,
+                       currentLoadedData.bed_max_temp.c_str());
 
   // Sync color preview
-  if (currentLoadedData.color_hex[0] == '#' && currentLoadedData.color_hex.length() == 7) {
+  if (currentLoadedData.color_hex[0] == '#' &&
+      currentLoadedData.color_hex.length() == 7) {
     uint32_t color = strtol(currentLoadedData.color_hex.c_str() + 1, NULL, 16);
     lv_obj_set_style_bg_color(editColorPreview, lv_color_hex(color), 0);
   }
@@ -856,9 +950,47 @@ void DisplayUI::onToolButtonClicked(lv_event_t *e) {
 void DisplayUI::onEditButtonClicked(lv_event_t *e) { showEditScreen(); }
 
 void DisplayUI::onCreateNewButtonClicked(lv_event_t *e) {
-  showEditScreenForNew();
+  if (!ConfigManager::getSpoolmanUrl().empty()) {
+    lv_textarea_set_text(promptSpoolIdTextArea, "");
+    lv_obj_add_state(promptLoadBtn, LV_STATE_DISABLED);
+    lv_scr_load(spoolIdPromptScreen);
+  } else {
+    currentLoadedData.reset();
+    showEditScreen();
+  }
 }
 
+void DisplayUI::onLoadPrefilledButtonClicked(lv_event_t *e) {
+  const char *id = lv_textarea_get_text(promptSpoolIdTextArea);
+  if (strlen(id) == 0) {
+    showToast("Enter a Spool ID", true);
+    return;
+  }
+
+  // Show "Fetching..."
+  lv_obj_clear_flag(fetchingOverlay, LV_OBJ_FLAG_HIDDEN);
+  lv_refr_now(NULL);
+
+  currentLoadedData.reset();
+  currentLoadedData.spool_id = id;
+
+  bool success = NetworkManager::fetchSpoolmanData(currentLoadedData);
+
+  lv_obj_add_flag(fetchingOverlay, LV_OBJ_FLAG_HIDDEN);
+
+  if (success) {
+    showToast("Data prefilled from Spoolman");
+  } else {
+    showToast("Fetch failed, starting fresh", true);
+  }
+
+  showEditScreen();
+}
+
+void DisplayUI::onSkipPrefilledButtonClicked(lv_event_t *e) {
+  currentLoadedData.reset();
+  showEditScreen();
+}
 
 void DisplayUI::onColorHexChanged(lv_event_t *e) {
   const char *txt = lv_textarea_get_text(editColorHexTextArea);
@@ -918,10 +1050,10 @@ void DisplayUI::onSaveButtonClicked(lv_event_t *e) {
   // Hardware: Trigger non-blocking write
   if (writingOverlay)
     lv_obj_clear_flag(writingOverlay, LV_OBJ_FLAG_HIDDEN);
-  
+
   writePending = true;
   writeStartTime = millis();
-  
+
   // Return for hardware, polling will happen in main loop
   return;
 #else
@@ -967,7 +1099,7 @@ void DisplayUI::onTextAreaFocused(lv_event_t *e) {
   // Auto switch to numeric mode for temps and Spool ID
   if (ta == editMinTempTextArea || ta == editMaxTempTextArea ||
       ta == editBedMinTextArea || ta == editBedMaxTextArea ||
-      ta == editSpoolIdTextArea) {
+      ta == editSpoolIdTextArea || ta == promptSpoolIdTextArea) {
     lv_keyboard_set_mode(keyboard, LV_KEYBOARD_MODE_NUMBER);
   } else if (ta == editColorHexTextArea) {
     lv_keyboard_set_mode(keyboard, LV_KEYBOARD_MODE_TEXT_UPPER);
@@ -976,9 +1108,7 @@ void DisplayUI::onTextAreaFocused(lv_event_t *e) {
   }
 }
 
-void DisplayUI::onTextAreaChanged(lv_event_t *e) {
-  updateSaveButtonState();
-}
+void DisplayUI::onTextAreaChanged(lv_event_t *e) { updateSaveButtonState(); }
 
 bool DisplayUI::validateField(lv_obj_t *ta) {
   const char *txt = lv_textarea_get_text(ta);
@@ -999,21 +1129,26 @@ bool DisplayUI::validateField(lv_obj_t *ta) {
   } else if (ta == editSpoolIdTextArea) {
     if (strlen(txt) > 0) {
       long val = strtol(txt, NULL, 10);
-      if (val < 0) valid = false;
+      if (val < 0)
+        valid = false;
     }
   } else if (ta == editMinTempTextArea || ta == editMaxTempTextArea) {
     long val = strtol(txt, NULL, 10);
-    if (val < 0 || val > 450) valid = false;
+    if (val < 0 || val > 450)
+      valid = false;
   } else if (ta == editBedMinTextArea || ta == editBedMaxTextArea) {
     long val = strtol(txt, NULL, 10);
-    if (val < 0 || val > 150) valid = false;
+    if (val < 0 || val > 150)
+      valid = false;
   } else if (ta == editCustomBrandTextArea) {
     uint32_t selected = lv_dropdown_get_selected(editBrandDropdown);
-    if (selected == 12 && strlen(txt) == 0) valid = false;
+    if (selected == 12 && strlen(txt) == 0)
+      valid = false;
   }
 
   if (valid) {
-    lv_obj_set_style_border_color(ta, lv_color_hex(0x374151), 0); // Default dark border
+    lv_obj_set_style_border_color(ta, lv_color_hex(0x374151),
+                                  0); // Default dark border
     lv_obj_set_style_border_width(ta, 1, 0);
   } else {
     lv_obj_set_style_border_color(ta, lv_color_hex(0xef4444), 0); // Red border
@@ -1025,25 +1160,41 @@ bool DisplayUI::validateField(lv_obj_t *ta) {
 
 bool DisplayUI::validateAll() {
   bool all_valid = true;
-  if (!validateField(editColorHexTextArea)) all_valid = false;
-  if (!validateField(editSpoolIdTextArea)) all_valid = false;
-  if (!validateField(editMinTempTextArea)) all_valid = false;
-  if (!validateField(editMaxTempTextArea)) all_valid = false;
-  if (!validateField(editBedMinTextArea)) all_valid = false;
-  if (!validateField(editBedMaxTextArea)) all_valid = false;
+  if (!validateField(editColorHexTextArea))
+    all_valid = false;
+  if (!validateField(editSpoolIdTextArea))
+    all_valid = false;
+  if (!validateField(editMinTempTextArea))
+    all_valid = false;
+  if (!validateField(editMaxTempTextArea))
+    all_valid = false;
+  if (!validateField(editBedMinTextArea))
+    all_valid = false;
+  if (!validateField(editBedMaxTextArea))
+    all_valid = false;
   if (lv_dropdown_get_selected(editBrandDropdown) == 12) {
-    if (!validateField(editCustomBrandTextArea)) all_valid = false;
+    if (!validateField(editCustomBrandTextArea))
+      all_valid = false;
   }
   return all_valid;
 }
 
 void DisplayUI::updateSaveButtonState() {
-  if (editSaveBtn == nullptr) return;
-  
-  if (validateAll()) {
-    lv_obj_clear_state(editSaveBtn, LV_STATE_DISABLED);
+  bool isValid = validateAll();
+  if (isValid) {
+    lv_obj_remove_state(editSaveBtn, LV_STATE_DISABLED);
   } else {
     lv_obj_add_state(editSaveBtn, LV_STATE_DISABLED);
+  }
+
+  // Update prompt load button state
+  if (promptSpoolIdTextArea && promptLoadBtn) {
+    const char *text = lv_textarea_get_text(promptSpoolIdTextArea);
+    if (strlen(text) > 0) {
+      lv_obj_remove_state(promptLoadBtn, LV_STATE_DISABLED);
+    } else {
+      lv_obj_add_state(promptLoadBtn, LV_STATE_DISABLED);
+    }
   }
 }
 
@@ -1060,20 +1211,21 @@ void DisplayUI::showToast(const char *msg, bool is_error) {
   toastObj = lv_obj_create(lv_layer_top());
   lv_obj_set_size(toastObj, LV_PCT(80), LV_SIZE_CONTENT);
   lv_obj_align(toastObj, LV_ALIGN_TOP_MID, 0, 20);
-  
+
   if (is_error) {
     lv_obj_set_style_bg_color(toastObj, lv_color_hex(0x7f1d1d), 0); // Dark red
   } else {
-    lv_obj_set_style_bg_color(toastObj, lv_color_hex(0x064e3b), 0); // Dark green
+    lv_obj_set_style_bg_color(toastObj, lv_color_hex(0x064e3b),
+                              0); // Dark green
   }
-  
+
   lv_obj_set_style_bg_opa(toastObj, LV_OPA_90, 0);
   lv_obj_set_style_border_width(toastObj, 1, 0);
   lv_obj_set_style_border_color(toastObj, lv_color_white(), 0);
   lv_obj_set_style_radius(toastObj, 10, 0);
   lv_obj_set_style_shadow_width(toastObj, 20, 0);
   lv_obj_set_style_shadow_color(toastObj, lv_color_black(), 0);
-  
+
   lv_obj_t *l = lv_label_create(toastObj);
   lv_label_set_text(l, msg);
   lv_obj_set_style_text_color(l, lv_color_white(), 0);
@@ -1099,10 +1251,8 @@ void DisplayUI::hideWritingOverlay() {
   }
 }
 
-const OpenSpoolData& DisplayUI::getPendingData() {
-  return currentLoadedData;
-}
+const OpenSpoolData &DisplayUI::getPendingData() { return currentLoadedData; }
 
 bool DisplayUI::isEditing() {
-  return lv_scr_act() == editScreen;
+  return lv_scr_act() == editScreen || lv_scr_act() == spoolIdPromptScreen;
 }

@@ -75,6 +75,25 @@ bool OpenSpoolParser::enrichFromSpoolman(const std::string &json,
     data.filament_name = doc["filament"]["name"].as<std::string>();
   }
 
+  // Bidirectional sync: If tag data is missing manufacturer info, fill from Spoolman
+  if (data.brand.empty() && doc["filament"]["vendor"]["name"].is<std::string>()) {
+    data.brand = doc["filament"]["vendor"]["name"].as<std::string>();
+  }
+  if (data.type.empty() && doc["filament"]["material"].is<std::string>()) {
+    data.type = doc["filament"]["material"].as<std::string>();
+  }
+  if (data.color_hex.empty() && doc["filament"]["color_hex"].is<std::string>()) {
+    std::string hex = doc["filament"]["color_hex"].as<std::string>();
+    if (!hex.empty() && hex[0] != '#') hex = "#" + hex;
+    data.color_hex = hex;
+  }
+  if (data.max_temp.empty() && doc["filament"]["settings_extruder_temp"].is<int>()) {
+    data.max_temp = std::to_string(doc["filament"]["settings_extruder_temp"].as<int>());
+  }
+  if (data.bed_max_temp.empty() && doc["filament"]["settings_bed_temp"].is<int>()) {
+    data.bed_max_temp = std::to_string(doc["filament"]["settings_bed_temp"].as<int>());
+  }
+
   if (doc["remaining_weight"].is<float>()) {
     float remaining = doc["remaining_weight"].as<float>();
     char buf[32];
@@ -97,6 +116,12 @@ bool OpenSpoolParser::enrichFromSpoolman(const std::string &json,
       data.total_weight = buf;
     }
   }
+
+  // Finalize temperature ranges: if only one side is present, mirror it
+  if (data.min_temp.empty() && !data.max_temp.empty()) data.min_temp = data.max_temp;
+  if (data.max_temp.empty() && !data.min_temp.empty()) data.max_temp = data.min_temp;
+  if (data.bed_min_temp.empty() && !data.bed_max_temp.empty()) data.bed_min_temp = data.bed_max_temp;
+  if (data.bed_max_temp.empty() && !data.bed_min_temp.empty()) data.bed_max_temp = data.bed_min_temp;
 
   return true;
 }

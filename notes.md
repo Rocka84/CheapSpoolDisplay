@@ -57,3 +57,11 @@ Fixes for Edit / Create tag
 * ~~Longshot: What would it take to get a colorwheel widget in lvgl? Is a downgrade to LVGL 8.x worth it? What would be the downsides?~~ Won't Do!
 * ~~when entering a color, I don't want to enter the # sign. It should be cut off before editing and added back after editing. Put a # left of the input to make this more clear. if possible the keyboard should open in a hex mode~~ Fixed!
 * ~~we need to validate the inputs before allowing to save. Invalid data should be red. At the moment I can put anything in e.g. the color field and it will be saved. This is not what I want.~~ Fixed!
+
+
+Prepared prompts
+----------------
+
+When entering a id the dialog and hit enter or the chckmark in the virtual keyboard, do the same as if I click the Load button.
+
+Also, on the Edit screen, the area with cancel and Save buttons must not be scollable. Lastly, again on the Edit screen, the gap between the form and the buttons is too big, that space could be used to make the form a little big higher.

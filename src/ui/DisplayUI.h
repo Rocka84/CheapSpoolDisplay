@@ -41,6 +41,8 @@ private:
   static void buildToolSelectionScreen();
   static void buildEditScreen();
   static void buildWritingOverlay();
+  static void buildSpoolIdPromptScreen();
+  static void buildFetchingOverlay();
 
   // Event callbacks
   static void onLoadSpoolButtonClicked(lv_event_t *e);
@@ -54,6 +56,8 @@ private:
   static void onTextAreaChanged(lv_event_t *e);
   static void onColorHexChanged(lv_event_t *e);
   static void onBrandDropdownChanged(lv_event_t *e);
+  static void onLoadPrefilledButtonClicked(lv_event_t *e);
+  static void onSkipPrefilledButtonClicked(lv_event_t *e);
   static void onKeyboardEvent(lv_event_t *e);
 
   // Validation
@@ -69,7 +73,9 @@ private:
   static lv_obj_t *infoScreen;
   static lv_obj_t *toolSelectionScreen;
   static lv_obj_t *editScreen;
+  static lv_obj_t *spoolIdPromptScreen;
   static lv_obj_t *writingOverlay;
+  static lv_obj_t *fetchingOverlay;
   static bool writePending;
   static uint32_t writeStartTime;
 
@@ -105,6 +111,8 @@ private:
   static lv_obj_t *editMaxTempTextArea;
   static lv_obj_t *editBedMinTextArea;
   static lv_obj_t *editBedMaxTextArea;
+  static lv_obj_t *promptSpoolIdTextArea;
+  static lv_obj_t *promptLoadBtn;
   static lv_obj_t *keyboard;
 
   // Spoolman enrichment UI
