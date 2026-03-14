@@ -1,3 +1,12 @@
+Reminders for the AI Assistant
+------------------------------
+* This is a platformio project
+* The simulator is a binary that opens its own window and simulates the display
+    * You don't need a browser or VNC to access it
+    * It's not a web app
+    * If I ask you to take a screenshot, use simulator/screenshot.sh
+* After every change, rebuild the project and the simulator
+
 Ideas
 -----
 
@@ -47,6 +56,45 @@ Ideas
         * Master Salt Key (from firmware or user)
         * Mifare Classic authentication and multi-sector reading logic
         * Binary data parsing to map fields
+6. Battery Power
+    * add a rechargeable battery
+    * footprint must be small and fit to the board
+        * either between display and reader
+        * or to one of the sides of the board
+    * must be rechargeable via usb-c
+    * capacity must be big enough to last for at least 1h of constant use including wifi
+    * research results
+        * estimated Total Average Draw: ~300–350 mA
+        * 1000 mAh LiPo battery provide ~3 hours of constant use
+        * A "503450" cell is approx. 34 x 50 x 5mm
+    * Deep Sleep vs Power Off
+        * Software-only power off is not possible (hardware lacks a load switch).
+        * Deep Sleep is the primary power-saving mode.
+        * Estimated Deep Sleep draw: 1-5mA (due to LDO and peripherals).
+        * Standby path (1000mAh): ~8 to 40 days depending on board revision.
+        * Recommendation: Physical slide switch for long-term storage.
+7. List spools and select spools available in spoolman
+    * instead of scanning a tag, show a list of spools available in spoolman
+        * new button on scan screen above the create button
+        * only visible when spoolman is configured
+    * new list screen
+        * per row show
+            * Color swatch
+            * Brand
+            * Material
+            * Filament Name
+        * title: "Select Spool"
+        * scrollable list
+        * "Cancel" and "Load" buttons at the end
+        * main layout similar to edit screen (Caption, scrollable area, button area)
+    * when a spool is selected, load it as if the tag was scanned
+    * allows to load spools to the printer that are in spoolman but don't have a tag
+    * allows to create new tags for spools that are in spoolman but don't have a tag
+    * would make the spool id dialog and prefill for creating tags obsolete
+    
+
+
+    
 
 Known issues
 ------------

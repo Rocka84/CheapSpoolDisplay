@@ -55,6 +55,7 @@
             margin: 0 0 20px 0;
             background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             letter-spacing: -0.5px;
         }
@@ -81,6 +82,79 @@
             color: white;
             font-weight: 600;
             box-shadow: 0 4px 12px rgba(82, 102, 255, 0.3);
+        }
+
+        .nav-category {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin: 24px 0 12px 16px;
+            font-weight: 800;
+            opacity: 0.8;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: opacity 0.2s;
+        }
+
+        .nav-category:hover {
+            opacity: 1;
+        }
+
+        .nav-category::after {
+            content: '▾';
+            margin-right: 16px;
+            font-size: 1rem;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-category.collapsed::after {
+            transform: rotate(-90deg);
+        }
+
+        .category-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            max-height: 500px; /* Large enough for items */
+        }
+
+        .category-content.collapsed {
+            max-height: 0;
+        }
+
+        /* TOC Styling */
+        .toc-container {
+            margin: 4px 0 12px 16px;
+            padding-left: 12px;
+            border-left: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .toc-link {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 4px 12px;
+            transition: all 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border-radius: 4px;
+        }
+
+        .toc-link:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .toc-h2 {
+            padding-left: 24px;
+            font-size: 0.8rem;
         }
 
         .back-btn {
@@ -282,6 +356,7 @@
             { id: 'configuration', title: 'Configuration', path: './docs/CONFIGURATION.md' },
             { id: 'hardware', title: 'Hardware Setup', path: './docs/HARDWARE_SETUP.md' },
             { id: 'spoolman-setup', title: 'Spoolman Setup', path: './docs/SPOOLMAN_SETUP.md' },
+            { category: 'Development' },
             { id: 'testing', title: 'Testing Guide', path: './docs/TESTING.md' },
             { id: 'web-installer', title: 'Web Installer Dev', path: './docs/WEB_INSTALLER_DEV.md' }
         ];
@@ -298,7 +373,27 @@
 
         // Initialize Navigation
         function initNav() {
+            let currentCategoryCont = navContainer;
+
             docFiles.forEach((doc, index) => {
+                if (doc.category) {
+                    const div = document.createElement('div');
+                    div.className = 'nav-category collapsed';
+                    div.textContent = doc.category;
+                    navContainer.appendChild(div);
+
+                    const contentCont = document.createElement('div');
+                    contentCont.className = 'category-content collapsed';
+                    navContainer.appendChild(contentCont);
+                    currentCategoryCont = contentCont;
+
+                    div.addEventListener('click', () => {
+                        div.classList.toggle('collapsed');
+                        contentCont.classList.toggle('collapsed');
+                    });
+                    return;
+                }
+
                 const a = document.createElement('a');
                 a.className = 'nav-link';
                 a.textContent = doc.title;
@@ -309,7 +404,7 @@
                     loadDoc(doc.id);
                 });
 
-                navContainer.appendChild(a);
+                currentCategoryCont.appendChild(a);
             });
 
             // Handle browser navigation (back/forward)
@@ -335,7 +430,18 @@
             // Update Active State in Sidebar
             document.querySelectorAll('.nav-link').forEach(el => {
                 el.classList.remove('active');
-                if (el.dataset.id === id) el.classList.add('active');
+                if (el.dataset.id === id) {
+                    el.classList.add('active');
+                    // Ensure parent category is expanded if we navigate to a doc inside it
+                    const parentCategory = el.closest('.category-content');
+                    if (parentCategory && parentCategory.classList.contains('collapsed')) {
+                        parentCategory.classList.remove('collapsed');
+                        const header = parentCategory.previousElementSibling;
+                        if (header && header.classList.contains('nav-category')) {
+                            header.classList.remove('collapsed');
+                        }
+                    }
+                }
             });
 
             // Update URL Hash
@@ -370,6 +476,9 @@
 
                 // Fix internal relative links ending in .md to point to our hash router
                 fixInternalLinks();
+
+                // Generate TOC
+                generateTOC(id);
 
             } catch (error) {
                 console.error('Error fetching document:', error);
@@ -406,6 +515,44 @@
                     });
                 }
             });
+        }
+
+        // Generate Table of Contents for the sidebar
+        function generateTOC(docId) {
+            // Clear existing TOC
+            document.querySelectorAll('.toc-container').forEach(el => el.remove());
+
+            const activeLink = document.querySelector(`.nav-link[data-id="${docId}"]`);
+            if (!activeLink) return;
+
+            const headers = contentDiv.querySelectorAll('h2');
+            if (headers.length === 0) return;
+
+            const tocCont = document.createElement('div');
+            tocCont.className = 'toc-container';
+
+            headers.forEach((header, index) => {
+                // Ensure header has an ID for linking
+                if (!header.id) {
+                    header.id = 'section-' + index;
+                }
+
+                const link = document.createElement('a');
+                link.className = 'toc-link';
+                link.href = '#' + docId + '#' + header.id;
+                link.textContent = header.textContent;
+
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    header.scrollIntoView({ behavior: 'smooth' });
+                    // Update URL without jump
+                    window.history.replaceState({ id: docId }, document.title, `#${docId}#${header.id}`);
+                });
+
+                tocCont.appendChild(link);
+            });
+
+            activeLink.after(tocCont);
         }
 
         // Start

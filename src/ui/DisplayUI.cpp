@@ -591,7 +591,7 @@ void DisplayUI::buildEditScreen() {
   lv_obj_t *btnCont = lv_obj_create(editScreen);
   lv_obj_set_size(btnCont, 240, 50); // Width back to 240
   lv_obj_align(btnCont, LV_ALIGN_BOTTOM_MID, 0, 0);
-  lv_obj_set_style_bg_color(btnCont, lv_color_hex(0x111827), 0);
+  lv_obj_set_style_bg_color(btnCont, lv_color_hex(0x0f1118), 0);
   lv_obj_set_style_bg_opa(btnCont, LV_OPA_COVER, 0);
   lv_obj_set_style_border_side(btnCont, LV_BORDER_SIDE_NONE, 0);
   lv_obj_set_style_border_width(btnCont, 0, 0);

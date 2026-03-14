@@ -13,10 +13,13 @@ pio test -e desktop
 ```
 
 ### What is tested locally?
-*   **`test_desktop/test_main.cpp` (OpenSpool Data Structures):** 
-    Tests the serialization and deserialization of the JSON-based OpenSpool specification using the `ArduinoJson` library. It verifies that valid JSON strings populate the correct memory struct fields (`color_hex`, `spool_id`), and conversely, that missing fields don't cause fatal crashes.
-*   **`test_desktop_serial/test_serialparser.cpp`:**
-    An isolated unit test of the string extraction logic derived from `SerialTerminal.cpp`. It specifically feeds malformed strings, strings with excess spaces, and partial keys into the parser to ensure the core string-trimming operations work correctly without crashing or splitting incorrectly.
+*   **`test_desktop/test_main.cpp` (OpenSpool & Webhooks):** 
+    - **Data Integrity**: Verifies that standard OpenSpool JSON strings populate the correct internal memory structs.
+    - **Edge Cases**: Tests color normalization (e.g., adding `#` if missing) and mixed data types in the JSON.
+    - **URL Formatting**: Rigorously tests the `WebhookFormatter` logic for `{spool_id}` and `{toolhead}` placeholder replacement, including multi-occurrence and malformed placeholder handling.
+    - **Spoolman Enrichment**: Validates the logic for parsing complex JSON responses from Spoolman to extract filament names and weights (including rounding and unit conversion).
+*   **`test_desktop_serial/test_serialparser.cpp` (Serial Terminal):**
+    An isolated unit test of the string extraction logic used by the Serial Terminal. It specifically feeds malformed commands, strings with excess spaces, and partial keys into the parser to ensure configuration saving is stable and robust.
 
 ---
 
@@ -49,11 +52,7 @@ pio test -e test_embedded
 The UI simulator allows you to run the entire LVGL application on your desktop. It uses the `native` PlatformIO environment and `SDL2` to create a window that mimics the 240x320 CYD screen.
 
 ### Desktop Dependencies
-Before running the simulator, you must have the **SDL2** development libraries installed:
-
-- **Linux (Debian/Ubuntu)**: `sudo apt-get install libsdl2-dev`
-- **macOS**: `brew install sdl2`
-- **Windows**: Use MSYS2 or download the development headers from the [SDL2 website](https://www.libsdl.org/download-2.0.php).
+Before running the simulator, you must have the **SDL2** development libraries installed.
 
 ### Running the Simulator
 To build and launch the simulator window:
