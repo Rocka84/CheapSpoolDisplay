@@ -22,7 +22,7 @@ Please wire your MFRC522 module to the CYD as follows:
 
 ![Location of pin 1](pin1.png)
 
-I solder tiny wires from a ribbon cable directly to the pins on the back of the CYD. I strongly recommend using a microscope to do this, as the pins are very small and close together. I also recommend tinning the wires before soldering to make it easier.
+I soldered tiny wires from a ribbon cable directly to the pins on the back of the CYD. I strongly recommend using a microscope to do this, as the pins are very small and close together. I also recommend tinning the wires before soldering to make it easier.
 
 ![spi_pins_soldered](spi_pins_soldered.png)
 
