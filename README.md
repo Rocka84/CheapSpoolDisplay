@@ -2,9 +2,7 @@
 
 CheapSpoolDisplay is a firmware for the ESP32 Cheap Yellow Display (CYD) that is **dedicated to OpenSpool Tags**. It allows you to scan, view, and organize your 3D printer filament spools using the standardized OpenSpool NFC tag format.
 
-![Scan Screen](./docs/images/screen_scan.png) ![Spool Info Screen](./docs/images/screen_info.png)
-![Tool Selection Screen](./docs/images/screen_tools.png) ![Edit Screen](./docs/images/screen_edit.png)
-![Select Spool Screen](./docs/images/screen_select_spool.png)
+![Scan Screen](./docs/images/screen_scan.png) ![Spool Info Screen](./docs/images/screen_info.png) ![Tool Selection Screen](./docs/images/screen_tools.png) ![Edit Screen](./docs/images/screen_edit.png) ![Select Spool Screen](./docs/images/screen_select_spool.png)
 
 ## Quickstart
 Follow the [Quickstart Guide](docs/QUICKSTART.md) to get your device flashed and configured.
@@ -21,6 +19,13 @@ Follow the [Quickstart Guide](docs/QUICKSTART.md) to get your device flashed and
 - **ESP32 Cheap Yellow Display (CYD)**
 - **MFRC522 RFID SPI Module**
 
+## 3D Printed Case
+You can find a 3D printable case for this project inside the [cad/](./cad) directory:
+- [Case Main](./cad/CheapSpoolDisplay%20-%20Case%20main.stl)
+- [Case Lid](./cad/CheapSpoolDisplay%20-%20Case%20lid.stl)
+
+[Source CAD on Onshape](https://cad.onshape.com/documents/a60add6f8ee1de5614ac75fe/w/16328b69bac76c64c87c96b5/e/ff77dffe6e5e288726fe3b2e)
+
 ## Documentation
 See the [docs](./docs) folder or [online documentation](https://rocka84.github.io/CheapSpoolDisplay/docs.html)
 
@@ -30,7 +35,7 @@ See the [docs](./docs) folder or [online documentation](https://rocka84.github.i
 You can flash the firmware and set up your Wi-Fi directly from your PC browser (Chrome/Edge)! 
 
 1. Navigate to the online Web Installer: **[Launch CheapSpoolDisplay Web Installer](https://Rocka84.github.io/CheapSpoolDisplay)**
-2. Follow the instrction in the Installer.
+2. Follow the instructions in the Installer.
 3. Once flashed, use the integrated **Serial Terminal** to configure the device (see [Post-Flash Configuration](#post-flash-configuration)).
 
 ### Option 2: PlatformIO

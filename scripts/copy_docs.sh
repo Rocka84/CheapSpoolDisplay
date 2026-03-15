@@ -5,10 +5,12 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WEB_DIR="$PROJECT_DIR/web"
 DOCS_DIR="$PROJECT_DIR/docs"
 README_FILE="$PROJECT_DIR/README.md"
+CAD_DIR="$PROJECT_DIR/cad"
 
 # Target directories inside web/
 WEB_DOCS_DIR="$WEB_DIR/docs"
 WEB_README="$WEB_DIR/README.md"
+WEB_CAD_DIR="$WEB_DIR/cad"
 
 echo "Packaging documentation for web deployment..."
 
@@ -34,6 +36,19 @@ if [ -d "$DOCS_DIR" ]; then
 else
     echo "Error: docs/ folder not found at $DOCS_DIR"
     exit 1
+fi
+
+# 3. Copy cad/ folder
+if [ -d "$CAD_DIR" ]; then
+    if command -v rsync >/dev/null 2>&1; then
+        rsync -av --delete "$CAD_DIR/" "$WEB_CAD_DIR/"
+    else
+        rm -rf "$WEB_CAD_DIR"
+        cp -r "$CAD_DIR" "$WEB_CAD_DIR"
+    fi
+    echo "Copied $CAD_DIR to $WEB_CAD_DIR"
+else
+    echo "Warning: cad/ folder not found at $CAD_DIR"
 fi
 
 echo "Documentation packaging complete."

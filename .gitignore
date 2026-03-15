@@ -11,4 +11,5 @@ simulator/config.cfg
 
 # Dynamic Web Content
 web/docs/
+web/cad/
 web/README.md
