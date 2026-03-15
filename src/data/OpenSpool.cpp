@@ -84,8 +84,14 @@ bool OpenSpoolParser::enrichFromSpoolman(const std::string &json,
   }
   if (data.color_hex.empty() && doc["filament"]["color_hex"].is<std::string>()) {
     std::string hex = doc["filament"]["color_hex"].as<std::string>();
-    if (!hex.empty() && hex[0] != '#') hex = "#" + hex;
-    data.color_hex = hex;
+    if (!hex.empty() && hex[0] == '#') hex = hex.substr(1);
+    
+    if (hex.length() == 8) { // RRGGBBAA
+      data.color_hex = "#" + hex.substr(0, 6);
+      data.alpha = hex.substr(6, 2);
+    } else {
+      data.color_hex = "#" + hex;
+    }
   }
   if (data.max_temp.empty() && doc["filament"]["settings_extruder_temp"].is<int>()) {
     data.max_temp = std::to_string(doc["filament"]["settings_extruder_temp"].as<int>());

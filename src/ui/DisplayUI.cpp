@@ -295,6 +295,9 @@ static uint32_t parse_hex_color(const std::string &hex) {
   std::string h = hex;
   if (h[0] == '#')
     h = h.substr(1);
+  if (h.length() == 8) {
+    h = h.substr(0, 6); // Strip AA for 24-bit parse
+  }
   return strtoul(h.c_str(), nullptr, 16);
 }
 
@@ -669,7 +672,7 @@ void DisplayUI::buildEditScreen() {
                           "HIPS\nPCTG\nPLA-CF\nPETG-CF\nPA-CF");
   lv_obj_set_style_text_font(editTypeDropdown, &lv_font_montserrat_14,
                              LV_PART_INDICATOR);
-  create_label(cont, "Hex Color (#RRGGBB)");
+  create_label(cont, "Hex Color (#RRGGBB[AA])");
   lv_obj_t *hexRow = lv_obj_create(cont);
   lv_obj_set_size(hexRow, LV_PCT(95), LV_SIZE_CONTENT);
   lv_obj_set_style_bg_opa(hexRow, 0, 0);
@@ -687,7 +690,7 @@ void DisplayUI::buildEditScreen() {
   editColorHexTextArea = lv_textarea_create(hexRow);
   lv_obj_set_flex_grow(editColorHexTextArea, 1);
   lv_textarea_set_one_line(editColorHexTextArea, true);
-  lv_textarea_set_max_length(editColorHexTextArea, 6);
+  lv_textarea_set_max_length(editColorHexTextArea, 8);
   lv_obj_add_event_cb(editColorHexTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
                       NULL);
   lv_obj_add_event_cb(editColorHexTextArea, onColorHexChanged,
@@ -892,11 +895,20 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
 
   // Convert hex string to lv_color_t
   // We assume color_hex is like "#FF0000"
-  if (!spool.color_hex.empty() && spool.color_hex[0] == '#' &&
-      spool.color_hex.length() == 7) {
+  if (!spool.color_hex.empty() && spool.color_hex[0] == '#') {
     uint32_t color_val = strtol(&spool.color_hex[1], NULL, 16);
     lv_obj_set_style_bg_color(colorBox, lv_color_hex(color_val), 0);
-    lv_label_set_text(labelColorHex, spool.color_hex.c_str());
+
+    if (!spool.alpha.empty()) {
+        uint8_t opa = strtol(spool.alpha.c_str(), NULL, 16);
+        lv_obj_set_style_bg_opa(colorBox, opa, 0);
+    } else {
+        lv_obj_set_style_bg_opa(colorBox, LV_OPA_COVER, 0);
+    }
+    
+    std::string full_color = spool.color_hex;
+    if (!spool.alpha.empty()) full_color += spool.alpha;
+    lv_label_set_text(labelColorHex, full_color.c_str());
   } else {
     lv_obj_set_style_bg_color(colorBox, lv_color_hex(0x000000), 0);
     lv_label_set_text(labelColorHex, "Unknown");
@@ -1029,13 +1041,12 @@ void DisplayUI::showEditScreen() {
     lv_dropdown_set_selected(editTypeDropdown, 0); // Default PLA
   }
 
-  if (currentLoadedData.color_hex[0] == '#') {
-    lv_textarea_set_text(editColorHexTextArea,
-                         currentLoadedData.color_hex.c_str() + 1);
-  } else {
-    lv_textarea_set_text(editColorHexTextArea,
-                         currentLoadedData.color_hex.c_str());
+  std::string hex = currentLoadedData.color_hex;
+  if (!hex.empty() && hex[0] == '#') hex = hex.substr(1);
+  if (!currentLoadedData.alpha.empty()) {
+    hex += currentLoadedData.alpha;
   }
+  lv_textarea_set_text(editColorHexTextArea, hex.c_str());
   lv_textarea_set_text(editSpoolIdTextArea, currentLoadedData.spool_id.c_str());
   lv_textarea_set_text(editLotNrTextArea, currentLoadedData.lot_nr.c_str());
   lv_textarea_set_text(editMinTempTextArea, currentLoadedData.min_temp.c_str());
@@ -1142,9 +1153,20 @@ void DisplayUI::onNextPageClicked(lv_event_t *e) {
 
 void DisplayUI::onColorHexChanged(lv_event_t *e) {
   const char *txt = lv_textarea_get_text(editColorHexTextArea);
-  if (txt && strlen(txt) == 6) {
-    uint32_t color = strtol(txt, NULL, 16);
-    lv_obj_set_style_bg_color(editColorPreview, lv_color_hex(color), 0);
+  if (txt) {
+    size_t len = strlen(txt);
+    if (len == 6 || len == 8) {
+      std::string color_part = std::string(txt).substr(0, 6);
+      uint32_t color = strtol(color_part.c_str(), NULL, 16);
+      lv_obj_set_style_bg_color(editColorPreview, lv_color_hex(color), 0);
+
+      if (len == 8) {
+        uint8_t opa = strtol(std::string(txt).substr(6, 2).c_str(), NULL, 16);
+        lv_obj_set_style_bg_opa(editColorPreview, opa, 0);
+      } else {
+        lv_obj_set_style_bg_opa(editColorPreview, LV_OPA_COVER, 0);
+      }
+    }
   }
 }
 
@@ -1185,7 +1207,13 @@ void DisplayUI::onSaveButtonClicked(lv_event_t *e) {
   currentLoadedData.type = type;
 
   std::string hexText = lv_textarea_get_text(editColorHexTextArea);
-  currentLoadedData.color_hex = "#" + hexText;
+  if (hexText.length() == 8) {
+      currentLoadedData.color_hex = "#" + hexText.substr(0, 6);
+      currentLoadedData.alpha = hexText.substr(6, 2);
+  } else {
+      currentLoadedData.color_hex = "#" + hexText;
+      currentLoadedData.alpha = ""; 
+  }
   currentLoadedData.spool_id = lv_textarea_get_text(editSpoolIdTextArea);
   currentLoadedData.lot_nr = lv_textarea_get_text(editLotNrTextArea);
   currentLoadedData.min_temp = lv_textarea_get_text(editMinTempTextArea);
@@ -1271,10 +1299,10 @@ bool DisplayUI::validateField(lv_obj_t *ta) {
   bool valid = true;
 
   if (ta == editColorHexTextArea) {
-    if (strlen(txt) != 6) {
+    if (strlen(txt) != 6 && strlen(txt) != 8) {
       valid = false;
     } else {
-      for (int i = 0; i < 6; i++) {
+      for (size_t i = 0; i < strlen(txt); i++) {
         char c = toupper(txt[i]);
         if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))) {
           valid = false;
