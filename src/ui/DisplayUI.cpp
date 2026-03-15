@@ -396,12 +396,15 @@ void DisplayUI::updateSelectSpoolList(const std::vector<SpoolmanItem> &items,
             OpenSpoolData data;
             data.spool_id = id;
 
+            showFetchingOverlay();
+            lv_refr_now(NULL); // Force render before blocking
             if (NetworkManager::fetchSpoolmanData(data)) {
               currentLoadedData = data;
               showInfoScreen(currentLoadedData);
             } else {
               showToast("Fetch details failed", true);
             }
+            hideFetchingOverlay();
           }
         },
         LV_EVENT_ALL, NULL);
@@ -978,6 +981,14 @@ void DisplayUI::buildFetchingOverlay() {
   lv_obj_add_flag(fetchingOverlay, LV_OBJ_FLAG_HIDDEN);
 }
 
+void DisplayUI::showFetchingOverlay() {
+  if (fetchingOverlay) lv_obj_clear_flag(fetchingOverlay, LV_OBJ_FLAG_HIDDEN);
+}
+
+void DisplayUI::hideFetchingOverlay() {
+  if (fetchingOverlay) lv_obj_add_flag(fetchingOverlay, LV_OBJ_FLAG_HIDDEN);
+}
+
 void DisplayUI::showEditScreen() {
   // Populate from currentLoadedData
   lv_dropdown_set_selected_highlight(editBrandDropdown, false);
@@ -1118,6 +1129,9 @@ void DisplayUI::onSelectSpoolButtonClicked(lv_event_t *e) {
   currentSpoolPage = 0;
   std::vector<SpoolmanItem> items;
   int total_count = 0;
+  
+  showFetchingOverlay();
+  lv_refr_now(NULL);
   if (NetworkManager::fetchSpoolmanList(currentSpoolPage, 4, items,
                                         total_count)) {
     updateSelectSpoolList(items, total_count);
@@ -1125,6 +1139,7 @@ void DisplayUI::onSelectSpoolButtonClicked(lv_event_t *e) {
   } else {
     showToast("Spoolman lookup failed", true);
   }
+  hideFetchingOverlay();
 }
 
 void DisplayUI::onPrevPageClicked(lv_event_t *e) {
@@ -1132,10 +1147,14 @@ void DisplayUI::onPrevPageClicked(lv_event_t *e) {
     currentSpoolPage--;
     std::vector<SpoolmanItem> items;
     int total_count = 0;
+    
+    showFetchingOverlay();
+    lv_refr_now(NULL);
     if (NetworkManager::fetchSpoolmanList(currentSpoolPage, 4, items,
                                           total_count)) {
       updateSelectSpoolList(items, total_count);
     }
+    hideFetchingOverlay();
   }
 }
 
@@ -1143,12 +1162,16 @@ void DisplayUI::onNextPageClicked(lv_event_t *e) {
   int nextPage = currentSpoolPage + 1;
   std::vector<SpoolmanItem> items;
   int total_count = 0;
+  
+  showFetchingOverlay();
+  lv_refr_now(NULL);
   if (NetworkManager::fetchSpoolmanList(nextPage, 4, items, total_count)) {
     if (!items.empty()) {
       currentSpoolPage = nextPage;
       updateSelectSpoolList(items, total_count);
     }
   }
+  hideFetchingOverlay();
 }
 
 void DisplayUI::onColorHexChanged(lv_event_t *e) {

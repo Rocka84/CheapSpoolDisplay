@@ -153,7 +153,10 @@ void loop() {
     // Enrich with Spoolman data if configured
     if (!ConfigManager::getSpoolmanUrl().empty() &&
         !currentSpoolData.spool_id.empty()) {
+      DisplayUI::showFetchingOverlay();
+      lv_timer_handler(); // Force overlay render before blocking
       NetworkManager::fetchSpoolmanData(currentSpoolData);
+      DisplayUI::hideFetchingOverlay();
     }
 
     DisplayUI::showInfoScreen(currentSpoolData);

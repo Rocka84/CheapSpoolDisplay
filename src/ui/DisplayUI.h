@@ -31,6 +31,8 @@ public:
   static void setWritePending(bool pending) { writePending = pending; }
   static const OpenSpoolData& getPendingData();
   static void hideWritingOverlay();
+  static void showFetchingOverlay();
+  static void hideFetchingOverlay();
   static uint32_t getWriteStartTime() { return writeStartTime; }
   static bool isEditing();
 
