@@ -20,11 +20,11 @@ Please wire your MFRC522 module to the CYD as follows:
 
 *(Note: With the board oriented as shown in the image below, **Pin 1 is on the far left**.)*
 
-![Location of pin 1](pin1.png)
+![Location of pin 1](images/pin1.png)
 
 I soldered tiny wires from a ribbon cable directly to the pins on the back of the CYD. I strongly recommend using a microscope to do this, as the pins are very small and close together. I also recommend tinning the wires before soldering to make it easier.
 
-![spi_pins_soldered](spi_pins_soldered.png)
+![spi_pins_soldered](images/spi_pins_soldered.png)
 
 ## 2. Power Detection & Battery Modification
 
