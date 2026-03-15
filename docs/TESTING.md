@@ -47,7 +47,7 @@ pio test -e test_embedded
 
 ---
 
-## 3. UI Simulator (Premium Interface Preview)
+## 3. UI Simulator (Interface Preview)
 
 The UI simulator allows you to run the entire LVGL application on your desktop. It uses the `native` PlatformIO environment and `SDL2` to create a window that mimics the 240x320 CYD screen.
 
@@ -55,12 +55,12 @@ The UI simulator allows you to run the entire LVGL application on your desktop. 
 Before running the simulator, you must have the **SDL2** development libraries installed.
 
 ### Running the Simulator
-To build and launch the simulator window:
+To build and launch the simulator:
 ```bash
 pio run -e simulator
 ./simulator/program
 ```
-*Note: The simulator skips hardware-specific code (NFC, Wi-Fi, NVS) and simulates the Premium UI exactly as it appears on the device.*
+*Note: The simulator skips hardware-specific code (NFC, Wi-Fi, NVS) and simulates the UI exactly as it appears on the device.*
 
 ---
 
