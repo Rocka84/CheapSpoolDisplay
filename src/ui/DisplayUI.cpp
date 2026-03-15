@@ -308,7 +308,7 @@ void DisplayUI::buildSelectSpoolScreen() {
   lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 15);
 
   spoolListCont = lv_obj_create(selectSpoolScreen);
-  lv_obj_set_size(spoolListCont, 220, 190);
+  lv_obj_set_size(spoolListCont, 220, 180);
   lv_obj_align(spoolListCont, LV_ALIGN_TOP_MID, 0, 50);
   lv_obj_set_style_bg_opa(spoolListCont, 0, 0);
   lv_obj_set_style_border_width(spoolListCont, 0, 0);
@@ -369,10 +369,11 @@ void DisplayUI::updateSelectSpoolList(const std::vector<SpoolmanItem> &items,
 
   for (const auto &item : items) {
     lv_obj_t *row = lv_btn_create(spoolListCont);
-    lv_obj_set_size(row, LV_PCT(100), 45);
+    lv_obj_set_size(row, LV_PCT(100), 40);
     lv_obj_set_style_bg_color(row, lv_color_hex(0x1e1b4b), 0);
     lv_obj_set_style_radius(row, 8, 0);
-    lv_obj_set_style_pad_all(row, 6, 0);
+    lv_obj_set_style_pad_hor(row, 6, 0);
+    lv_obj_set_style_pad_ver(row, 0, 0);
     lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
 
     std::string *id_ptr = new std::string(item.id);
@@ -411,11 +412,15 @@ void DisplayUI::updateSelectSpoolList(const std::vector<SpoolmanItem> &items,
     lv_obj_clear_flag(swatch, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *lbl = lv_label_create(row);
-    std::string text = item.brand + " " + item.type + "\n" + item.name;
+    std::string name = item.name;
+    if (name.length() > 25) {
+      name = name.substr(0, 22) + "...";
+    }
+    std::string text = item.brand + " " + item.type + "\n" + name;
     lv_label_set_text(lbl, text.c_str());
     lv_obj_set_style_text_font(lbl, font_combined_14, 0);
     lv_obj_set_style_text_color(lbl, lv_color_white(), 0);
-    lv_obj_align(lbl, LV_ALIGN_LEFT_MID, 20, -2);
+    lv_obj_align(lbl, LV_ALIGN_TOP_LEFT, 20, 3);
     lv_label_set_long_mode(lbl, LV_LABEL_LONG_DOT);
     lv_obj_set_width(lbl, 180);
   }
@@ -947,7 +952,6 @@ void DisplayUI::showToolSelectionScreen() {
   lv_scr_load(toolSelectionScreen);
 }
 
-
 void DisplayUI::buildFetchingOverlay() {
   fetchingOverlay = lv_obj_create(lv_layer_top());
   lv_obj_set_size(fetchingOverlay, LV_PCT(100), LV_PCT(100));
@@ -1086,9 +1090,9 @@ void DisplayUI::onToolButtonClicked(lv_event_t *e) {
   lv_scr_load(infoScreen);
 }
 
-void DisplayUI::onEditButtonClicked(lv_event_t *e) { 
+void DisplayUI::onEditButtonClicked(lv_event_t *e) {
   backupLoadedData = currentLoadedData;
-  showEditScreen(); 
+  showEditScreen();
 }
 
 void DisplayUI::onCreateNewButtonClicked(lv_event_t *e) {
@@ -1135,7 +1139,6 @@ void DisplayUI::onNextPageClicked(lv_event_t *e) {
     }
   }
 }
-
 
 void DisplayUI::onColorHexChanged(lv_event_t *e) {
   const char *txt = lv_textarea_get_text(editColorHexTextArea);
@@ -1339,7 +1342,6 @@ void DisplayUI::updateSaveButtonState() {
   } else {
     lv_obj_add_state(editSaveBtn, LV_STATE_DISABLED);
   }
-
 }
 
 void DisplayUI::showToast(const char *msg, bool is_error) {
@@ -1397,6 +1399,4 @@ void DisplayUI::hideWritingOverlay() {
 
 const OpenSpoolData &DisplayUI::getPendingData() { return currentLoadedData; }
 
-bool DisplayUI::isEditing() {
-  return lv_scr_act() == editScreen;
-}
+bool DisplayUI::isEditing() { return lv_scr_act() == editScreen; }

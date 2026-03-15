@@ -106,15 +106,18 @@ Known issues
 * ~~Ugly bars at edges of the logo on the idle screen~~ Fixed!
 * ~~canceling the tool selection dialog does not go back to the info screen~~ Fixed!
 * ~~on the device I have configured tools to be 4, but the tool selection dialog shows only 1 tool. I have tried to reset the device, but it does not help.~~ Fixed!
-* Spool selection from Spoolman
-    * chevron icons are broken, probably buttons use incorrect font (same bug as with select boxes earlier)
-    * dont show weight info in the list, it's not needed there and uses too much space. Use that space for the label instead.
-    * The list entries should have at most 2 lines of text. Cut off the overlapping text.
-    * The area with the prev/next buttons and page numbers overlaps the spool list
-    * The total number of pages is wrong, it's allows shown as 1. So on the third page it says "Page 3/1".
-    * On the first page the prev button should be disabled. On the last page the next button should be disabled
-    * on the scan screen, placing the new button above the create button was not a good idea. Put both buttons side by side at the bottom and label them "Spoolman" and "New".
-    * the screenshot shows the spool data screen instead of the spool list screen.
+*  Spool selection from Spoolman
+    * ~~chevron icons are broken, probably buttons use incorrect font (same bug as with select boxes earlier)~~ Fixed!
+    * ~~dont show weight info in the list, it's not needed there and uses too much space. Use that space for the label instead.~~ Fixed!
+    * The list entries should have at most 2 lines of text. Cut off the overlapping text. We tried to fix this earlier but the issues persisted.
+    * ~~The area with the prev/next buttons and page numbers overlaps the spool list~~ Fixed!
+    * ~~The total number of pages is wrong, it's allows shown as 1. So on the third page it says "Page 3/1".~~ Fixed!
+    * ~~On the first page the prev button should be disabled. On the last page the next button should be disabled~~ Fixed!
+    * ~~on the scan screen, placing the new button above the create button was not a good idea. Put both buttons side by side at the bottom and label them "Spoolman" and "New".~~ Fixed!
+    * ~~the screenshot shows the spool data screen instead of the spool list screen.~~ Fixed!
+    * the last few pixels of the bottom entry of the list is cut off.
+* Sometimes fetching data from spoolman takes a moment. When a tag is scanned, the device should show a "Fetching data from spoolman" message. When the data is fetched, the device should show the info screen.
+* When a color from spoolman has an alpha value, the color is displayed as "Unknown". We need to come up with a way to handle alpha values. They should not get lost but also don't break other things like loading a spool to the printer or writing valid tags.
 
 
 Fixes for Edit / Create tag
