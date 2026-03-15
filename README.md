@@ -4,6 +4,7 @@ CheapSpoolDisplay is a firmware for the ESP32 Cheap Yellow Display (CYD) that is
 
 ![Scan Screen](./docs/screen_scan.png) ![Spool Info Screen](./docs/screen_info.png)
 ![Tool Selection Screen](./docs/screen_tools.png) ![Edit Screen](./docs/screen_edit.png)
+![Select Spool Screen](./docs/select_spool_screen.png)
 
 ## Quickstart
 Follow the [Quickstart Guide](docs/QUICKSTART.md) to get your device flashed and configured.
@@ -11,6 +12,7 @@ Follow the [Quickstart Guide](docs/QUICKSTART.md) to get your device flashed and
 ## Features
 - **NFC Tag Scanning**: Reads NTAG215/216 NFC tags formatted via the OpenSpool JSON specification using a connected MFRC522 SPI module.
 - **Visual Interface**: Provides a modern, touch-friendly UI powered by LVGL to display the filament Brand, Type, Spool ID, and material color.
+- **Spoolman List Selection**: Paginate, browse, and load active spools directly from your Spoolman inventory without starting with an initial scan.
 - **Spoolman Data Enrichment**: Optionally connect to a [Spoolman](https://github.com/Donkie/Spoolman) server to fetch real-time filament names and remaining weight (rounded to 0.1g).
 - **Snapmaker U1 Integration**: Supports loading filament to a U1 printers with [Snapmaker U1 Extended Firmware](https://github.com/paxx12/SnapmakerU1-Extended-Firmware).
 - **Webhook Integration**: Configure a target URL to send POST payloads directly from the device to load the spool to the printer. (Disabled if Snapmaker U1 Integration is enabled)
