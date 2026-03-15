@@ -23,6 +23,7 @@ public:
   static void showToolSelectionScreen();
   static void showEditScreen();
   static void showEditScreenForNew();
+  static void showSelectSpoolScreen();
 
   static bool isScanScreenActive();
 
@@ -41,8 +42,9 @@ private:
   static void buildToolSelectionScreen();
   static void buildEditScreen();
   static void buildWritingOverlay();
-  static void buildSpoolIdPromptScreen();
   static void buildFetchingOverlay();
+  static void buildSelectSpoolScreen();
+  static void updateSelectSpoolList(const std::vector<SpoolmanItem>& items, int total_count);
 
   // Event callbacks
   static void onLoadSpoolButtonClicked(lv_event_t *e);
@@ -56,9 +58,10 @@ private:
   static void onTextAreaChanged(lv_event_t *e);
   static void onColorHexChanged(lv_event_t *e);
   static void onBrandDropdownChanged(lv_event_t *e);
-  static void onLoadPrefilledButtonClicked(lv_event_t *e);
-  static void onSkipPrefilledButtonClicked(lv_event_t *e);
   static void onKeyboardEvent(lv_event_t *e);
+  static void onSelectSpoolButtonClicked(lv_event_t *e);
+  static void onPrevPageClicked(lv_event_t *e);
+  static void onNextPageClicked(lv_event_t *e);
 
   // Validation
   static bool validateField(lv_obj_t *ta);
@@ -73,9 +76,15 @@ private:
   static lv_obj_t *infoScreen;
   static lv_obj_t *toolSelectionScreen;
   static lv_obj_t *editScreen;
-  static lv_obj_t *spoolIdPromptScreen;
   static lv_obj_t *writingOverlay;
   static lv_obj_t *fetchingOverlay;
+  static lv_obj_t *selectSpoolScreen;
+  static lv_obj_t *spoolListCont;
+  static lv_obj_t *pageLabel;
+  static lv_obj_t *selectSpoolPrevBtn;
+  static lv_obj_t *selectSpoolNextBtn;
+  static int currentSpoolPage;
+  static OpenSpoolData backupLoadedData;
   static bool writePending;
   static uint32_t writeStartTime;
 
@@ -111,8 +120,6 @@ private:
   static lv_obj_t *editMaxTempTextArea;
   static lv_obj_t *editBedMinTextArea;
   static lv_obj_t *editBedMaxTextArea;
-  static lv_obj_t *promptSpoolIdTextArea;
-  static lv_obj_t *promptLoadBtn;
   static lv_obj_t *keyboard;
 
   // Spoolman enrichment UI

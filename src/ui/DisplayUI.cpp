@@ -77,9 +77,13 @@ lv_obj_t *DisplayUI::editBedMaxTextArea = nullptr;
 lv_obj_t *DisplayUI::keyboard = nullptr;
 lv_obj_t *DisplayUI::writingOverlay = nullptr;
 lv_obj_t *DisplayUI::fetchingOverlay = nullptr;
-lv_obj_t *DisplayUI::spoolIdPromptScreen = nullptr;
-lv_obj_t *DisplayUI::promptSpoolIdTextArea = nullptr;
-lv_obj_t *DisplayUI::promptLoadBtn = nullptr;
+lv_obj_t *DisplayUI::selectSpoolScreen = nullptr;
+lv_obj_t *DisplayUI::spoolListCont = nullptr;
+lv_obj_t *DisplayUI::pageLabel = nullptr;
+lv_obj_t *DisplayUI::selectSpoolPrevBtn = nullptr;
+lv_obj_t *DisplayUI::selectSpoolNextBtn = nullptr;
+int DisplayUI::currentSpoolPage = 0;
+OpenSpoolData DisplayUI::backupLoadedData;
 bool DisplayUI::writePending = false;
 uint32_t DisplayUI::writeStartTime = 0;
 lv_obj_t *DisplayUI::toastObj = nullptr;
@@ -184,7 +188,7 @@ void DisplayUI::init() {
   buildInfoScreen();
   buildToolSelectionScreen();
   buildEditScreen();
-  buildSpoolIdPromptScreen();
+  buildSelectSpoolScreen();
   buildWritingOverlay();
   buildFetchingOverlay();
 
@@ -201,6 +205,7 @@ void DisplayUI::init() {
   set_premium_scr(infoScreen);
   set_premium_scr(toolSelectionScreen);
   set_premium_scr(editScreen);
+  set_premium_scr(selectSpoolScreen);
 
   // Show initial screen
   showScanScreen();
@@ -244,7 +249,7 @@ void DisplayUI::buildScanScreen() {
   scanScreen = lv_obj_create(NULL);
   lv_obj_set_scroll_dir(scanScreen, LV_DIR_NONE);
 
-  // OpenSpool Logo with glow effect
+  // OpenSpool Logo
   lv_obj_t *logo = lv_image_create(scanScreen);
   lv_image_set_src(logo, &img_openspool_logo);
   lv_obj_align(logo, LV_ALIGN_CENTER, 0, -50);
@@ -260,16 +265,185 @@ void DisplayUI::buildScanScreen() {
   lv_obj_set_style_text_color(desc, lv_color_hex(0x9ca3af), 0);
   lv_obj_align(desc, LV_ALIGN_CENTER, 0, 75);
 
+  // Select from Spoolman
+  lv_obj_t *selectBtn = lv_btn_create(scanScreen);
+  lv_obj_set_size(selectBtn, 100, 42);
+  lv_obj_align(selectBtn, LV_ALIGN_BOTTOM_LEFT, 15, -15);
+  apply_indigo_btn_style(selectBtn);
+  lv_obj_add_event_cb(selectBtn, onSelectSpoolButtonClicked, LV_EVENT_CLICKED,
+                      NULL);
+
+  lv_obj_t *selectLbl = lv_label_create(selectBtn);
+  lv_label_set_text(selectLbl, "Spoolman");
+  lv_obj_center(selectLbl);
+
   createNewBtn = lv_btn_create(scanScreen);
-  lv_obj_set_size(createNewBtn, 160, 42);
-  lv_obj_align(createNewBtn, LV_ALIGN_BOTTOM_MID, 0, -20);
+  lv_obj_set_size(createNewBtn, 100, 42);
+  lv_obj_align(createNewBtn, LV_ALIGN_BOTTOM_RIGHT, -15, -15);
   apply_indigo_btn_style(createNewBtn);
   lv_obj_add_event_cb(createNewBtn, onCreateNewButtonClicked, LV_EVENT_CLICKED,
                       NULL);
 
   lv_obj_t *createLbl = lv_label_create(createNewBtn);
-  lv_label_set_text(createLbl, "Create New Tag");
+  lv_label_set_text(createLbl, "New");
   lv_obj_center(createLbl);
+}
+
+static uint32_t parse_hex_color(const std::string &hex) {
+  if (hex.empty())
+    return 0xFFFFFF;
+  std::string h = hex;
+  if (h[0] == '#')
+    h = h.substr(1);
+  return strtoul(h.c_str(), nullptr, 16);
+}
+
+void DisplayUI::buildSelectSpoolScreen() {
+  selectSpoolScreen = lv_obj_create(NULL);
+
+  lv_obj_t *title = lv_label_create(selectSpoolScreen);
+  lv_label_set_text(title, "Select Spool");
+  lv_obj_set_style_text_font(title, font_combined_20, 0);
+  lv_obj_set_style_text_color(title, lv_color_white(), 0);
+  lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 15);
+
+  spoolListCont = lv_obj_create(selectSpoolScreen);
+  lv_obj_set_size(spoolListCont, 220, 190);
+  lv_obj_align(spoolListCont, LV_ALIGN_TOP_MID, 0, 50);
+  lv_obj_set_style_bg_opa(spoolListCont, 0, 0);
+  lv_obj_set_style_border_width(spoolListCont, 0, 0);
+  lv_obj_set_style_pad_all(spoolListCont, 0, 0);
+  lv_obj_set_style_pad_row(spoolListCont, 6, 0);
+  lv_obj_set_flex_flow(spoolListCont, LV_FLEX_FLOW_COLUMN);
+  lv_obj_clear_flag(spoolListCont, LV_OBJ_FLAG_SCROLLABLE);
+
+  lv_obj_t *footer = lv_obj_create(selectSpoolScreen);
+  lv_obj_set_size(footer, 220, 40);
+  lv_obj_align(footer, LV_ALIGN_BOTTOM_MID, 0, -45);
+  lv_obj_set_style_bg_opa(footer, 0, 0);
+  lv_obj_set_style_border_width(footer, 0, 0);
+  lv_obj_clear_flag(footer, LV_OBJ_FLAG_SCROLLABLE);
+
+  selectSpoolPrevBtn = lv_btn_create(footer);
+  lv_obj_set_size(selectSpoolPrevBtn, 40, 30);
+  lv_obj_align(selectSpoolPrevBtn, LV_ALIGN_LEFT_MID, 0, 0);
+  apply_indigo_btn_style(selectSpoolPrevBtn);
+  lv_obj_add_event_cb(selectSpoolPrevBtn, onPrevPageClicked, LV_EVENT_CLICKED,
+                      NULL);
+  lv_obj_t *prevLbl = lv_label_create(selectSpoolPrevBtn);
+  lv_label_set_text(prevLbl, LV_SYMBOL_LEFT);
+  lv_obj_set_style_text_font(prevLbl, &lv_font_montserrat_14, 0);
+  lv_obj_center(prevLbl);
+
+  pageLabel = lv_label_create(footer);
+  lv_label_set_text(pageLabel, "Page 1/1");
+  lv_obj_set_style_text_color(pageLabel, lv_color_white(), 0);
+  lv_obj_align(pageLabel, LV_ALIGN_CENTER, 0, 0);
+
+  selectSpoolNextBtn = lv_btn_create(footer);
+  lv_obj_set_size(selectSpoolNextBtn, 40, 30);
+  lv_obj_align(selectSpoolNextBtn, LV_ALIGN_RIGHT_MID, 0, 0);
+  apply_indigo_btn_style(selectSpoolNextBtn);
+  lv_obj_add_event_cb(selectSpoolNextBtn, onNextPageClicked, LV_EVENT_CLICKED,
+                      NULL);
+  lv_obj_t *nextLbl = lv_label_create(selectSpoolNextBtn);
+  lv_label_set_text(nextLbl, LV_SYMBOL_RIGHT);
+  lv_obj_set_style_text_font(nextLbl, &lv_font_montserrat_14, 0);
+  lv_obj_center(nextLbl);
+
+  lv_obj_t *cancelBtn = lv_btn_create(selectSpoolScreen);
+  lv_obj_set_size(cancelBtn, 140, 36);
+  lv_obj_align(cancelBtn, LV_ALIGN_BOTTOM_MID, 0, -5);
+  lv_obj_set_style_bg_color(cancelBtn, lv_color_hex(0x1f2937), 0);
+  lv_obj_add_event_cb(cancelBtn, onBackButtonClicked, LV_EVENT_CLICKED, NULL);
+  lv_obj_t *cancelLbl = lv_label_create(cancelBtn);
+  lv_label_set_text(cancelLbl, "Cancel");
+  lv_obj_center(cancelLbl);
+}
+
+void DisplayUI::updateSelectSpoolList(const std::vector<SpoolmanItem> &items,
+                                      int total_count) {
+  if (!spoolListCont)
+    return;
+  lv_obj_clean(spoolListCont);
+
+  for (const auto &item : items) {
+    lv_obj_t *row = lv_btn_create(spoolListCont);
+    lv_obj_set_size(row, LV_PCT(100), 45);
+    lv_obj_set_style_bg_color(row, lv_color_hex(0x1e1b4b), 0);
+    lv_obj_set_style_radius(row, 8, 0);
+    lv_obj_set_style_pad_all(row, 6, 0);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+
+    std::string *id_ptr = new std::string(item.id);
+    lv_obj_set_user_data(row, id_ptr);
+
+    // Custom row event listener
+    lv_obj_add_event_cb(
+        row,
+        [](lv_event_t *e) {
+          if (lv_event_get_code(e) == LV_EVENT_DELETE) {
+            delete (std::string *)lv_obj_get_user_data(
+                (lv_obj_t *)lv_event_get_target(e));
+          } else if (lv_event_get_code(e) == LV_EVENT_CLICKED) {
+            std::string id = *(std::string *)lv_obj_get_user_data(
+                (lv_obj_t *)lv_event_get_target(e));
+
+            OpenSpoolData data;
+            data.spool_id = id;
+
+            if (NetworkManager::fetchSpoolmanData(data)) {
+              currentLoadedData = data;
+              showInfoScreen(currentLoadedData);
+            } else {
+              showToast("Fetch details failed", true);
+            }
+          }
+        },
+        LV_EVENT_ALL, NULL);
+
+    lv_obj_t *swatch = lv_obj_create(row);
+    lv_obj_set_size(swatch, 12, 12);
+    lv_obj_align(swatch, LV_ALIGN_LEFT_MID, 2, 0);
+    lv_obj_set_style_bg_color(swatch,
+                              lv_color_hex(parse_hex_color(item.color_hex)), 0);
+    lv_obj_set_style_radius(swatch, 3, 0);
+    lv_obj_clear_flag(swatch, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *lbl = lv_label_create(row);
+    std::string text = item.brand + " " + item.type + "\n" + item.name;
+    lv_label_set_text(lbl, text.c_str());
+    lv_obj_set_style_text_font(lbl, font_combined_14, 0);
+    lv_obj_set_style_text_color(lbl, lv_color_white(), 0);
+    lv_obj_align(lbl, LV_ALIGN_LEFT_MID, 20, -2);
+    lv_label_set_long_mode(lbl, LV_LABEL_LONG_DOT);
+    lv_obj_set_width(lbl, 180);
+  }
+
+  int total_pages = (total_count + 3) / 4;
+  if (total_pages < 1)
+    total_pages = 1;
+
+  char pbuf[32];
+  snprintf(pbuf, sizeof(pbuf), "Page %d/%d", currentSpoolPage + 1, total_pages);
+  if (pageLabel)
+    lv_label_set_text(pageLabel, pbuf);
+
+  // Update boundary button states
+  if (selectSpoolPrevBtn) {
+    if (currentSpoolPage == 0) {
+      lv_obj_add_state(selectSpoolPrevBtn, LV_STATE_DISABLED);
+    } else {
+      lv_obj_clear_state(selectSpoolPrevBtn, LV_STATE_DISABLED);
+    }
+  }
+  if (selectSpoolNextBtn) {
+    if (currentSpoolPage >= total_pages - 1) {
+      lv_obj_add_state(selectSpoolNextBtn, LV_STATE_DISABLED);
+    } else {
+      lv_obj_clear_state(selectSpoolNextBtn, LV_STATE_DISABLED);
+    }
+  }
 }
 
 void DisplayUI::buildInfoScreen() {
@@ -432,7 +606,9 @@ void DisplayUI::buildEditScreen() {
 
   // Scrollable container for form (Main content area)
   lv_obj_t *cont = lv_obj_create(editScreen);
-  lv_obj_set_size(cont, 240, 220); // Width back to 240, Height to fit between header and footer
+  lv_obj_set_size(
+      cont, 240,
+      220); // Width back to 240, Height to fit between header and footer
   lv_obj_align(cont, LV_ALIGN_TOP_MID, 0, 40);
   lv_obj_set_style_bg_opa(cont, 0, 0);
   lv_obj_set_style_border_width(cont, 0, 0);
@@ -771,54 +947,6 @@ void DisplayUI::showToolSelectionScreen() {
   lv_scr_load(toolSelectionScreen);
 }
 
-void DisplayUI::buildSpoolIdPromptScreen() {
-  spoolIdPromptScreen = lv_obj_create(NULL);
-  lv_obj_set_style_bg_color(spoolIdPromptScreen,
-                            lv_palette_main(LV_PALETTE_GREY), 0);
-
-  lv_obj_t *cont = lv_obj_create(spoolIdPromptScreen);
-  lv_obj_set_size(cont, 280, 180);
-  lv_obj_center(cont);
-  lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
-                        LV_FLEX_ALIGN_CENTER);
-
-  lv_obj_t *label = lv_label_create(cont);
-  lv_label_set_text(label, "Load from Spoolman:");
-
-  promptSpoolIdTextArea = lv_textarea_create(cont);
-  lv_textarea_set_one_line(promptSpoolIdTextArea, true);
-  lv_obj_set_width(promptSpoolIdTextArea, 200);
-  lv_textarea_set_placeholder_text(promptSpoolIdTextArea, "ID");
-  lv_obj_add_event_cb(promptSpoolIdTextArea, onTextAreaFocused,
-                      LV_EVENT_FOCUSED, NULL);
-  lv_obj_add_event_cb(promptSpoolIdTextArea, onTextAreaFocused,
-                      LV_EVENT_CLICKED, NULL);
-  lv_obj_add_event_cb(promptSpoolIdTextArea, onTextAreaChanged,
-                      LV_EVENT_VALUE_CHANGED, NULL);
-
-  lv_obj_t *btn_cont = lv_obj_create(cont);
-  lv_obj_set_size(btn_cont, 240, 60);
-  lv_obj_set_flex_flow(btn_cont, LV_FLEX_FLOW_ROW);
-  lv_obj_set_flex_align(btn_cont, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
-                        LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(btn_cont, 0, 0);
-  lv_obj_set_style_border_width(btn_cont, 0, 0);
-  lv_obj_set_style_bg_opa(btn_cont, 0, 0);
-
-  promptLoadBtn = lv_button_create(btn_cont);
-  lv_obj_t *load_lbl = lv_label_create(promptLoadBtn);
-  lv_label_set_text(load_lbl, "Load");
-  lv_obj_add_event_cb(promptLoadBtn, onLoadPrefilledButtonClicked,
-                      LV_EVENT_CLICKED, NULL);
-  lv_obj_add_state(promptLoadBtn, LV_STATE_DISABLED);
-
-  lv_obj_t *skip_btn = lv_button_create(btn_cont);
-  lv_obj_t *skip_lbl = lv_label_create(skip_btn);
-  lv_label_set_text(skip_lbl, "Skip");
-  lv_obj_add_event_cb(skip_btn, onSkipPrefilledButtonClicked, LV_EVENT_CLICKED,
-                      NULL);
-}
 
 void DisplayUI::buildFetchingOverlay() {
   fetchingOverlay = lv_obj_create(lv_layer_top());
@@ -958,50 +1086,56 @@ void DisplayUI::onToolButtonClicked(lv_event_t *e) {
   lv_scr_load(infoScreen);
 }
 
-void DisplayUI::onEditButtonClicked(lv_event_t *e) { showEditScreen(); }
+void DisplayUI::onEditButtonClicked(lv_event_t *e) { 
+  backupLoadedData = currentLoadedData;
+  showEditScreen(); 
+}
 
 void DisplayUI::onCreateNewButtonClicked(lv_event_t *e) {
-  if (!ConfigManager::getSpoolmanUrl().empty()) {
-    lv_textarea_set_text(promptSpoolIdTextArea, "");
-    lv_obj_add_state(promptLoadBtn, LV_STATE_DISABLED);
-    lv_scr_load(spoolIdPromptScreen);
-  } else {
-    currentLoadedData.reset();
-    showEditScreen();
-  }
-}
-
-void DisplayUI::onLoadPrefilledButtonClicked(lv_event_t *e) {
-  const char *id = lv_textarea_get_text(promptSpoolIdTextArea);
-  if (strlen(id) == 0) {
-    showToast("Enter a Spool ID", true);
-    return;
-  }
-
-  // Show "Fetching..."
-  lv_obj_clear_flag(fetchingOverlay, LV_OBJ_FLAG_HIDDEN);
-  lv_refr_now(NULL);
-
-  currentLoadedData.reset();
-  currentLoadedData.spool_id = id;
-
-  bool success = NetworkManager::fetchSpoolmanData(currentLoadedData);
-
-  lv_obj_add_flag(fetchingOverlay, LV_OBJ_FLAG_HIDDEN);
-
-  if (success) {
-    showToast("Data prefilled from Spoolman");
-  } else {
-    showToast("Fetch failed, starting fresh", true);
-  }
-
-  showEditScreen();
-}
-
-void DisplayUI::onSkipPrefilledButtonClicked(lv_event_t *e) {
+  backupLoadedData = currentLoadedData;
   currentLoadedData.reset();
   showEditScreen();
 }
+
+void DisplayUI::showSelectSpoolScreen() { lv_scr_load(selectSpoolScreen); }
+
+void DisplayUI::onSelectSpoolButtonClicked(lv_event_t *e) {
+  currentSpoolPage = 0;
+  std::vector<SpoolmanItem> items;
+  int total_count = 0;
+  if (NetworkManager::fetchSpoolmanList(currentSpoolPage, 4, items,
+                                        total_count)) {
+    updateSelectSpoolList(items, total_count);
+    showSelectSpoolScreen();
+  } else {
+    showToast("Spoolman lookup failed", true);
+  }
+}
+
+void DisplayUI::onPrevPageClicked(lv_event_t *e) {
+  if (currentSpoolPage > 0) {
+    currentSpoolPage--;
+    std::vector<SpoolmanItem> items;
+    int total_count = 0;
+    if (NetworkManager::fetchSpoolmanList(currentSpoolPage, 4, items,
+                                          total_count)) {
+      updateSelectSpoolList(items, total_count);
+    }
+  }
+}
+
+void DisplayUI::onNextPageClicked(lv_event_t *e) {
+  int nextPage = currentSpoolPage + 1;
+  std::vector<SpoolmanItem> items;
+  int total_count = 0;
+  if (NetworkManager::fetchSpoolmanList(nextPage, 4, items, total_count)) {
+    if (!items.empty()) {
+      currentSpoolPage = nextPage;
+      updateSelectSpoolList(items, total_count);
+    }
+  }
+}
+
 
 void DisplayUI::onColorHexChanged(lv_event_t *e) {
   const char *txt = lv_textarea_get_text(editColorHexTextArea);
@@ -1025,12 +1159,6 @@ void DisplayUI::onBrandDropdownChanged(lv_event_t *e) {
 void DisplayUI::onKeyboardEvent(lv_event_t *e) {
   lv_event_code_t code = lv_event_get_code(e);
   if (code == LV_EVENT_READY || code == LV_EVENT_CANCEL) {
-    if (code == LV_EVENT_READY) {
-      lv_obj_t *ta = lv_keyboard_get_textarea(keyboard);
-      if (ta == promptSpoolIdTextArea) {
-        onLoadPrefilledButtonClicked(NULL);
-      }
-    }
     lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
   }
 }
@@ -1093,6 +1221,7 @@ void DisplayUI::onSaveButtonClicked(lv_event_t *e) {
 }
 
 void DisplayUI::onCancelEditButtonClicked(lv_event_t *e) {
+  currentLoadedData = backupLoadedData;
   if (currentLoadedData.protocol.empty()) {
     showScanScreen();
   } else {
@@ -1102,7 +1231,14 @@ void DisplayUI::onCancelEditButtonClicked(lv_event_t *e) {
 
 void DisplayUI::onBackButtonClicked(lv_event_t *e) {
   lv_obj_t *scr = lv_scr_act();
-  if (scr == toolSelectionScreen || scr == editScreen) {
+  if (scr == editScreen) {
+    currentLoadedData = backupLoadedData;
+    if (currentLoadedData.protocol.empty()) {
+      showScanScreen();
+    } else {
+      showInfoScreen(currentLoadedData);
+    }
+  } else if (scr == toolSelectionScreen) {
     lv_scr_load(infoScreen);
   } else {
     lv_scr_load(scanScreen);
@@ -1116,7 +1252,7 @@ void DisplayUI::onTextAreaFocused(lv_event_t *e) {
   // Auto switch to numeric mode for temps and Spool ID
   if (ta == editMinTempTextArea || ta == editMaxTempTextArea ||
       ta == editBedMinTextArea || ta == editBedMaxTextArea ||
-      ta == editSpoolIdTextArea || ta == promptSpoolIdTextArea) {
+      ta == editSpoolIdTextArea) {
     lv_keyboard_set_mode(keyboard, LV_KEYBOARD_MODE_NUMBER);
   } else if (ta == editColorHexTextArea) {
     lv_keyboard_set_mode(keyboard, LV_KEYBOARD_MODE_TEXT_UPPER);
@@ -1204,15 +1340,6 @@ void DisplayUI::updateSaveButtonState() {
     lv_obj_add_state(editSaveBtn, LV_STATE_DISABLED);
   }
 
-  // Update prompt load button state
-  if (promptSpoolIdTextArea && promptLoadBtn) {
-    const char *text = lv_textarea_get_text(promptSpoolIdTextArea);
-    if (strlen(text) > 0) {
-      lv_obj_remove_state(promptLoadBtn, LV_STATE_DISABLED);
-    } else {
-      lv_obj_add_state(promptLoadBtn, LV_STATE_DISABLED);
-    }
-  }
 }
 
 void DisplayUI::showToast(const char *msg, bool is_error) {
@@ -1271,5 +1398,5 @@ void DisplayUI::hideWritingOverlay() {
 const OpenSpoolData &DisplayUI::getPendingData() { return currentLoadedData; }
 
 bool DisplayUI::isEditing() {
-  return lv_scr_act() == editScreen || lv_scr_act() == spoolIdPromptScreen;
+  return lv_scr_act() == editScreen;
 }

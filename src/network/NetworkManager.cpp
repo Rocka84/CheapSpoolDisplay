@@ -53,6 +53,24 @@ static size_t WriteCallback(void *contents, size_t size, size_t nmemb,
   ((std::string *)userp)->append((char *)contents, size * nmemb);
   return size * nmemb;
 }
+
+static size_t HeaderCallback(void *contents, size_t size, size_t nmemb, void *userp) {
+  size_t realsize = size * nmemb;
+  std::string header((char*)contents, realsize);
+  
+  // Case-insensitive check
+  std::string h = header;
+  for (auto & c: h) c = tolower(c);
+  
+  if (h.find("x-total-count:") == 0) {
+      size_t pos = h.find(":");
+      if (pos != std::string::npos) {
+          int *total = (int*)userp;
+          *total = atoi(header.substr(pos + 1).c_str());
+      }
+  }
+  return realsize;
+}
 #endif
 
 bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
@@ -256,6 +274,64 @@ bool NetworkManager::fetchSpoolmanData(OpenSpoolData &data) {
 
   if (response_code == 200) {
     return OpenSpoolParser::enrichFromSpoolman(payload, data);
+  }
+  return false;
+}
+
+bool NetworkManager::fetchSpoolmanList(int page, int limit, std::vector<SpoolmanItem>& items, int& total_count) {
+  std::string baseUrl = ConfigManager::getSpoolmanUrl();
+  if (baseUrl.empty()) {
+    return false;
+  }
+
+  if (!ensureWiFi()) {
+    return false;
+  }
+
+  if (baseUrl.back() == '/')
+    baseUrl.pop_back();
+
+  int offset = page * limit;
+  std::string api_url = baseUrl + "/api/v1/spool?archived=false&finished=false&limit=" + 
+                        std::to_string(limit) + "&offset=" + std::to_string(offset);
+
+  std::string payload;
+  long response_code = 0;
+
+#ifndef USE_SDL2
+  HTTPClient http;
+  http.begin(api_url.c_str());
+  const char *headerKeys[] = {"X-Total-Count"};
+  http.collectHeaders(headerKeys, 1);
+  
+  response_code = http.GET();
+  payload = http.getString().c_str();
+  
+  if (response_code == 200 && http.hasHeader("X-Total-Count")) {
+      total_count = atoi(http.header("X-Total-Count").c_str());
+  }
+  http.end();
+#else
+  CURL *curl = curl_easy_init();
+  if (curl) {
+    curl_easy_setopt(curl, CURLOPT_URL, api_url.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &payload);
+    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, HeaderCallback);
+    curl_easy_setopt(curl, CURLOPT_HEADERDATA, &total_count);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+    CURLcode res = curl_easy_perform(curl);
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+    curl_easy_cleanup(curl);
+    if (res != CURLE_OK) {
+      response_code = 0;
+    }
+  }
+#endif
+
+  if (response_code == 200) {
+    return OpenSpoolParser::parseSpoolmanList(payload, items, total_count);
   }
   return false;
 }

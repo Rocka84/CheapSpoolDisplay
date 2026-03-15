@@ -126,6 +126,62 @@ bool OpenSpoolParser::enrichFromSpoolman(const std::string &json,
   return true;
 }
 
+bool OpenSpoolParser::parseSpoolmanList(const std::string &json, std::vector<SpoolmanItem> &items, int &total_count) {
+  items.clear();
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, json);
+
+  if (error) {
+    return false;
+  }
+
+  JsonArray list;
+  if (doc.is<JsonArray>()) {
+    list = doc.as<JsonArray>();
+    if (total_count <= 0) {
+        total_count = list.size(); 
+    }
+  } else if (doc["items"].is<JsonArray>()) {
+    list = doc["items"].as<JsonArray>();
+    if (doc["total_count"].is<int>()) {
+        total_count = doc["total_count"].as<int>();
+    } else if (total_count <= 0) {
+        total_count = list.size();
+    }
+  } else {
+    return false;
+  }
+
+  for (JsonObject obj : list) {
+    SpoolmanItem item;
+    if (obj["id"].is<int>()) {
+        item.id = std::to_string(obj["id"].as<int>());
+    } else if (obj["id"].is<std::string>()) {
+        item.id = obj["id"].as<std::string>();
+    }
+    
+    JsonObject filament = obj["filament"];
+    if (filament["vendor"]["name"].is<std::string>()) {
+        item.brand = filament["vendor"]["name"].as<std::string>();
+    }
+    if (filament["material"].is<std::string>()) {
+        item.type = filament["material"].as<std::string>();
+    }
+    if (filament["name"].is<std::string>()) {
+        item.name = filament["name"].as<std::string>();
+    }
+    if (filament["color_hex"].is<std::string>()) {
+        item.color_hex = filament["color_hex"].as<std::string>();
+    }
+    if (obj["remaining_weight"].is<float>()) {
+        item.remaining_weight = obj["remaining_weight"].as<float>();
+    }
+    items.push_back(item);
+  }
+
+  return true;
+}
+
 std::string OpenSpoolParser::toJson(const OpenSpoolData &data) {
   JsonDocument doc;
 

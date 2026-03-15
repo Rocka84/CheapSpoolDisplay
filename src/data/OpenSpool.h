@@ -6,6 +6,7 @@
 #endif
 #include <ArduinoJson.h>
 #include <string>
+#include <vector>
 
 struct OpenSpoolData {
   std::string protocol;
@@ -49,10 +50,20 @@ struct OpenSpoolData {
   }
 };
 
+struct SpoolmanItem {
+  std::string id;
+  std::string brand;
+  std::string type;
+  std::string name;
+  std::string color_hex;
+  float remaining_weight;
+};
+
 class OpenSpoolParser {
 public:
   static bool parseJson(const std::string &json, OpenSpoolData &data);
   static bool enrichFromSpoolman(const std::string &json, OpenSpoolData &data);
+  static bool parseSpoolmanList(const std::string &json, std::vector<SpoolmanItem> &items, int &total_count);
   static std::string toJson(const OpenSpoolData &data);
 };
 

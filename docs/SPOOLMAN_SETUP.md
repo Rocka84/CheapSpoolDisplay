@@ -31,4 +31,7 @@ When a tag is scanned and Spoolman data is found:
 - **Filament**: Displays the friendly name of the filament.
 - **Weight**: Displays `remaining / total` weight.
 
+### List Selection (Menu)
+If you do not have an NFC tag handy for a spool, you can click **Select Spoolman** on the Scan Screen to browse your inventory directly using paginated list navigation. Selecting a spool from this view behaves like a Virtual Scan, taking you directly to the Info Screen for that item.
+
 If the Spoolman lookup fails or is not configured, these extra rows will simply be hidden, and you will only see the standard OpenSpool tag data.

@@ -73,7 +73,7 @@ Ideas
         * Estimated Deep Sleep draw: 1-5mA (due to LDO and peripherals).
         * Standby path (1000mAh): ~8 to 40 days depending on board revision.
         * Recommendation: Physical slide switch for long-term storage.
-7. List spools and select spools available in spoolman
+7. ~~List spools and select spools available in spoolman~~ Done!
     * instead of scanning a tag, show a list of spools available in spoolman
         * new button on scan screen above the create button
         * only visible when spoolman is configured
@@ -84,9 +84,12 @@ Ideas
             * Material
             * Filament Name
         * title: "Select Spool"
-        * scrollable list
-        * "Cancel" and "Load" buttons at the end
-        * main layout similar to edit screen (Caption, scrollable area, button area)
+        * paginated list
+            * items per page yet to be determined
+            * "Previous" and "Next" (chevrons) buttons at bottom
+            * show page number / total pages between buttons
+        * "Cancel" button below list
+        * main layout similar to edit screen (Caption, main area, button area)
     * when a spool is selected, load it as if the tag was scanned
     * allows to load spools to the printer that are in spoolman but don't have a tag
     * allows to create new tags for spools that are in spoolman but don't have a tag
@@ -103,6 +106,15 @@ Known issues
 * ~~Ugly bars at edges of the logo on the idle screen~~ Fixed!
 * ~~canceling the tool selection dialog does not go back to the info screen~~ Fixed!
 * ~~on the device I have configured tools to be 4, but the tool selection dialog shows only 1 tool. I have tried to reset the device, but it does not help.~~ Fixed!
+* Spool selection from Spoolman
+    * chevron icons are broken, probably buttons use incorrect font (same bug as with select boxes earlier)
+    * dont show weight info in the list, it's not needed there and uses too much space. Use that space for the label instead.
+    * The list entries should have at most 2 lines of text. Cut off the overlapping text.
+    * The area with the prev/next buttons and page numbers overlaps the spool list
+    * The total number of pages is wrong, it's allows shown as 1. So on the third page it says "Page 3/1".
+    * On the first page the prev button should be disabled. On the last page the next button should be disabled
+    * on the scan screen, placing the new button above the create button was not a good idea. Put both buttons side by side at the bottom and label them "Spoolman" and "New".
+    * the screenshot shows the spool data screen instead of the spool list screen.
 
 
 Fixes for Edit / Create tag
