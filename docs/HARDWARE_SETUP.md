@@ -49,3 +49,11 @@ The easiest approach to measure voltage without modifying the CYD board itself i
 ### Waking from Deep Sleep
 When running on battery power, the device will eventually enter **Deep Sleep** to conserve energy.
 - **To wake up:** Press the physical `RST` (Reset) button located on the back or side of the CYD. This hardware interrupts the ESP32 and restarts the boot cycle, immediately jumping back to the Scanning interface.
+
+## 3. 3D Printed Case
+
+You can find 3D printable case files for this project inside the [cad/](../cad) directory at the root of the repository:
+- [Case Main (STL)](../cad/CheapSpoolDisplay%20-%20Case%20main.stl)
+- [Case Lid (STL)](../cad/CheapSpoolDisplay%20-%20Case%20lid.stl)
+
+- **Onshape Project**: [View source CAD on Onshape](https://cad.onshape.com/documents/a60add6f8ee1de5614ac75fe/w/16328b69bac76c64c87c96b5/e/ff77dffe6e5e288726fe3b2e)
