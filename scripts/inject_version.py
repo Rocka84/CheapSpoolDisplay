@@ -1,7 +1,6 @@
-import json
-import os
-
 Import("env")
+import os
+import json
 
 proj_dir = env.get("PROJECT_DIR")
 version_path = os.path.join(proj_dir, "VERSION")

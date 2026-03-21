@@ -31,8 +31,14 @@ public:
   static uint8_t getNumTools();
   static void setNumTools(uint8_t tools);
 
-  static uint16_t getScreenTimeout();
-  static void setScreenTimeout(uint16_t seconds);
+  static uint8_t getPowerMode();
+  static void setPowerMode(uint8_t mode);
+
+  static uint16_t getSleepTimeout();
+  static void setSleepTimeout(uint16_t timeout);
+
+  static uint16_t getDisplayTimeout();
+  static void setDisplayTimeout(uint16_t seconds);
 
   // Snapmaker U1 Settings
   static std::string getU1Host();

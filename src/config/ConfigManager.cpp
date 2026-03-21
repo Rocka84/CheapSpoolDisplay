@@ -62,18 +62,28 @@ void ConfigManager::setNumTools(uint8_t tools) {
   preferences.putUChar("num_tools", tools);
 }
 
-uint16_t ConfigManager::getScreenTimeout() {
-  if (!preferences.isKey("timeout"))
-    return 60;
-  return preferences.getUShort("timeout", 60);
+uint8_t ConfigManager::getPowerMode() {
+  return preferences.getUChar("power_mode", 1);
 }
 
-void ConfigManager::setScreenTimeout(uint16_t seconds) {
-  if (seconds < 10)
-    seconds = 10;
-  if (seconds > 3600)
-    seconds = 3600;
-  preferences.putUShort("timeout", seconds);
+void ConfigManager::setPowerMode(uint8_t mode) {
+  preferences.putUChar("power_mode", mode);
+}
+
+uint16_t ConfigManager::getSleepTimeout() {
+  return preferences.getUShort("sleep_timeout", 5);
+}
+
+void ConfigManager::setSleepTimeout(uint16_t minutes) {
+  preferences.putUShort("sleep_timeout", minutes);
+}
+
+uint16_t ConfigManager::getDisplayTimeout() {
+  return preferences.getUShort("display_timeout", 300);
+}
+
+void ConfigManager::setDisplayTimeout(uint16_t seconds) {
+  preferences.putUShort("display_timeout", seconds);
 }
 
 std::string ConfigManager::getU1Host() {
@@ -96,6 +106,17 @@ std::map<std::string, std::string> ConfigManager::simConfig;
 void ConfigManager::init() { loadSimConfig(); }
 
 void ConfigManager::loadSimConfig() {
+  // Populate with default test values
+  simConfig["wifi_ssid"] = "Test_WiFi";
+  simConfig["wifi_pass"] = "password123";
+  simConfig["webhook"] = "http://192.168.1.100:8000/webhook";
+  simConfig["spoolman"] = "http://192.168.1.100:7912";
+  simConfig["num_tools"] = "4";
+  simConfig["display_timeout"] = "0";
+  simConfig["power_mode"] = "0"; // Always On for simulator
+  simConfig["sleep_timeout"] = "5";
+  simConfig["u1_host"] = "192.168.1.50";
+
   std::ifstream file("simulator/config.cfg");
   if (!file.is_open())
     return;
@@ -154,18 +175,41 @@ uint8_t ConfigManager::getNumTools() {
 
 void ConfigManager::setNumTools(uint8_t tools) {}
 
-uint16_t ConfigManager::getScreenTimeout() {
-  auto it = simConfig.find("timeout");
+uint8_t ConfigManager::getPowerMode() {
+  auto it = simConfig.find("power_mode");
+  if (it != simConfig.end()) {
+    try {
+      return (uint8_t)std::stoi(it->second);
+    } catch (...) {}
+  }
+  return 0; // Default to Always On in simulator
+}
+
+void ConfigManager::setPowerMode(uint8_t mode) {}
+
+uint16_t ConfigManager::getSleepTimeout() {
+  auto it = simConfig.find("sleep_timeout");
   if (it != simConfig.end()) {
     try {
       return (uint16_t)std::stoi(it->second);
-    } catch (...) {
-    }
+    } catch (...) {}
   }
-  return 60;
+  return 5;
 }
 
-void ConfigManager::setScreenTimeout(uint16_t seconds) {}
+void ConfigManager::setSleepTimeout(uint16_t minutes) {}
+
+uint16_t ConfigManager::getDisplayTimeout() {
+  auto it = simConfig.find("display_timeout");
+  if (it != simConfig.end()) {
+    try {
+      return (uint16_t)std::stoi(it->second);
+    } catch (...) {}
+  }
+  return  0; // Default to Always On 
+}
+
+void ConfigManager::setDisplayTimeout(uint16_t seconds) {}
 
 std::string ConfigManager::getU1Host() {
   auto it = simConfig.find("u1_host");

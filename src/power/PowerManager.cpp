@@ -8,7 +8,10 @@
 // To avoid physically modifying the CYD hardware (like desoldering the LDR on
 // IO34), we use IO35, which is purely an ADC input pin physically broken out on
 // the CYD's P3/CN1 external connector.
+#ifndef USE_SDL2
 #define BATTERY_SENSE_PIN 35
+#define ADC_USB_THRESHOLD 2600 // Roughly equates to > 4.2V on a 1/2 divider
+#endif
 
 unsigned long PowerManager::lastActivityTime = 0;
 bool PowerManager::displayIsOff = false;
@@ -62,8 +65,13 @@ void PowerManager::enterDeepSleep() {
 }
 
 bool PowerManager::isPoweredByUSB() {
-  // Battery feature postponed. Assume USB power always.
+#ifndef USE_SDL2
+  // Simple heuristic: if ADC reads high (assuming a 1/2 voltage divider to Pin 35)
+  // 4.2V / 2 = 2.1V. Full ADC range is 3.3V (4095). 2.1V = ~2600
+  return analogRead(BATTERY_SENSE_PIN) > ADC_USB_THRESHOLD;
+#else
   return true;
+#endif
 }
 
 void PowerManager::tick() {
@@ -74,15 +82,29 @@ void PowerManager::tick() {
     buttonPressStart = 0;
   }
 
-  if (displayIsOff)
-    return;
+  uint8_t powerMode = ConfigManager::getPowerMode();
+  uint16_t sleepTimeoutMins = ConfigManager::getSleepTimeout();
+  uint16_t displayTimeoutSecs = ConfigManager::getDisplayTimeout();
+  
+  unsigned long idleTimeMs = millis() - lastActivityTime;
 
-  if (millis() - lastActivityTime >
-      (ConfigManager::getScreenTimeout() * 1000UL)) {
-    if (isPoweredByUSB()) {
+  // 1. Turn off display if timeout matches (and isn't disabled/0)
+  if (!displayIsOff && displayTimeoutSecs > 0) {
+    if (idleTimeMs > (displayTimeoutSecs * 1000UL)) {
       turnDisplayOff();
-    } else {
-      enterDeepSleep();
     }
+  }
+
+  // 2. Process Sleep Logic
+  // Mode 0: Always On (Never sleep)
+  if (powerMode == 0) return;
+
+  // Mode 2: Smart Mode (Always On when USB, Sleep on Battery)
+  if (powerMode == 2 && isPoweredByUSB()) return;
+
+  // Mode 1 or Mode 2 (on battery): Deep sleep after idle timeout
+  unsigned long sleepTimeoutMs = sleepTimeoutMins * 60000UL;
+  if (idleTimeMs > sleepTimeoutMs) {
+    enterDeepSleep();
   }
 }

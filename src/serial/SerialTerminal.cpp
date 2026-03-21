@@ -58,7 +58,9 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.println("  set webhook <http://...>");
     Serial.println("  set spoolman <http://...>");
     Serial.println("  set tools <1-16>");
-    Serial.println("  set timeout <seconds>");
+    Serial.println("  set display_timeout <seconds> (0 = always on)");
+    Serial.println("  set sleep_timeout <minutes> (1-60)");
+    Serial.println("  set power_mode <0=Always On|1=Deep Sleep|2=Smart USB>");
     Serial.println("  set u1_host <hostname>");
     Serial.println("  get config");
     Serial.println("  format (Erases all settings)");
@@ -74,7 +76,9 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.printf("WEBHOOK : %s\n", ConfigManager::getWebhook().c_str());
     Serial.printf("SPOOLMAN: %s\n", ConfigManager::getSpoolmanUrl().c_str());
     Serial.printf("TOOLS   : %d\n", ConfigManager::getNumTools());
-    Serial.printf("TIMEOUT : %d sec\n", ConfigManager::getScreenTimeout());
+    Serial.printf("DISP T/O: %d sec\n", ConfigManager::getDisplayTimeout());
+    Serial.printf("PWR MODE: %d\n", ConfigManager::getPowerMode());
+    Serial.printf("SLP T/O : %d min\n", ConfigManager::getSleepTimeout());
     Serial.printf("U1 HOST : %s\n", ConfigManager::getU1Host().c_str());
     return;
   }
@@ -85,7 +89,9 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     ConfigManager::setWebhook("");
     ConfigManager::setSpoolmanUrl("");
     ConfigManager::setNumTools(1);
-    ConfigManager::setScreenTimeout(60);
+    ConfigManager::setDisplayTimeout(60);
+    ConfigManager::setPowerMode(1);
+    ConfigManager::setSleepTimeout(5);
     ConfigManager::setU1Host("");
     Serial.println("Configuration formatted/erased.");
     return;
@@ -135,14 +141,29 @@ void SerialTerminal::processCommand(const String &cmdLine) {
       } else {
         Serial.println("Error: Number of tools must be between 1 and 16.");
       }
-    } else if (key.equalsIgnoreCase("timeout")) {
+    } else if (key.equalsIgnoreCase("display_timeout")) {
       int num = value.toInt();
-      if (num >= 10 && num <= 3600) {
-        ConfigManager::setScreenTimeout(num);
-        Serial.printf("Screen timeout saved: %d seconds\n", num);
+      if ((num >= 10 && num <= 3600) || num == 0) {
+        ConfigManager::setDisplayTimeout(num);
+        Serial.printf("Display timeout saved: %d seconds\n", num);
       } else {
-        Serial.println(
-            "Error: Screen timeout must be between 10 and 3600 seconds.");
+        Serial.println("Error: Display timeout must be between 10 and 3600 seconds, or 0 for always on.");
+      }
+    } else if (key.equalsIgnoreCase("sleep_timeout")) {
+      int num = value.toInt();
+      if (num >= 1 && num <= 60) {
+        ConfigManager::setSleepTimeout(num);
+        Serial.printf("Sleep timeout saved: %d minutes\n", num);
+      } else {
+        Serial.println("Error: Sleep timeout must be between 1 and 60 minutes.");
+      }
+    } else if (key.equalsIgnoreCase("power_mode")) {
+      int num = value.toInt();
+      if (num >= 0 && num <= 2) {
+        ConfigManager::setPowerMode(num);
+        Serial.printf("Power mode saved: %d\n", num);
+      } else {
+        Serial.println("Error: Power mode must be 0, 1, or 2.");
       }
     } else if (key.equalsIgnoreCase("u1_host")) {
       ConfigManager::setU1Host(value.c_str());

@@ -94,6 +94,16 @@ Ideas
     * allows to load spools to the printer that are in spoolman but don't have a tag
     * allows to create new tags for spools that are in spoolman but don't have a tag
     * would make the spool id dialog and prefill for creating tags obsolete
+8. Configurable Battery behavior
+    * let the user configure the behavior of the power management, options:
+        * always on (display timeout still applies but no deep sleep)
+        * deep sleep when idle for X minutes
+        * always on when usb is connected, deep sleep when idle for X minutes when on battery
+    * default: deep sleep when idle for X minutes
+    * X should be configurable, default 5 minutes, min 1 minute, max 60 minutes
+    * X must be at least as long as the display sleep timeout
+    * change option for the display timeout to be optional for a full "always on" experience
+        
     
 
 
