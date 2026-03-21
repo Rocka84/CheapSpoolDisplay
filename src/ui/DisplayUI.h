@@ -37,6 +37,7 @@ public:
   static bool isEditing();
 
   static void showToast(const char *msg, bool is_error = false);
+  static void updateWiFiStatus(bool connected);
 
 private:
   static void buildScanScreen();
@@ -75,6 +76,7 @@ private:
 
   // Screen pointers
   static lv_obj_t *scanScreen;
+  static lv_obj_t *wifiIcon;
   static lv_obj_t *infoScreen;
   static lv_obj_t *toolSelectionScreen;
   static lv_obj_t *editScreen;

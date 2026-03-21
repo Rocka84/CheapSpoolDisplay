@@ -10,15 +10,41 @@
 #include <curl/curl.h>
 #endif
 
+static bool ensureWiFi();
+
+#define WIFI_IDLE_TIMEOUT_MS 60000UL
+static unsigned long lastNetworkActivity = 0;
+
 static bool ensureWiFi() {
 #ifndef USE_SDL2
   if (WiFi.status() == WL_CONNECTED) {
+    lastNetworkActivity = millis();
     return true;
   }
   NetworkManager::connectWiFi();
+  if (WiFi.status() == WL_CONNECTED)
+    lastNetworkActivity = millis();
   return (WiFi.status() == WL_CONNECTED);
 #else
-  return true; // Desktop always has "WiFi"
+  return true;
+#endif
+}
+
+void NetworkManager::tick() {
+#ifndef USE_SDL2
+  if (WiFi.status() == WL_CONNECTED &&
+      millis() - lastNetworkActivity > WIFI_IDLE_TIMEOUT_MS) {
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+  }
+#endif
+}
+
+bool NetworkManager::isWiFiConnected() {
+#ifndef USE_SDL2
+  return WiFi.status() == WL_CONNECTED;
+#else
+  return true;
 #endif
 }
 
@@ -32,12 +58,12 @@ void NetworkManager::connectWiFi() {
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    return; // Already connected
+    return;
   }
 
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid.c_str(), pass.c_str());
 
-  // Wait up to 10 seconds for connection
   int retries = 0;
   while (WiFi.status() != WL_CONNECTED && retries < 20) {
     delay(500);

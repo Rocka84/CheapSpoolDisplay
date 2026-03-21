@@ -88,6 +88,7 @@ bool DisplayUI::writePending = false;
 uint32_t DisplayUI::writeStartTime = 0;
 lv_obj_t *DisplayUI::toastObj = nullptr;
 lv_timer_t *DisplayUI::toastTimer = nullptr;
+lv_obj_t *DisplayUI::wifiIcon = nullptr;
 
 lv_obj_t *DisplayUI::keyFilament = nullptr;
 lv_obj_t *DisplayUI::labelFilamentName = nullptr;
@@ -270,8 +271,7 @@ void DisplayUI::buildScanScreen() {
   lv_obj_set_size(selectBtn, 100, 42);
   lv_obj_align(selectBtn, LV_ALIGN_BOTTOM_LEFT, 15, -15);
   apply_indigo_btn_style(selectBtn);
-  lv_obj_add_event_cb(selectBtn, onSelectSpoolButtonClicked, LV_EVENT_CLICKED,
-                      NULL);
+  lv_obj_add_event_cb(selectBtn, onSelectSpoolButtonClicked, LV_EVENT_CLICKED, NULL);
 
   lv_obj_t *selectLbl = lv_label_create(selectBtn);
   lv_label_set_text(selectLbl, "Spoolman");
@@ -287,6 +287,13 @@ void DisplayUI::buildScanScreen() {
   lv_obj_t *createLbl = lv_label_create(createNewBtn);
   lv_label_set_text(createLbl, "New");
   lv_obj_center(createLbl);
+
+  wifiIcon = lv_label_create(scanScreen);
+  lv_label_set_text(wifiIcon, LV_SYMBOL_WIFI);
+  lv_obj_set_style_text_font(wifiIcon, &lv_font_montserrat_14, 0);
+  lv_obj_set_style_text_color(wifiIcon, lv_color_hex(0x5266ff), 0);
+  lv_obj_align(wifiIcon, LV_ALIGN_TOP_RIGHT, -10, 10);
+  lv_obj_add_flag(wifiIcon, LV_OBJ_FLAG_HIDDEN);
 }
 
 static uint32_t parse_hex_color(const std::string &hex) {
@@ -1392,6 +1399,13 @@ void DisplayUI::updateSaveButtonState() {
     lv_obj_remove_state(editSaveBtn, LV_STATE_DISABLED);
   } else {
     lv_obj_add_state(editSaveBtn, LV_STATE_DISABLED);
+  }
+}
+
+void DisplayUI::updateWiFiStatus(bool connected) {
+  if (wifiIcon) {
+    if (connected) lv_obj_remove_flag(wifiIcon, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(wifiIcon, LV_OBJ_FLAG_HIDDEN);
   }
 }
 

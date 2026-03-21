@@ -77,6 +77,9 @@ void loop() {
   // Power Manager tick
   PowerManager::tick();
 
+  // WiFi idle timeout
+  NetworkManager::tick();
+
   // If display is off and screen gets touched, wake it up
   if (PowerManager::isDisplayOff() && ts.getTouch().zRaw > 0) {
     PowerManager::wakeDisplay();
@@ -89,6 +92,14 @@ void loop() {
     lastScanTime = millis(); // Also reset info screen timeout
   }
 #endif
+
+  // Poll WiFi state; update UI only on change
+  static bool lastWifiState = false;
+  bool wifiNow = NetworkManager::isWiFiConnected();
+  if (wifiNow != lastWifiState) {
+    lastWifiState = wifiNow;
+    DisplayUI::updateWiFiStatus(wifiNow);
+  }
 
   // Check for scanning in both SCANNING and SHOW_INFO states
   // Crucially, skip if we are in EDITING state or have a write pending to avoid conflicts

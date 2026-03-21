@@ -7,6 +7,8 @@
 class NetworkManager {
 public:
   static void connectWiFi();
+  static void tick();
+  static bool isWiFiConnected();
   static bool sendWebhookPayload(const OpenSpoolData &data,
                                  int toolhead_id = 0);
   static bool fetchSpoolmanData(OpenSpoolData &data);
