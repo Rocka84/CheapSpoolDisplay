@@ -10,14 +10,15 @@ public:
   static void resetIdleTimer();
   static bool isDisplayOff();
   static void wakeDisplay();
+  static void enterDeepSleep();
 
 private:
   static bool isPoweredByUSB();
   static void turnDisplayOff();
-  static void enterDeepSleep();
 
   static unsigned long lastActivityTime;
   static bool displayIsOff;
+  static unsigned long buttonPressStart;
 };
 
 #endif // POWER_MGR_H

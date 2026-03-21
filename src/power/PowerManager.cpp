@@ -12,6 +12,10 @@
 
 unsigned long PowerManager::lastActivityTime = 0;
 bool PowerManager::displayIsOff = false;
+unsigned long PowerManager::buttonPressStart = 0;
+
+#define SLEEP_BUTTON_PIN 0
+#define SLEEP_HOLD_MS 2000
 
 // TFT Backlight pin defined in platformio.ini as TFT_BL (21)
 #ifndef TFT_BL
@@ -20,7 +24,8 @@ bool PowerManager::displayIsOff = false;
 
 void PowerManager::init() {
   pinMode(TFT_BL, OUTPUT);
-  digitalWrite(TFT_BL, HIGH); // Display ON
+  digitalWrite(TFT_BL, HIGH);
+  pinMode(SLEEP_BUTTON_PIN, INPUT_PULLUP);
   lastActivityTime = millis();
   displayIsOff = false;
 }
@@ -62,8 +67,15 @@ bool PowerManager::isPoweredByUSB() {
 }
 
 void PowerManager::tick() {
+  if (digitalRead(SLEEP_BUTTON_PIN) == LOW) {
+    if (buttonPressStart == 0) buttonPressStart = millis();
+    else if (millis() - buttonPressStart >= SLEEP_HOLD_MS) enterDeepSleep();
+  } else {
+    buttonPressStart = 0;
+  }
+
   if (displayIsOff)
-    return; // Wait for external wake (e.g. touch interrupt)
+    return;
 
   if (millis() - lastActivityTime >
       (ConfigManager::getScreenTimeout() * 1000UL)) {
