@@ -192,6 +192,14 @@
         </div>
 
         <h1>CheapSpoolDisplay</h1>
+        <p style="margin: 5px 0 0; color: var(--text-muted); font-size: 0.85rem;">
+            Version <span id="fw-version">…</span>
+        </p>
+        <script>
+            fetch('manifest.json').then(r => r.json()).then(m => {
+                document.getElementById('fw-version').textContent = m.version;
+            });
+        </script>
         <p class="subtitle">Securely flash and configure your CheapSpoolDisplay directly from your browser.</p>
 
         <script type="module" src="https://unpkg.com/esp-web-tools@8.0.3/dist/web/install-button.js?module"></script>

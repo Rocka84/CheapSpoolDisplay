@@ -9,6 +9,7 @@ void SerialTerminal::init() {
   Serial.println();
   Serial.println("=========================================");
   Serial.println("  CheapSpoolDisplay Serial Terminal");
+  Serial.println("  Version: " FIRMWARE_VERSION);
   Serial.println("  Type 'help' for a list of commands.");
   Serial.println("=========================================");
   Serial.print("> ");
