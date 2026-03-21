@@ -2,6 +2,8 @@
 
 CheapSpoolDisplay can be configured via a Serial Terminal (115200 baud) when connected to your computer via USB.
 
+`pio device monitor`
+
 ## Serial Terminal Commands
 
 | Command | Description |
@@ -13,7 +15,9 @@ CheapSpoolDisplay can be configured via a Serial Terminal (115200 baud) when con
 | `set webhook http://...` | Set the webhook URL |
 | `set u1_host <ip>:<port>` | Set the Snapmaker U1 host URL |
 | `set tools <1-16>` | Set the number of toolheads |
-| `set timeout <seconds>` | Set the screen timeout |
+| `set display_timeout <sec>` | Set the screen auto-off time (0 = always on) |
+| `set sleep_timeout <min>` | Set the idle time before deep sleep |
+| `set power_mode <0\|1\|2>` | Set the power behavior (0=Always On, 1=Deep Sleep, 2=Smart USB) |
 | `format` | Erases all configuration and resets to defaults |
 
 ## Configuration Keys
@@ -48,11 +52,22 @@ Configures the address of your printer's Moonraker API (default port is usually 
 
 Configures how many toolheads your printer has. Up to 4 tools result in a fixed layout; more than 4 will use a scrollable 2-column grid.
 
-### Screen Timeout
+### Power & Display Management
 
-`set timeout <seconds>`
+**Display Timeout:**
+`set display_timeout <seconds>`
+Configures how long the screen remains on when idle. Use `0` to keep the screen on forever.
 
-Configures how long the info screen remains visible before timing out back to the home screen (0 to disable).
+**Power Mode:**
+`set power_mode <0|1|2>`
+Configures the battery and deep sleep behavior:
+- `0`: **Always On** (never goes to deep sleep, display timeout still applies)
+- `1`: **Deep Sleep** (enters deep sleep after idle time)
+- `2`: **Smart USB** (stays awake when USB power is detected, deep sleeps when on battery)
+
+**Sleep Timeout:**
+`set sleep_timeout <minutes>`
+Configures how many minutes the device must be idle before entering deep sleep (only applies to Power Modes 1 and 2). Valid range: 1 to 60.
 
 ## Examples
 
@@ -70,5 +85,9 @@ set u1_host 192.168.1.70
 set tools 16
 
 # Enable 5 minute screen timeout
-set timeout 300
+set display_timeout 300
+
+# Enable Smart USB mode with a 15-minute sleep timeout
+set power_mode 2
+set sleep_timeout 15
 ```
