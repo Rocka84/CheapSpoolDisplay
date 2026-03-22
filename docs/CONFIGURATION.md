@@ -16,7 +16,7 @@ CheapSpoolDisplay can be configured via a Serial Terminal (115200 baud) when con
 | `set u1_host <ip>:<port>` | Set the Snapmaker U1 host URL |
 | `set tools <1-16>` | Set the number of toolheads |
 | `set display_timeout <sec>` | Set the screen auto-off time (0 = always on) |
-| `set sleep_timeout <min>` | Set the idle time before deep sleep |
+| `set sleep_timeout <sec>` | Set the idle time before deep sleep |
 | `set power_mode <0\|1\|2>` | Set the power behavior (0=Always On, 1=Deep Sleep, 2=Smart USB) |
 | `format` | Erases all configuration and resets to defaults |
 
@@ -66,8 +66,8 @@ Configures the battery and deep sleep behavior:
 - `2`: **Smart USB** (stays awake when USB power is detected, deep sleeps when on battery)
 
 **Sleep Timeout:**
-`set sleep_timeout <minutes>`
-Configures how many minutes the device must be idle before entering deep sleep (only applies to Power Modes 1 and 2). Valid range: 1 to 60.
+`set sleep_timeout <seconds>`
+Configures how many seconds the device must be idle before entering deep sleep (only applies to Power Modes 1 and 2). Valid range: 60 to 3600.
 
 ## Examples
 
@@ -84,10 +84,10 @@ set u1_host 192.168.1.70
 # Set 16 tools instead of 1
 set tools 16
 
-# Enable 5 minute screen timeout
+# Enable 5 minute screen timeout (300 seconds)
 set display_timeout 300
 
-# Enable Smart USB mode with a 15-minute sleep timeout
+# Enable Smart USB mode with a 15-minute sleep timeout (900 seconds)
 set power_mode 2
-set sleep_timeout 15
+set sleep_timeout 900
 ```

@@ -83,7 +83,7 @@ void PowerManager::tick() {
   }
 
   uint8_t powerMode = ConfigManager::getPowerMode();
-  uint16_t sleepTimeoutMins = ConfigManager::getSleepTimeout();
+  uint16_t sleepTimeoutSecs = ConfigManager::getSleepTimeout();
   uint16_t displayTimeoutSecs = ConfigManager::getDisplayTimeout();
   
   unsigned long idleTimeMs = millis() - lastActivityTime;
@@ -103,7 +103,7 @@ void PowerManager::tick() {
   if (powerMode == 2 && isPoweredByUSB()) return;
 
   // Mode 1 or Mode 2 (on battery): Deep sleep after idle timeout
-  unsigned long sleepTimeoutMs = sleepTimeoutMins * 60000UL;
+  unsigned long sleepTimeoutMs = sleepTimeoutSecs * 1000UL;
   if (idleTimeMs > sleepTimeoutMs) {
     enterDeepSleep();
   }

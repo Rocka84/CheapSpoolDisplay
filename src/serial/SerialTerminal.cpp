@@ -59,7 +59,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.println("  set spoolman <http://...>");
     Serial.println("  set tools <1-16>");
     Serial.println("  set display_timeout <seconds> (0 = always on)");
-    Serial.println("  set sleep_timeout <minutes> (1-60)");
+    Serial.println("  set sleep_timeout <seconds> (60-3600)");
     Serial.println("  set power_mode <0=Always On|1=Deep Sleep|2=Smart USB>");
     Serial.println("  set u1_host <hostname>");
     Serial.println("  get config");
@@ -69,17 +69,16 @@ void SerialTerminal::processCommand(const String &cmdLine) {
 
   if (cmd.equalsIgnoreCase("get config")) {
     Serial.println("[Current Config]");
-    Serial.printf("SSID    : %s\n", ConfigManager::getWifiSSID().c_str());
     std::string pass = ConfigManager::getWifiPass();
     std::string redactedPass = pass.empty() ? "" : "********";
-    Serial.printf("PASS    : %s\n", redactedPass.c_str());
-    Serial.printf("WEBHOOK : %s\n", ConfigManager::getWebhook().c_str());
-    Serial.printf("SPOOLMAN: %s\n", ConfigManager::getSpoolmanUrl().c_str());
-    Serial.printf("TOOLS   : %d\n", ConfigManager::getNumTools());
-    Serial.printf("DISP T/O: %d sec\n", ConfigManager::getDisplayTimeout());
-    Serial.printf("PWR MODE: %d\n", ConfigManager::getPowerMode());
-    Serial.printf("SLP T/O : %d min\n", ConfigManager::getSleepTimeout());
-    Serial.printf("U1 HOST : %s\n", ConfigManager::getU1Host().c_str());
+    Serial.printf("set wifi %s %s\n", ConfigManager::getWifiSSID().c_str(), redactedPass.c_str());
+    Serial.printf("set webhook %s\n", ConfigManager::getWebhook().c_str());
+    Serial.printf("set spoolman %s\n", ConfigManager::getSpoolmanUrl().c_str());
+    Serial.printf("set tools %d\n", ConfigManager::getNumTools());
+    Serial.printf("set display_timeout %d\n", ConfigManager::getDisplayTimeout());
+    Serial.printf("set power_mode %d\n", ConfigManager::getPowerMode());
+    Serial.printf("set sleep_timeout %d\n", ConfigManager::getSleepTimeout());
+    Serial.printf("set u1_host %s\n", ConfigManager::getU1Host().c_str());
     return;
   }
 
@@ -91,7 +90,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     ConfigManager::setNumTools(1);
     ConfigManager::setDisplayTimeout(60);
     ConfigManager::setPowerMode(1);
-    ConfigManager::setSleepTimeout(5);
+    ConfigManager::setSleepTimeout(300);
     ConfigManager::setU1Host("");
     Serial.println("Configuration formatted/erased.");
     return;
@@ -151,11 +150,11 @@ void SerialTerminal::processCommand(const String &cmdLine) {
       }
     } else if (key.equalsIgnoreCase("sleep_timeout")) {
       int num = value.toInt();
-      if (num >= 1 && num <= 60) {
+      if (num >= 60 && num <= 3600) {
         ConfigManager::setSleepTimeout(num);
-        Serial.printf("Sleep timeout saved: %d minutes\n", num);
+        Serial.printf("Sleep timeout saved: %d seconds\n", num);
       } else {
-        Serial.println("Error: Sleep timeout must be between 1 and 60 minutes.");
+        Serial.println("Error: Sleep timeout must be between 60 and 3600 seconds.");
       }
     } else if (key.equalsIgnoreCase("power_mode")) {
       int num = value.toInt();

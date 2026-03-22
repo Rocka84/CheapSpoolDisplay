@@ -35,7 +35,7 @@ public:
   static void setPowerMode(uint8_t mode);
 
   static uint16_t getSleepTimeout();
-  static void setSleepTimeout(uint16_t timeout);
+  static void setSleepTimeout(uint16_t seconds);
 
   static uint16_t getDisplayTimeout();
   static void setDisplayTimeout(uint16_t seconds);

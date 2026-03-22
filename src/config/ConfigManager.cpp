@@ -71,11 +71,11 @@ void ConfigManager::setPowerMode(uint8_t mode) {
 }
 
 uint16_t ConfigManager::getSleepTimeout() {
-  return preferences.getUShort("sleep_timeout", 5);
+  return preferences.getUShort("sleep_timeout", 300);
 }
 
-void ConfigManager::setSleepTimeout(uint16_t minutes) {
-  preferences.putUShort("sleep_timeout", minutes);
+void ConfigManager::setSleepTimeout(uint16_t seconds) {
+  preferences.putUShort("sleep_timeout", seconds);
 }
 
 uint16_t ConfigManager::getDisplayTimeout() {
@@ -194,10 +194,10 @@ uint16_t ConfigManager::getSleepTimeout() {
       return (uint16_t)std::stoi(it->second);
     } catch (...) {}
   }
-  return 5;
+  return 300;
 }
 
-void ConfigManager::setSleepTimeout(uint16_t minutes) {}
+void ConfigManager::setSleepTimeout(uint16_t seconds) {}
 
 uint16_t ConfigManager::getDisplayTimeout() {
   auto it = simConfig.find("display_timeout");

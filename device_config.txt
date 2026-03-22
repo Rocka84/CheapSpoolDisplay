@@ -1,0 +1,8 @@
+set wifi is-ja-irre ********
+set webhook http://192.168.178.94:7125/?spool={spool_id}&tool={toolhead}
+set spoolman http://mctop:7912/
+set tools 4
+set display_timeout 300
+set power_mode 1
+set sleep_timeout 120
+set u1_host 192.168.178.94
