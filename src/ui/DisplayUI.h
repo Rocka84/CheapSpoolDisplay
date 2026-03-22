@@ -107,7 +107,9 @@ private:
   static lv_obj_t *labelTemp;
   static lv_obj_t *labelBedTemp;
   static lv_obj_t *labelColorHex;
+  static lv_obj_t *infoCard;
   static lv_obj_t *loadBtn;
+  static lv_obj_t *spoolmanBtn;
   static lv_obj_t *createNewBtn;
 
   // Edit Screen Elements

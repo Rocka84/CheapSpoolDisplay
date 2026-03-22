@@ -161,8 +161,9 @@ void loop() {
 
   // If a tag was scanned, we always transition to or refresh the Info Screen
   if (tagScanned) {
-    // Enrich with Spoolman data if configured
+    // Enrich with Spoolman data if configured and WiFi network is set
     if (!ConfigManager::getSpoolmanUrl().empty() &&
+        !ConfigManager::getWifiSSID().empty() &&
         !currentSpoolData.spool_id.empty()) {
       DisplayUI::showFetchingOverlay();
       lv_timer_handler(); // Force overlay render before blocking

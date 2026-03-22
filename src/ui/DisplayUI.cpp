@@ -58,7 +58,9 @@ lv_obj_t *DisplayUI::keyLotNr = nullptr;
 lv_obj_t *DisplayUI::labelTemp = nullptr;
 lv_obj_t *DisplayUI::labelBedTemp = nullptr;
 lv_obj_t *DisplayUI::labelColorHex = nullptr;
+lv_obj_t *DisplayUI::infoCard = nullptr;
 lv_obj_t *DisplayUI::loadBtn = nullptr;
+lv_obj_t *DisplayUI::spoolmanBtn = nullptr;
 lv_obj_t *DisplayUI::createNewBtn = nullptr;
 
 lv_obj_t *DisplayUI::editBrandDropdown = nullptr;
@@ -267,13 +269,13 @@ void DisplayUI::buildScanScreen() {
   lv_obj_align(desc, LV_ALIGN_CENTER, 0, 75);
 
   // Select from Spoolman
-  lv_obj_t *selectBtn = lv_btn_create(scanScreen);
-  lv_obj_set_size(selectBtn, 100, 42);
-  lv_obj_align(selectBtn, LV_ALIGN_BOTTOM_LEFT, 15, -15);
-  apply_indigo_btn_style(selectBtn);
-  lv_obj_add_event_cb(selectBtn, onSelectSpoolButtonClicked, LV_EVENT_CLICKED, NULL);
+  spoolmanBtn = lv_btn_create(scanScreen);
+  lv_obj_set_size(spoolmanBtn, 100, 42);
+  lv_obj_align(spoolmanBtn, LV_ALIGN_BOTTOM_LEFT, 15, -15);
+  apply_indigo_btn_style(spoolmanBtn);
+  lv_obj_add_event_cb(spoolmanBtn, onSelectSpoolButtonClicked, LV_EVENT_CLICKED, NULL);
 
-  lv_obj_t *selectLbl = lv_label_create(selectBtn);
+  lv_obj_t *selectLbl = lv_label_create(spoolmanBtn);
   lv_label_set_text(selectLbl, "Spoolman");
   lv_obj_center(selectLbl);
 
@@ -469,22 +471,22 @@ void DisplayUI::buildInfoScreen() {
   lv_obj_set_scroll_dir(infoScreen, LV_DIR_NONE);
 
   // Glass Card Content
-  lv_obj_t *card = lv_obj_create(infoScreen);
-  lv_obj_set_size(card, 220, 205);
-  lv_obj_align(card, LV_ALIGN_TOP_MID, 0, 10);
-  apply_glass_style(card);
-  lv_obj_set_scrollbar_mode(card, LV_SCROLLBAR_MODE_ACTIVE);
-  lv_obj_set_scroll_dir(card, LV_DIR_VER);
-  lv_obj_remove_flag(card, LV_OBJ_FLAG_SCROLL_ELASTIC);
-  lv_obj_set_style_pad_all(card, 12, 0);
-  lv_obj_set_style_pad_row(card, 8, 0);
-  lv_obj_set_flex_flow(card, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_flex_align(card, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
+  infoCard = lv_obj_create(infoScreen);
+  lv_obj_set_size(infoCard, 220, 205);
+  lv_obj_align(infoCard, LV_ALIGN_TOP_MID, 0, 10);
+  apply_glass_style(infoCard);
+  lv_obj_set_scrollbar_mode(infoCard, LV_SCROLLBAR_MODE_ACTIVE);
+  lv_obj_set_scroll_dir(infoCard, LV_DIR_VER);
+  lv_obj_remove_flag(infoCard, LV_OBJ_FLAG_SCROLL_ELASTIC);
+  lv_obj_set_style_pad_all(infoCard, 12, 0);
+  lv_obj_set_style_pad_row(infoCard, 8, 0);
+  lv_obj_set_flex_flow(infoCard, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(infoCard, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
                         LV_FLEX_ALIGN_START);
 
   auto create_row = [&](const char *key, lv_obj_t **val_label,
                         lv_obj_t **key_label = nullptr) {
-    lv_obj_t *row_cont = lv_obj_create(card);
+    lv_obj_t *row_cont = lv_obj_create(infoCard);
     lv_obj_set_size(row_cont, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_style_bg_opa(row_cont, 0, 0);
     lv_obj_set_style_border_width(row_cont, 0, 0);
@@ -510,7 +512,7 @@ void DisplayUI::buildInfoScreen() {
   create_row("Material", &labelType);
 
   // Color row
-  lv_obj_t *color_row = lv_obj_create(card);
+  lv_obj_t *color_row = lv_obj_create(infoCard);
   lv_obj_set_size(color_row, LV_PCT(100), LV_SIZE_CONTENT);
   lv_obj_set_style_bg_opa(color_row, 0, 0);
   lv_obj_set_style_border_width(color_row, 0, 0);
@@ -531,7 +533,7 @@ void DisplayUI::buildInfoScreen() {
   lv_obj_set_style_border_color(colorBox, lv_color_white(), 0);
   lv_obj_set_style_border_opa(colorBox, LV_OPA_40, 0);
 
-  lv_obj_t *hex_row = lv_obj_create(card);
+  lv_obj_t *hex_row = lv_obj_create(infoCard);
   lv_obj_set_size(hex_row, LV_PCT(100), LV_SIZE_CONTENT);
   lv_obj_set_style_bg_opa(hex_row, 0, 0);
   lv_obj_set_style_border_width(hex_row, 0, 0);
@@ -839,7 +841,20 @@ void DisplayUI::buildWritingOverlay() {
   lv_obj_align(msg, LV_ALIGN_CENTER, 0, 40);
 }
 
-void DisplayUI::showScanScreen() { lv_scr_load(scanScreen); }
+void DisplayUI::showScanScreen() {
+  bool hasWifi = !ConfigManager::getWifiSSID().empty();
+  bool hasSpoolman = !ConfigManager::getSpoolmanUrl().empty();
+
+  if (hasWifi && hasSpoolman) {
+    lv_obj_clear_flag(spoolmanBtn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_align(spoolmanBtn, LV_ALIGN_BOTTOM_LEFT, 15, -15);
+    lv_obj_align(createNewBtn, LV_ALIGN_BOTTOM_RIGHT, -15, -15);
+  } else {
+    lv_obj_add_flag(spoolmanBtn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_align(createNewBtn, LV_ALIGN_BOTTOM_MID, 0, -15);
+  }
+  lv_scr_load(scanScreen); 
+}
 
 void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
   OpenSpoolData displayData = spool;
@@ -927,15 +942,18 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
   // Cache spool data globally for webhook/U1
   currentLoadedData = spool;
 
-#ifndef USE_SDL2
-  // Hide the Load button on physical device if no webhook or U1 is configured
-  if (ConfigManager::getWebhook().empty() &&
-      ConfigManager::getU1Host().empty()) {
+  // Hide the Load button if no webhook or U1 is configured, expanding the infoCard
+  bool hasWifi = !ConfigManager::getWifiSSID().empty();
+  bool hasPrinter = !ConfigManager::getWebhook().empty() ||
+                    !ConfigManager::getU1Host().empty();
+
+  if (!hasWifi || !hasPrinter) {
     lv_obj_add_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_size(infoCard, 220, 255);
   } else {
     lv_obj_clear_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_size(infoCard, 220, 205);
   }
-#endif
 
   lv_scr_load(infoScreen);
 }

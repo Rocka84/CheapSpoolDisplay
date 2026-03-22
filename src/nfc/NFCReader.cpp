@@ -1,5 +1,5 @@
-#include <vector>
 #include "NFCReader.h"
+#include <vector>
 
 // Hardware pins for CYD SD Card slot
 #define SS_PIN 5
@@ -31,7 +31,8 @@ void NFCReader::init() {
     Serial.println(
         "WARNING: Communication failure, is the MFRC522 properly connected?");
   } else {
-    // Increase antenna gain to moderate level (38dB) to improve range without saturation
+    // Increase antenna gain to moderate level (38dB) to improve range without
+    // saturation
     mfrc522.PCD_SetAntennaGain(mfrc522.RxGain_avg);
   }
 }
@@ -41,11 +42,10 @@ bool NFCReader::scanForTag(OpenSpoolData &data) {
     return false;
   }
   if (!mfrc522.PICC_ReadCardSerial()) {
-    Serial.println("PICC_ReadCardSerial failed");
     return false;
   }
 
-  Serial.println("Tag detected! Attempting to read payload...");
+  Serial.println("Tag detected!");
 
   std::string ndefJson = readNDEFPayload();
   // Halt PICC
@@ -58,7 +58,6 @@ bool NFCReader::scanForTag(OpenSpoolData &data) {
     return false;
   }
 
-  Serial.println("Payload extracted. Attempting JSON parse...");
   bool parsed = OpenSpoolParser::parseJson(ndefJson, data);
   if (!parsed) {
     Serial.printf("JSON parse failed. Raw payload:\n%s\n", ndefJson.c_str());
@@ -98,19 +97,6 @@ std::string NFCReader::readNDEFPayload() {
       for (int i = 0; i < 16; i++) {
         payload += (char)buffer[i];
       }
-
-      // Dump the first chunk so we can see what physical data is on the tag
-      if (page == 4) {
-        Serial.print("Raw Hex (Page 4-7): ");
-        for (int i = 0; i < 16; i++) {
-          if (buffer[i] < 0x10)
-            Serial.print("0");
-          Serial.print(buffer[i], HEX);
-          Serial.print(" ");
-        }
-        Serial.println();
-      }
-
     } else {
       Serial.printf("MIFARE_Read failed at page %d with status: %s\n", page,
                     mfrc522.GetStatusCodeName(status));
@@ -118,16 +104,13 @@ std::string NFCReader::readNDEFPayload() {
     }
   }
 
-  Serial.printf("Total payload length read from tag: %d bytes\n",
-                payload.length());
   // Look for JSON start and end
   size_t start = payload.find("{");
   size_t end = payload.rfind("}");
-  Serial.printf("Found '{' at %d, '}' at %d\n", (int)start, (int)end);
 
   if (start != std::string::npos && end != std::string::npos && end > start) {
     std::string jsonStr = payload.substr(start, end - start + 1);
-    Serial.printf("Extracted JSON fragment:\n%s\n", jsonStr.c_str());
+    Serial.printf("Extracted JSON:\n%s\n", jsonStr.c_str());
     return jsonStr;
   }
 
@@ -148,7 +131,9 @@ bool NFCReader::writeNDEFPayload(const std::string &json) {
   // TNF 0x02 (Mime Media), Type "application/json"
   std::string type = "application/json";
   size_t payloadLen = json.length();
-  size_t ndefLen = 3 + type.length() + payloadLen; // Header + TypeLength + PayloadLength + Type + Payload
+  size_t ndefLen =
+      3 + type.length() +
+      payloadLen; // Header + TypeLength + PayloadLength + Type + Payload
 
   std::vector<byte> ndef;
   ndef.push_back(0x03); // NDEF Message TLV
@@ -165,8 +150,10 @@ bool NFCReader::writeNDEFPayload(const std::string &json) {
   ndef.push_back(0xD2);
   ndef.push_back((byte)type.length());
   ndef.push_back((byte)payloadLen);
-  for (char c : type) ndef.push_back((byte)c);
-  for (char c : json) ndef.push_back((byte)c);
+  for (char c : type)
+    ndef.push_back((byte)c);
+  for (char c : json)
+    ndef.push_back((byte)c);
   ndef.push_back(0xFE); // Terminator TLV
 
   // Pad to 4-byte pages
@@ -177,10 +164,12 @@ bool NFCReader::writeNDEFPayload(const std::string &json) {
   // Write pages starting at 4
   for (size_t i = 0; i < ndef.size(); i += 4) {
     byte page = 4 + (i / 4);
-    if (page >= 130) break; // NTAG215 limit
+    if (page >= 130)
+      break; // NTAG215 limit
     status = mfrc522.MIFARE_Ultralight_Write(page, &ndef[i], 4);
     if (status != MFRC522::STATUS_OK) {
-      Serial.printf("Write failed at page %d: %s\n", page, mfrc522.GetStatusCodeName(status));
+      Serial.printf("Write failed at page %d: %s\n", page,
+                    mfrc522.GetStatusCodeName(status));
       return false;
     }
   }
