@@ -28,6 +28,14 @@ void ConfigManager::setWifiPass(const std::string &pass) {
   preferences.putString("pass", pass.c_str());
 }
 
+int ConfigManager::getWifiTimeout() {
+  return preferences.getInt("wifi_timeout", 60);
+}
+
+void ConfigManager::setWifiTimeout(int seconds) {
+  preferences.putInt("wifi_timeout", seconds);
+}
+
 std::string ConfigManager::getWebhook() {
   if (!preferences.isKey("webhook"))
     return "";
@@ -147,6 +155,12 @@ std::string ConfigManager::getWifiPass() {
 }
 
 void ConfigManager::setWifiPass(const std::string &pass) {}
+
+int ConfigManager::getWifiTimeout() {
+  return 60;
+}
+
+void ConfigManager::setWifiTimeout(int seconds) {}
 
 std::string ConfigManager::getWebhook() {
   auto it = simConfig.find("webhook");

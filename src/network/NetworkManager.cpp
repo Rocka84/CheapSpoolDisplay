@@ -65,7 +65,8 @@ void NetworkManager::connectWiFi() {
   WiFi.begin(ssid.c_str(), pass.c_str());
 
   int retries = 0;
-  while (WiFi.status() != WL_CONNECTED && retries < 20) {
+  int maxRetries = ConfigManager::getWifiTimeout() * 2; // 500ms delay per tick = 2 ticks per second
+  while (WiFi.status() != WL_CONNECTED && retries < maxRetries) {
     delay(500);
     retries++;
   }

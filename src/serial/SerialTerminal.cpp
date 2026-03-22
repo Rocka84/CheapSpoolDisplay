@@ -57,6 +57,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.println("  set wifi <ssid> <password>");
     Serial.println("  set webhook <http://...>");
     Serial.println("  set spoolman <http://...>");
+    Serial.println("  set wifi_timeout <seconds> (10-300)");
     Serial.println("  set tools <1-16>");
     Serial.println("  set display_timeout <seconds> (0 = always on)");
     Serial.println("  set sleep_timeout <seconds> (60-3600)");
@@ -74,6 +75,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.printf("set wifi %s %s\n", ConfigManager::getWifiSSID().c_str(), redactedPass.c_str());
     Serial.printf("set webhook %s\n", ConfigManager::getWebhook().c_str());
     Serial.printf("set spoolman %s\n", ConfigManager::getSpoolmanUrl().c_str());
+    Serial.printf("set wifi_timeout %d\n", ConfigManager::getWifiTimeout());
     Serial.printf("set tools %d\n", ConfigManager::getNumTools());
     Serial.printf("set display_timeout %d\n", ConfigManager::getDisplayTimeout());
     Serial.printf("set power_mode %d\n", ConfigManager::getPowerMode());
@@ -87,6 +89,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     ConfigManager::setWifiPass("");
     ConfigManager::setWebhook("");
     ConfigManager::setSpoolmanUrl("");
+    ConfigManager::setWifiTimeout(60);
     ConfigManager::setNumTools(1);
     ConfigManager::setDisplayTimeout(60);
     ConfigManager::setPowerMode(1);
@@ -132,6 +135,14 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     } else if (key.equalsIgnoreCase("spoolman")) {
       ConfigManager::setSpoolmanUrl(value.c_str());
       Serial.println("Spoolman URL saved.");
+    } else if (key.equalsIgnoreCase("wifi_timeout")) {
+      int num = value.toInt();
+      if (num >= 10 && num <= 300) {
+        ConfigManager::setWifiTimeout(num);
+        Serial.printf("WiFi timeout saved: %d seconds\n", num);
+      } else {
+        Serial.println("Error: WiFi timeout must be between 10 and 300 seconds.");
+      }
     } else if (key.equalsIgnoreCase("tools")) {
       int num = value.toInt();
       if (num >= 1 && num <= 16) {

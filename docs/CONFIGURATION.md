@@ -14,6 +14,7 @@ CheapSpoolDisplay can be configured via a Serial Terminal (115200 baud) when con
 | `set spoolman http://<ip>:<port>` | Set the Spoolman server URL |
 | `set webhook http://...` | Set the webhook URL |
 | `set u1_host <ip>:<port>` | Set the Snapmaker U1 host URL |
+| `set wifi_timeout <sec>` | Set the maximum wait time for Wi-Fi connection (10-300) |
 | `set tools <1-16>` | Set the number of toolheads |
 | `set display_timeout <sec>` | Set the screen auto-off time (0 = always on) |
 | `set sleep_timeout <sec>` | Set the idle time before deep sleep |
@@ -26,7 +27,8 @@ CheapSpoolDisplay can be configured via a Serial Terminal (115200 baud) when con
 
 `set wifi SSID PASSWORD`
 
-**Note:** The device will only connect to Wi-Fi when needed (e.g., for Spoolman or Webhooks).
+**Note:** The device will only connect to Wi-Fi when needed (e.g., for Spoolman or Webhooks). You can optionally configure the connection timeout limit using:
+`set wifi_timeout <seconds>` (Default: 60)
 
 ### Spoolman Integration
 

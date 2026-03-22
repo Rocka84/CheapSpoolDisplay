@@ -22,6 +22,9 @@ public:
   static std::string getWifiPass();
   static void setWifiPass(const std::string &pass);
 
+  static int getWifiTimeout();
+  static void setWifiTimeout(int seconds);
+
   static std::string getWebhook();
   static void setWebhook(const std::string &url);
 
