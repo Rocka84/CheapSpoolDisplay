@@ -90,7 +90,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     ConfigManager::setWebhook("");
     ConfigManager::setSpoolmanUrl("");
     ConfigManager::setWifiTimeout(60);
-    ConfigManager::setNumTools(1);
+    ConfigManager::clearNumTools();
     ConfigManager::setDisplayTimeout(60);
     ConfigManager::setPowerMode(1);
     ConfigManager::setSleepTimeout(300);

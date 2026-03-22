@@ -70,6 +70,10 @@ void ConfigManager::setNumTools(uint8_t tools) {
   preferences.putUChar("num_tools", tools);
 }
 
+void ConfigManager::clearNumTools() {
+    preferences.remove("num_tools");
+}
+
 uint8_t ConfigManager::getPowerMode() {
   return preferences.getUChar("power_mode", 1);
 }

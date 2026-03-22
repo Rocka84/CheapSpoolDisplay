@@ -8,6 +8,8 @@ platformio.ini.local
 .DS_Store
 *.log
 simulator/config.cfg
+.cache/
+compile_commands.json
 
 # Dynamic Web Content
 web/docs/

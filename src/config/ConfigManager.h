@@ -33,6 +33,7 @@ public:
 
   static uint8_t getNumTools();
   static void setNumTools(uint8_t tools);
+  static void clearNumTools();
 
   static uint8_t getPowerMode();
   static void setPowerMode(uint8_t mode);
