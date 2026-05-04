@@ -157,6 +157,7 @@ bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
     info["HOTEND_MIN_TEMP"] = s2i(data.min_temp);
     info["HOTEND_MAX_TEMP"] = s2i(data.max_temp);
     info["BED_TEMP"] = s2i(data.bed_min_temp);
+    info["SPOOL_ID"] = s2i(data.spool_id);
 
     std::string payload;
     serializeJson(doc, payload);

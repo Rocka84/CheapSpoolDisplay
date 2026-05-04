@@ -273,7 +273,8 @@ void DisplayUI::buildScanScreen() {
   lv_obj_set_size(spoolmanBtn, 100, 42);
   lv_obj_align(spoolmanBtn, LV_ALIGN_BOTTOM_LEFT, 15, -15);
   apply_indigo_btn_style(spoolmanBtn);
-  lv_obj_add_event_cb(spoolmanBtn, onSelectSpoolButtonClicked, LV_EVENT_CLICKED, NULL);
+  lv_obj_add_event_cb(spoolmanBtn, onSelectSpoolButtonClicked, LV_EVENT_CLICKED,
+                      NULL);
 
   lv_obj_t *selectLbl = lv_label_create(spoolmanBtn);
   lv_label_set_text(selectLbl, "Spoolman");
@@ -853,7 +854,7 @@ void DisplayUI::showScanScreen() {
     lv_obj_add_flag(spoolmanBtn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_align(createNewBtn, LV_ALIGN_BOTTOM_MID, 0, -15);
   }
-  lv_scr_load(scanScreen); 
+  lv_scr_load(scanScreen);
 }
 
 void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
@@ -925,14 +926,15 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
     lv_obj_set_style_bg_color(colorBox, lv_color_hex(color_val), 0);
 
     if (!spool.alpha.empty()) {
-        uint8_t opa = strtol(spool.alpha.c_str(), NULL, 16);
-        lv_obj_set_style_bg_opa(colorBox, opa, 0);
+      uint8_t opa = strtol(spool.alpha.c_str(), NULL, 16);
+      lv_obj_set_style_bg_opa(colorBox, opa, 0);
     } else {
-        lv_obj_set_style_bg_opa(colorBox, LV_OPA_COVER, 0);
+      lv_obj_set_style_bg_opa(colorBox, LV_OPA_COVER, 0);
     }
-    
+
     std::string full_color = spool.color_hex;
-    if (!spool.alpha.empty()) full_color += spool.alpha;
+    if (!spool.alpha.empty())
+      full_color += spool.alpha;
     lv_label_set_text(labelColorHex, full_color.c_str());
   } else {
     lv_obj_set_style_bg_color(colorBox, lv_color_hex(0x000000), 0);
@@ -942,7 +944,8 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
   // Cache spool data globally for webhook/U1
   currentLoadedData = spool;
 
-  // Hide the Load button if no webhook or U1 is configured, expanding the infoCard
+  // Hide the Load button if no webhook or U1 is configured, expanding the
+  // infoCard
   bool hasWifi = !ConfigManager::getWifiSSID().empty();
   bool hasPrinter = !ConfigManager::getWebhook().empty() ||
                     !ConfigManager::getU1Host().empty();
@@ -1007,11 +1010,13 @@ void DisplayUI::buildFetchingOverlay() {
 }
 
 void DisplayUI::showFetchingOverlay() {
-  if (fetchingOverlay) lv_obj_clear_flag(fetchingOverlay, LV_OBJ_FLAG_HIDDEN);
+  if (fetchingOverlay)
+    lv_obj_clear_flag(fetchingOverlay, LV_OBJ_FLAG_HIDDEN);
 }
 
 void DisplayUI::hideFetchingOverlay() {
-  if (fetchingOverlay) lv_obj_add_flag(fetchingOverlay, LV_OBJ_FLAG_HIDDEN);
+  if (fetchingOverlay)
+    lv_obj_add_flag(fetchingOverlay, LV_OBJ_FLAG_HIDDEN);
 }
 
 void DisplayUI::showEditScreen() {
@@ -1078,7 +1083,8 @@ void DisplayUI::showEditScreen() {
   }
 
   std::string hex = currentLoadedData.color_hex;
-  if (!hex.empty() && hex[0] == '#') hex = hex.substr(1);
+  if (!hex.empty() && hex[0] == '#')
+    hex = hex.substr(1);
   if (!currentLoadedData.alpha.empty()) {
     hex += currentLoadedData.alpha;
   }
@@ -1120,7 +1126,11 @@ void DisplayUI::onLoadSpoolButtonClicked(lv_event_t *e) {
 
   if (tools == 1) {
     // Immediate Webhook Fire
-    NetworkManager::sendWebhookPayload(currentLoadedData, 0);
+    if (NetworkManager::sendWebhookPayload(currentLoadedData, 0)) {
+      showToast("Successfully loaded to Printer", false);
+    } else {
+      showToast("Failed to load to Printer!", true);
+    }
     lv_scr_load(infoScreen); // Stay on Info screen
   } else {
     // Show tool grid popup
@@ -1131,7 +1141,11 @@ void DisplayUI::onLoadSpoolButtonClicked(lv_event_t *e) {
 void DisplayUI::onToolButtonClicked(lv_event_t *e) {
   int toolhead_id = (int)(intptr_t)lv_event_get_user_data(e);
   // Fire Webhook synchronously (simple implementation, can be async later)
-  NetworkManager::sendWebhookPayload(currentLoadedData, toolhead_id);
+  if (NetworkManager::sendWebhookPayload(currentLoadedData, toolhead_id)) {
+    showToast("Successfully loaded to Printer", false);
+  } else {
+    showToast("Failed to load to Printer!", true);
+  }
 
   // Return to the Info screen after loading
   lv_scr_load(infoScreen);
@@ -1154,7 +1168,7 @@ void DisplayUI::onSelectSpoolButtonClicked(lv_event_t *e) {
   currentSpoolPage = 0;
   std::vector<SpoolmanItem> items;
   int total_count = 0;
-  
+
   showFetchingOverlay();
   lv_refr_now(NULL);
   if (NetworkManager::fetchSpoolmanList(currentSpoolPage, 4, items,
@@ -1172,7 +1186,7 @@ void DisplayUI::onPrevPageClicked(lv_event_t *e) {
     currentSpoolPage--;
     std::vector<SpoolmanItem> items;
     int total_count = 0;
-    
+
     showFetchingOverlay();
     lv_refr_now(NULL);
     if (NetworkManager::fetchSpoolmanList(currentSpoolPage, 4, items,
@@ -1187,7 +1201,7 @@ void DisplayUI::onNextPageClicked(lv_event_t *e) {
   int nextPage = currentSpoolPage + 1;
   std::vector<SpoolmanItem> items;
   int total_count = 0;
-  
+
   showFetchingOverlay();
   lv_refr_now(NULL);
   if (NetworkManager::fetchSpoolmanList(nextPage, 4, items, total_count)) {
@@ -1256,11 +1270,11 @@ void DisplayUI::onSaveButtonClicked(lv_event_t *e) {
 
   std::string hexText = lv_textarea_get_text(editColorHexTextArea);
   if (hexText.length() == 8) {
-      currentLoadedData.color_hex = "#" + hexText.substr(0, 6);
-      currentLoadedData.alpha = hexText.substr(6, 2);
+    currentLoadedData.color_hex = "#" + hexText.substr(0, 6);
+    currentLoadedData.alpha = hexText.substr(6, 2);
   } else {
-      currentLoadedData.color_hex = "#" + hexText;
-      currentLoadedData.alpha = ""; 
+    currentLoadedData.color_hex = "#" + hexText;
+    currentLoadedData.alpha = "";
   }
   currentLoadedData.spool_id = lv_textarea_get_text(editSpoolIdTextArea);
   currentLoadedData.lot_nr = lv_textarea_get_text(editLotNrTextArea);
@@ -1422,8 +1436,10 @@ void DisplayUI::updateSaveButtonState() {
 
 void DisplayUI::updateWiFiStatus(bool connected) {
   if (wifiIcon) {
-    if (connected) lv_obj_remove_flag(wifiIcon, LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_add_flag(wifiIcon, LV_OBJ_FLAG_HIDDEN);
+    if (connected)
+      lv_obj_remove_flag(wifiIcon, LV_OBJ_FLAG_HIDDEN);
+    else
+      lv_obj_add_flag(wifiIcon, LV_OBJ_FLAG_HIDDEN);
   }
 }
 

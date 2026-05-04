@@ -94,7 +94,7 @@ Ideas
     * allows to load spools to the printer that are in spoolman but don't have a tag
     * allows to create new tags for spools that are in spoolman but don't have a tag
     * would make the spool id dialog and prefill for creating tags obsolete
-8. Configurable Battery behavior
+8. ~~Configurable Battery behavior~~
     * let the user configure the behavior of the power management, options:
         * always on (display timeout still applies but no deep sleep)
         * deep sleep when idle for X minutes
