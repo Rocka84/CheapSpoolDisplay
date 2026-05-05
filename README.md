@@ -94,3 +94,6 @@ pio run -e simulator
 
 ## Credits
 Huge parts of this project were developed by **Antigravity**, a powerful AI coding assistant, in collaboration with Rocka84.
+
+## License
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
