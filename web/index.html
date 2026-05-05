@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CheapSpoolDisplay | Web Installer</title>
+    <link rel="icon" type="image/png" href="logo.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -89,25 +90,186 @@
         p.subtitle {
             color: var(--text-muted);
             font-size: 1.1rem;
-            margin: 15px 0 40px;
+            margin: 15px auto 30px;
             line-height: 1.6;
+            max-width: 550px;
+        }
+
+        .description {
+            color: var(--text);
+            font-size: 1.05rem;
+            line-height: 1.7;
+            margin-bottom: 40px;
+            text-align: left;
+        }
+
+        .description a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            padding-bottom: 2px;
+            border-bottom: 1px solid rgba(82, 102, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .description a:hover {
+            color: #fff;
+            border-bottom-color: var(--primary);
+        }
+
+        .cta-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 50px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .docs-button {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .docs-button:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        }
+
+        .screenshots {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 40px 0 60px;
+            flex-wrap: wrap;
+        }
+
+        .screenshots img {
+            width: 160px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .screenshots img:hover {
+            transform: scale(1.05);
+        }
+
+        .features {
+            text-align: left;
+            margin: 40px 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 600px) {
+            .features {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .feature-item svg {
+            color: var(--primary);
+            flex-shrink: 0;
+            margin-top: 3px;
+        }
+
+        .feature-text {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .feature-text strong:first-child {
+            color: var(--text);
+            display: block;
+            margin-bottom: 4px;
+            font-size: 1rem;
+        }
+
+        esp-web-install-button {
+            --esp-tools-button-color: var(--primary);
+            --esp-tools-button-text-color: #fff;
+            --esp-tools-button-bg-color: #312e81;
+            margin: 0;
+            display: inline-block;
+        }
+
+        esp-web-install-button button {
+            cursor: pointer;
+            padding: 16px 32px !important;
+            font-size: 1rem !important;
+            font-weight: 600 !important;
+            border-radius: 12px !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+            border: none;
+            background: var(--primary);
+            color: white;
+        }
+
+        esp-web-install-button button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2) !important;
+            filter: brightness(1.1);
         }
 
         .setup-steps {
             text-align: left;
-            margin: 40px 0;
+            margin: 20px 0;
             background: rgba(0, 0, 0, 0.2);
-            padding: 30px;
+            padding: 0;
             border-radius: 16px;
             border: 1px solid var(--glass-border);
+            overflow: hidden;
         }
 
-        .setup-steps h3 {
-            margin-top: 0;
-            font-size: 1.2rem;
+        .setup-steps summary {
+            padding: 20px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
             color: var(--primary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .setup-steps summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .setup-steps summary::after {
+            content: '+';
+            font-size: 1.5rem;
+            font-weight: 300;
+        }
+
+        .setup-steps[open] summary::after {
+            content: '−';
+        }
+
+        .setup-content {
+            padding: 0 30px 30px;
         }
 
         ol {
@@ -127,33 +289,6 @@
             border-radius: 4px;
             font-family: inherit;
             color: #d1d5db;
-        }
-
-        esp-web-install-button {
-            --esp-tools-button-color: var(--primary);
-            --esp-tools-button-text-color: #fff;
-            --esp-tools-button-bg-color: #312e81;
-            margin: 20px 0;
-            display: inline-block;
-        }
-
-        esp-web-install-button button {
-            cursor: pointer;
-            padding: 16px 36px !important;
-            font-size: 1.1rem !important;
-            font-weight: 600 !important;
-            border-radius: 12px !important;
-            transition: all 0.3s ease !important;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3) !important;
-            border: none;
-            background: var(--primary);
-            color: white;
-        }
-
-        esp-web-install-button button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4) !important;
-            filter: brightness(1.1);
         }
 
         footer {
@@ -200,45 +335,120 @@
                 document.getElementById('fw-version').textContent = m.version;
             });
         </script>
-        <p class="subtitle">Securely flash and configure your CheapSpoolDisplay directly from your browser.</p>
+        <p class="subtitle">OpenSpool Firmware for the ESP32 Cheap Yellow Display</p>
 
-        <script type="module" src="https://unpkg.com/esp-web-tools@8.0.3/dist/web/install-button.js?module"></script>
-
-        <esp-web-install-button manifest="manifest.json">
-            <button slot="activate">Connect & Flash Device</button>
-        </esp-web-install-button>
-
-        <div class="setup-steps">
-            <h3>Quick Setup Guide</h3>
-            <ol>
-                <li>Connect your CYD to this computer via USB.</li>
-                <li>Click <b>Connect & Flash Device</b> to push the firmware.</li>
-                <li>Once complete, click <b>Logs & Console</b> in the installer window to open the console and
-                    configure:
-                    <ul>
-                        <li><code>set wifi &lt;ssid&gt; &lt;password&gt;</code> to configure your wireless network</li>
-                        <li><code>set spoolman &lt;url&gt;</code> to enable Spoolman enrichment</li>
-                        <li><code>set u1_host &lt;ip&gt;</code> to enable Snapmaker U1 integration</li>
-                        <li><code>set webhook &lt;url&gt;</code> to set your webhook URL</li>
-                        <li><code>set tools &lt;1-16&gt;</code> to set the number of tools (default 1 or 4 if
-                            <code>u1_host</code> is set)
-                        </li>
-                        <li><code>set display_timeout &lt;seconds&gt;</code> screen auto-off time (0 = always on)</li>
-                        <li><code>set sleep_timeout &lt;seconds&gt;</code> idle time before deep sleep</li>
-                        <li><code>set power_mode &lt;0|1|2&gt;</code> (0=Always On, 1=Deep Sleep, 2=Smart USB)</li>
-                    </ul>
-                    <p>Type <code>get config</code> anytime to verify your settings.</p>
-                </li>
-            </ol>
-            <p style="margin-top: 25px; font-size: 0.95rem; text-align: center;">
-                Need more help? Check out our <a href="docs.html"
-                    style="color: var(--primary); font-weight: 600; text-decoration: none;">Full Documentation</a>.
+        <div class="description">
+            <p>CheapSpoolDisplay is a dedicated firmware for the ESP32 Cheap Yellow Display (CYD) designed specifically
+                for <strong>OpenSpool Tags</strong>. It allows you to scan, view, and organize your 3D printer filament
+                spools using the standardized OpenSpool NFC tag format. It also serves as an external RFiD reader for
+                the <a href="https://github.com/paxx12/SnapmakerU1-Extended-Firmware">SnapmakerU1-Extended-Firmware</a>.
             </p>
         </div>
 
+        <div class="cta-container">
+            <esp-web-install-button manifest="manifest.json">
+                <button slot="activate">Connect & Flash Device</button>
+            </esp-web-install-button>
+            <a href="docs.html" class="docs-button">Explore Documentation</a>
+        </div>
+        <script type="module" src="https://unpkg.com/esp-web-tools@8.0.3/dist/web/install-button.js?module"></script>
+
+        <div class="screenshots">
+            <img src="docs/images/screen_scan.png" alt="Scan Screen">
+            <img src="docs/images/screen_info.png" alt="Info Screen">
+            <img src="docs/images/screen_edit.png" alt="Edit Screen">
+        </div>
+
+        <div class="features">
+            <div class="feature-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 11a9 9 0 0 1 9 9"></path>
+                    <path d="M4 4a16 16 0 0 1 16 16"></path>
+                    <circle cx="5" cy="19" r="1"></circle>
+                </svg>
+                <div class="feature-text">
+                    <strong>NFC Tag Scanning</strong>
+                    Reads NTAG215/216 tags formatted via the OpenSpool JSON specification.
+                </div>
+            </div>
+            <div class="feature-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                <div class="feature-text">
+                    <strong>Visual Interface</strong>
+                    Modern, touch-friendly UI powered by LVGL to display Brand, Type, and Color.
+                </div>
+            </div>
+            <div class="feature-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <circle cx="12" cy="12" r="2.5"></circle>
+                    <path d="M12 3v3m0 12v3m9-9h-3M6 12H3"></path>
+                </svg>
+                <div class="feature-text">
+                    <strong>Spoolman Integration</strong>
+                    Paginate, browse, and load spools directly from your Spoolman inventory.
+                </div>
+            </div>
+            <div class="feature-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 10V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4"></path>
+                    <path d="M3 18v-3a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3"></path>
+                    <path d="M12 4v14"></path>
+                    <rect x="2" y="18" width="20" height="2"></rect>
+                </svg>
+                <div class="feature-text">
+                    <strong>Printer Integration</strong>
+                    Directly load spools to <strong>Snapmaker U1</strong> or trigger custom <strong>Webhooks</strong>.
+                </div>
+            </div>
+        </div>
+
+
+
+        <details class="setup-steps">
+            <summary>Quick Setup Guide</summary>
+            <div class="setup-content">
+                <ol>
+                    <li>Connect your CYD to this computer via USB.</li>
+                    <li>Click <b>Connect & Flash Device</b> to push the firmware.</li>
+                    <li>Once complete, click <b>Logs & Console</b> in the installer window to open the console and
+                        configure:
+                        <ul>
+                            <li><code>set wifi &lt;ssid&gt; &lt;password&gt;</code> to configure your wireless network
+                            </li>
+                            <li><code>set spoolman &lt;url&gt;</code> to enable Spoolman enrichment</li>
+                            <li><code>set u1_host &lt;ip&gt;</code> to enable Snapmaker U1 integration</li>
+                            <li><code>set webhook &lt;url&gt;</code> to set your webhook URL</li>
+                            <li><code>set tools &lt;1-16&gt;</code> to set the number of tools (default 1 or 4 if
+                                <code>u1_host</code> is set)
+                            </li>
+                            <li><code>set display_timeout &lt;seconds&gt;</code> screen auto-off time (0 = always on)
+                            </li>
+                            <li><code>set sleep_timeout &lt;seconds&gt;</code> idle time before deep sleep</li>
+                            <li><code>set power_mode &lt;0|1|2&gt;</code> (0=Always On, 1=Deep Sleep, 2=Smart USB)</li>
+                        </ul>
+                        <p>Type <code>get config</code> anytime to verify your settings.</p>
+                    </li>
+                </ol>
+                <p style="margin-top: 25px; font-size: 0.95rem; text-align: center;">
+                    Need more help? Check out our <a href="docs.html"
+                        style="color: var(--primary); font-weight: 600; text-decoration: none;">Full Documentation</a>.
+                </p>
+            </div>
+        </details>
+
         <footer>
-            Built for <a href="https://openspool.io" target="_blank">OpenSpool</a> | <a
-                href="docs.html">Documentation</a>
+            Built for <a href="https://openspool.io" target="_blank">OpenSpool</a> |
+            <a href="https://github.com/Rocka84/CheapSpoolDisplay" target="_blank">Source</a> |
+            <a href="docs.html">Documentation</a>
         </footer>
     </div>
 
