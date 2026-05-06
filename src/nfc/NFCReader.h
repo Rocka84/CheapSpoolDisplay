@@ -31,7 +31,7 @@ private:
 
   // NDEF reading helpers (simplified for multi-protocol support)
   static PayloadResult readNDEFPayload();
-  static bool writeNDEFPayload(const std::string &json);
+  static bool writeNDEFPayload(const std::string &mimeType, const std::vector<uint8_t> &payload);
 };
 
 #endif // NFC_READER_H

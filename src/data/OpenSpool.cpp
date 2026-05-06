@@ -53,6 +53,13 @@ bool OpenSpoolParser::parseJson(const std::string &json, OpenSpoolData &data) {
     data.subtype = doc["subtype"].as<std::string>();
   if (doc["alpha"].is<std::string>())
     data.alpha = doc["alpha"].as<std::string>();
+  if (doc["diameter"].is<std::string>())
+    data.diameter = doc["diameter"].as<std::string>();
+  else if (doc["diameter"].is<float>()) {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%.3f", doc["diameter"].as<float>());
+    data.diameter = buf;
+  }
 
   // Protocol check according to OpenSpool spec
   if (data.protocol != "openspool") {
@@ -212,8 +219,11 @@ std::string OpenSpoolParser::toJson(const OpenSpoolData &data) {
     doc["lot_nr"] = data.lot_nr;
   if (!data.subtype.empty())
     doc["subtype"] = data.subtype;
-  if (!data.alpha.empty())
+  if (data.alpha.empty() == false)
     doc["alpha"] = data.alpha;
+  if (data.diameter.empty() == false) {
+    doc["diameter"] = data.diameter;
+  }
 
   std::string output;
   serializeJson(doc, output);

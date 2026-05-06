@@ -22,6 +22,7 @@ struct OpenSpoolData {
   std::string lot_nr;
   std::string subtype;
   std::string alpha;
+  std::string diameter;
 
   // Spoolman enrichment fields
   std::string filament_name;
@@ -47,6 +48,7 @@ struct OpenSpoolData {
     filament_name = "";
     remaining_weight = "";
     total_weight = "";
+    diameter = "";
   }
 };
 

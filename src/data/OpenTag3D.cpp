@@ -73,9 +73,9 @@ bool OpenTag3DParser::parseBinary(const std::vector<uint8_t>& payload, OpenSpool
     if (diameterUm > 0) {
         char diaStr[16];
         snprintf(diaStr, sizeof(diaStr), "%.3f", (float)diameterUm / 1000.0f);
-        // Remove trailing zeros for cleanliness
-        data.lot_nr = "Parsed from Binary"; // Just as a marker for now
+        data.diameter = diaStr;
     }
+    data.lot_nr = ""; // Not supported in binary format
     
     if (weightG > 0) {
         data.total_weight = std::to_string(weightG);
@@ -107,6 +107,80 @@ bool OpenTag3DParser::parseBinary(const std::vector<uint8_t>& payload, OpenSpool
     return true;
 }
 
+std::vector<uint8_t> OpenTag3DParser::generateBinary(const OpenSpoolData& data) {
+    std::vector<uint8_t> payload(200, 0); // Standard tag size used in mock
+
+    // Version (Fixed 1.000)
+    writeUint16BE(&payload[OFFSET_VERSION], 1000);
+
+    // Material
+    std::string mat = data.type;
+    if (mat.length() > 5) mat = mat.substr(0, 5);
+    memcpy(&payload[OFFSET_MATERIAL], mat.c_str(), mat.length());
+
+    // Modifier (Subtype)
+    std::string modifier = data.subtype;
+    if (modifier.length() > 5) modifier = modifier.substr(0, 5);
+    memcpy(&payload[OFFSET_MODIFIER], modifier.c_str(), modifier.length());
+
+    // Brand
+    std::string brand = data.brand;
+    if (brand.length() > 16) brand = brand.substr(0, 16);
+    memcpy(&payload[OFFSET_BRAND], brand.c_str(), brand.length());
+
+    // Color Name (mapped from filament_name)
+    std::string colorName = data.filament_name;
+    if (colorName.length() > 32) colorName = colorName.substr(0, 32);
+    memcpy(&payload[OFFSET_COLOR_NAME], colorName.c_str(), colorName.length());
+
+    // Color Hex (#RRGGBB)
+    if (data.color_hex.length() >= 7 && data.color_hex[0] == '#') {
+        for (int i = 0; i < 3; i++) {
+            std::string byteStr = data.color_hex.substr(1 + i * 2, 2);
+            payload[OFFSET_COLOR_HEX + i] = (uint8_t)strtol(byteStr.c_str(), nullptr, 16);
+        }
+    }
+    // Alpha
+    if (!data.alpha.empty()) {
+        payload[OFFSET_COLOR_HEX + 3] = (uint8_t)strtol(data.alpha.c_str(), nullptr, 16);
+    } else {
+        payload[OFFSET_COLOR_HEX + 3] = 0xFF; // Solid
+    }
+
+    // Temperatures (stored as C/5)
+    if (!data.max_temp.empty()) {
+        payload[OFFSET_TEMP_NOZZLE] = (uint8_t)(atoi(data.max_temp.c_str()) / 5);
+    }
+    if (!data.bed_max_temp.empty()) {
+        payload[OFFSET_TEMP_BED] = (uint8_t)(atoi(data.bed_max_temp.c_str()) / 5);
+    }
+
+    // Diameter (µm)
+    float dia = 1.75f; // Default
+    if (!data.diameter.empty()) {
+        dia = atof(data.diameter.c_str());
+    } else if (data.type.find("1.75") != std::string::npos) {
+        dia = 1.75f;
+    } else if (data.type.find("2.85") != std::string::npos) {
+        dia = 2.85f;
+    }
+    writeUint16BE(&payload[OFFSET_DIAMETER], (uint16_t)(dia * 1000));
+
+    // Weight
+    if (!data.total_weight.empty()) {
+        writeUint16BE(&payload[OFFSET_WEIGHT], (uint16_t)atoi(data.total_weight.c_str()));
+    }
+
+    // Online Data URL (Spoolman)
+    if (!data.spool_id.empty()) {
+        std::string url = "spoolman.local/spool/show/" + data.spool_id;
+        if (url.length() > 32) url = url.substr(0, 32);
+        memcpy(&payload[OFFSET_URL], url.c_str(), url.length());
+    }
+
+    return payload;
+}
+
 std::string OpenTag3DParser::trimString(const char* data, size_t maxLen) {
     std::string s = "";
     for (size_t i = 0; i < maxLen; i++) {
@@ -126,4 +200,9 @@ std::string OpenTag3DParser::trimString(const char* data, size_t maxLen) {
 
 uint16_t OpenTag3DParser::readUint16BE(const uint8_t* data) {
     return (uint16_t)(data[0] << 8) | data[1];
+}
+
+void OpenTag3DParser::writeUint16BE(uint8_t* data, uint16_t value) {
+    data[0] = (uint8_t)((value >> 8) & 0xFF);
+    data[1] = (uint8_t)(value & 0xFF);
 }

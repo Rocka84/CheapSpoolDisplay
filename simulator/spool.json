@@ -1,1 +1,1 @@
-{"protocol":"openspool","version":"1","type":"PLA","color_hex":"#ca4000","brand":"Das Filament","spool_id":"16","min_temp":"220","max_temp":"220","bed_min_temp":"60","bed_max_temp":"60"}
+{"protocol":"openspool","version":"1.000","type":"PLA","color_hex":"#FF6400","brand":"Rocka84 3D","spool_id":"123","min_temp":"215","max_temp":"215","bed_min_temp":"60","bed_max_temp":"60","alpha":"FF","diameter":"1.750"}

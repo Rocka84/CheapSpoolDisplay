@@ -82,8 +82,16 @@ bool NFCReader::writeTag(const OpenSpoolData &data) {
     return false;
   }
 
-  std::string json = OpenSpoolParser::toJson(data);
-  bool success = writeNDEFPayload(json);
+  bool success = false;
+  if (data.protocol == "opentag3d") {
+    std::vector<uint8_t> payload = OpenTag3DParser::generateBinary(data);
+    success = writeNDEFPayload("application/opentag3d", payload);
+  } else {
+    // Default to OpenSpool JSON
+    std::string json = OpenSpoolParser::toJson(data);
+    std::vector<uint8_t> payload(json.begin(), json.end());
+    success = writeNDEFPayload("application/json", payload);
+  }
 
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
@@ -211,7 +219,7 @@ PayloadResult NFCReader::readNDEFPayload() {
   return result;
 }
 
-bool NFCReader::writeNDEFPayload(const std::string &json) {
+bool NFCReader::writeNDEFPayload(const std::string &mimeType, const std::vector<uint8_t> &payload) {
   // NDEF formatting for NTAG215
   // Page 3: CC (Capability Container) - E1 10 3E 00 for NTAG215 (504 bytes)
   byte cc[4] = {0xE1, 0x10, 0x3E, 0x00};
@@ -222,11 +230,10 @@ bool NFCReader::writeNDEFPayload(const std::string &json) {
   }
 
   // Build NDEF Message
-  // TNF 0x02 (Mime Media), Type "application/json"
-  std::string type = "application/json";
-  size_t payloadLen = json.length();
+  // TNF 0x02 (Mime Media)
+  size_t payloadLen = payload.size();
   size_t ndefLen =
-      3 + type.length() +
+      3 + mimeType.length() +
       payloadLen; // Header + TypeLength + PayloadLength + Type + Payload
 
   std::vector<byte> ndef;
@@ -242,12 +249,12 @@ bool NFCReader::writeNDEFPayload(const std::string &json) {
   // NDEF Record Header
   // MB=1, ME=1, CF=0, SR=1, IL=0, TNF=0x02
   ndef.push_back(0xD2);
-  ndef.push_back((byte)type.length());
+  ndef.push_back((byte)mimeType.length());
   ndef.push_back((byte)payloadLen);
-  for (char c : type)
+  for (char c : mimeType)
     ndef.push_back((byte)c);
-  for (char c : json)
-    ndef.push_back((byte)c);
+  for (byte b : payload)
+    ndef.push_back(b);
   ndef.push_back(0xFE); // Terminator TLV
 
   // Pad to 4-byte pages

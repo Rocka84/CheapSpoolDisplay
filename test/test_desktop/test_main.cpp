@@ -206,6 +206,41 @@ void test_opentag3d_parsing(void) {
     TEST_ASSERT_EQUAL_STRING("80", data.alpha.c_str());
     TEST_ASSERT_EQUAL_STRING("210", data.min_temp.c_str());
     TEST_ASSERT_EQUAL_STRING("1234", data.spool_id.c_str());
+    TEST_ASSERT_EQUAL_STRING("", data.lot_nr.c_str());
+}
+
+void test_opentag3d_roundtrip() {
+    OpenSpoolData original;
+    original.brand = "BrandX";
+    original.type = "PLA";
+    original.subtype = "Silk";
+    original.filament_name = "Shiny Blue";
+    original.color_hex = "#112233";
+    original.alpha = "FF";
+    original.max_temp = "215";
+    original.bed_max_temp = "60";
+    original.total_weight = "1000";
+    original.spool_id = "12345";
+    original.diameter = "1.750";
+
+    std::vector<uint8_t> binary = OpenTag3DParser::generateBinary(original);
+    
+    OpenSpoolData parsed;
+    bool success = OpenTag3DParser::parseBinary(binary, parsed);
+    
+    TEST_ASSERT_TRUE(success);
+    TEST_ASSERT_EQUAL_STRING("BrandX", parsed.brand.c_str());
+    TEST_ASSERT_EQUAL_STRING("PLA", parsed.type.c_str());
+    TEST_ASSERT_EQUAL_STRING("Silk", parsed.subtype.c_str());
+    TEST_ASSERT_EQUAL_STRING("Shiny Blue", parsed.filament_name.c_str());
+    TEST_ASSERT_EQUAL_STRING("#112233", parsed.color_hex.c_str());
+    TEST_ASSERT_EQUAL_STRING("FF", parsed.alpha.c_str());
+    TEST_ASSERT_EQUAL_STRING("215", parsed.max_temp.c_str());
+    TEST_ASSERT_EQUAL_STRING("60", parsed.bed_max_temp.c_str());
+    TEST_ASSERT_EQUAL_STRING("1000", parsed.total_weight.c_str());
+    TEST_ASSERT_EQUAL_STRING("12345", parsed.spool_id.c_str());
+    TEST_ASSERT_EQUAL_STRING("1.750", parsed.diameter.c_str());
+    TEST_ASSERT_EQUAL_STRING("", parsed.lot_nr.c_str());
 }
 
 int main(int argc, char **argv) {
@@ -227,6 +262,7 @@ int main(int argc, char **argv) {
   RUN_TEST(test_webhook_format_multi_placeholders);
   RUN_TEST(test_webhook_format_malformed_placeholder);
   RUN_TEST(test_opentag3d_parsing);
+  RUN_TEST(test_opentag3d_roundtrip);
   UNITY_END();
 
   return 0;

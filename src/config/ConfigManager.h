@@ -48,6 +48,10 @@ public:
   static std::string getU1Host();
   static void setU1Host(const std::string &host);
 
+  // Tag Format Settings
+  static std::string getTagFormat(); // "openspool", "opentag3d", or "ask"
+  static void setTagFormat(const std::string &format);
+
 private:
 #ifndef USE_SDL2
   static Preferences preferences;

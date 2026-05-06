@@ -108,6 +108,16 @@ void ConfigManager::setU1Host(const std::string &host) {
   preferences.putString("u1_host", host.c_str());
 }
 
+std::string ConfigManager::getTagFormat() {
+  if (!preferences.isKey("tag_format"))
+    return "ask";
+  return std::string(preferences.getString("tag_format", "ask").c_str());
+}
+
+void ConfigManager::setTagFormat(const std::string &format) {
+  preferences.putString("tag_format", format.c_str());
+}
+
 #else
 // SIMULATOR IMPLEMENTATION
 #include <fstream>
@@ -128,6 +138,7 @@ void ConfigManager::loadSimConfig() {
   simConfig["power_mode"] = "0"; // Always On for simulator
   simConfig["sleep_timeout"] = "5";
   simConfig["u1_host"] = "192.168.1.50";
+  simConfig["tag_format"] = "ask";
 
   std::ifstream file("simulator/config.cfg");
   if (!file.is_open())
@@ -235,5 +246,16 @@ std::string ConfigManager::getU1Host() {
 }
 
 void ConfigManager::setU1Host(const std::string &host) {}
+
+std::string ConfigManager::getTagFormat() {
+  auto it = simConfig.find("tag_format");
+  if (it != simConfig.end())
+    return it->second;
+  return "ask";
+}
+
+void ConfigManager::setTagFormat(const std::string &format) {
+  simConfig["tag_format"] = format;
+}
 
 #endif

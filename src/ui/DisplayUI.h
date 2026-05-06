@@ -104,6 +104,8 @@ private:
   static lv_obj_t *labelSubtype;
   static lv_obj_t *labelLotNr;
   static lv_obj_t *keyLotNr;
+  static lv_obj_t *labelDiameter;
+  static lv_obj_t *keyDiameter;
   static lv_obj_t *labelTemp;
   static lv_obj_t *labelBedTemp;
   static lv_obj_t *labelColorHex;
@@ -126,6 +128,7 @@ private:
   static lv_obj_t *editMaxTempTextArea;
   static lv_obj_t *editBedMinTextArea;
   static lv_obj_t *editBedMaxTextArea;
+  static lv_obj_t *editDiameterTextArea;
   static lv_obj_t *keyboard;
 
   // Spoolman enrichment UI
@@ -134,6 +137,16 @@ private:
   static lv_obj_t *keyWeight;
   static lv_obj_t *labelWeight;
   static lv_obj_t *toolGrid;
+
+  static void showFormatSelectionModal();
+
+  // Event callbacks
+  static void onFormatSelected(lv_event_t *e);
+  static void onDontAskCheckChanged(lv_event_t *e);
+
+  // UI Elements
+  static lv_obj_t *formatModal;
+  static lv_obj_t *dontAskCheckbox;
 
   static OpenSpoolData currentLoadedData;
 };

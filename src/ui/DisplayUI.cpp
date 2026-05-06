@@ -1,6 +1,7 @@
 #include "DisplayUI.h"
 #include "../config/ConfigManager.h"
 #include "../network/NetworkManager.h"
+#include "../data/OpenTag3D.h"
 
 #ifndef USE_SDL2
 #include "../nfc/NFCReader.h"
@@ -57,6 +58,8 @@ lv_obj_t *DisplayUI::labelLotNr = nullptr;
 lv_obj_t *DisplayUI::keyLotNr = nullptr;
 lv_obj_t *DisplayUI::labelTemp = nullptr;
 lv_obj_t *DisplayUI::labelBedTemp = nullptr;
+lv_obj_t *DisplayUI::labelDiameter = nullptr;
+lv_obj_t *DisplayUI::keyDiameter = nullptr;
 lv_obj_t *DisplayUI::labelColorHex = nullptr;
 lv_obj_t *DisplayUI::infoCard = nullptr;
 lv_obj_t *DisplayUI::loadBtn = nullptr;
@@ -76,6 +79,7 @@ lv_obj_t *DisplayUI::editMinTempTextArea = nullptr;
 lv_obj_t *DisplayUI::editMaxTempTextArea = nullptr;
 lv_obj_t *DisplayUI::editBedMinTextArea = nullptr;
 lv_obj_t *DisplayUI::editBedMaxTextArea = nullptr;
+lv_obj_t *DisplayUI::editDiameterTextArea = nullptr;
 lv_obj_t *DisplayUI::keyboard = nullptr;
 lv_obj_t *DisplayUI::writingOverlay = nullptr;
 lv_obj_t *DisplayUI::fetchingOverlay = nullptr;
@@ -97,6 +101,8 @@ lv_obj_t *DisplayUI::labelFilamentName = nullptr;
 lv_obj_t *DisplayUI::keyWeight = nullptr;
 lv_obj_t *DisplayUI::labelWeight = nullptr;
 lv_obj_t *DisplayUI::toolGrid = nullptr;
+lv_obj_t *DisplayUI::formatModal = nullptr;
+lv_obj_t *DisplayUI::dontAskCheckbox = nullptr;
 
 // Static member initialization
 OpenSpoolData DisplayUI::currentLoadedData;
@@ -553,6 +559,7 @@ void DisplayUI::buildInfoScreen() {
   create_row("Nozzle T.", &labelTemp);
   create_row("Bed T.", &labelBedTemp);
   create_row("Lot Nr", &labelLotNr, &keyLotNr);
+  create_row("Diameter", &labelDiameter, &keyDiameter);
 
   // Bottom Buttons
   loadBtn = lv_btn_create(infoScreen);
@@ -784,6 +791,15 @@ void DisplayUI::buildEditScreen() {
   lv_obj_add_event_cb(editBedMaxTextArea, onTextAreaChanged,
                       LV_EVENT_VALUE_CHANGED, NULL);
 
+  create_label(cont, "Diameter (mm)");
+  editDiameterTextArea = lv_textarea_create(cont);
+  lv_obj_set_width(editDiameterTextArea, LV_PCT(95));
+  lv_textarea_set_one_line(editDiameterTextArea, true);
+  lv_obj_add_event_cb(editDiameterTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
+                      NULL);
+  lv_obj_add_event_cb(editDiameterTextArea, onTextAreaChanged,
+                      LV_EVENT_VALUE_CHANGED, NULL);
+
   // Bottom Buttons (Fixed Footer)
   lv_obj_t *btnCont = lv_obj_create(editScreen);
   lv_obj_set_size(btnCont, 240, 50); // Width back to 240
@@ -844,10 +860,13 @@ void DisplayUI::buildWritingOverlay() {
 
 void DisplayUI::showScanScreen() {
   bool hasWifi = !ConfigManager::getWifiSSID().empty();
+#ifdef USE_SDL2
+  hasWifi = true; // Simulator always has network
+#endif
   bool hasSpoolman = !ConfigManager::getSpoolmanUrl().empty();
 
   if (hasWifi && hasSpoolman) {
-    lv_obj_clear_flag(spoolmanBtn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(spoolmanBtn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_align(spoolmanBtn, LV_ALIGN_BOTTOM_LEFT, 15, -15);
     lv_obj_align(createNewBtn, LV_ALIGN_BOTTOM_RIGHT, -15, -15);
   } else {
@@ -879,8 +898,17 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
     lv_obj_add_flag(keyLotNr, LV_OBJ_FLAG_HIDDEN);
   } else {
     lv_label_set_text(labelLotNr, spool.lot_nr.c_str());
-    lv_obj_clear_flag(labelLotNr, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_clear_flag(keyLotNr, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(labelLotNr, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(keyLotNr, LV_OBJ_FLAG_HIDDEN);
+  }
+
+  if (spool.diameter.empty()) {
+    lv_obj_add_flag(labelDiameter, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(keyDiameter, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_label_set_text(labelDiameter, (spool.diameter + "mm").c_str());
+    lv_obj_remove_flag(labelDiameter, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(keyDiameter, LV_OBJ_FLAG_HIDDEN);
   }
 
   std::string tempStr = spool.min_temp + " - " + spool.max_temp;
@@ -946,6 +974,9 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
   // Hide the Load button if no webhook or U1 is configured, expanding the
   // infoCard
   bool hasWifi = !ConfigManager::getWifiSSID().empty();
+#ifdef USE_SDL2
+  hasWifi = true; // Simulator always has network
+#endif
   bool hasPrinter = !ConfigManager::getWebhook().empty() ||
                     !ConfigManager::getU1Host().empty();
 
@@ -953,7 +984,7 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
     lv_obj_add_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_size(infoCard, 220, 255);
   } else {
-    lv_obj_clear_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(loadBtn, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_size(infoCard, 220, 205);
   }
 
@@ -1096,6 +1127,7 @@ void DisplayUI::showEditScreen() {
                        currentLoadedData.bed_min_temp.c_str());
   lv_textarea_set_text(editBedMaxTextArea,
                        currentLoadedData.bed_max_temp.c_str());
+  lv_textarea_set_text(editDiameterTextArea, currentLoadedData.diameter.c_str());
 
   // Sync color preview
   if (currentLoadedData.color_hex[0] == '#' &&
@@ -1115,6 +1147,7 @@ void DisplayUI::showEditScreenForNew() {
   currentLoadedData.brand = "Generic";
   currentLoadedData.type = "PLA";
   currentLoadedData.color_hex = "#FFFFFF";
+  currentLoadedData.diameter = "1.750";
   showEditScreen();
 }
 
@@ -1248,6 +1281,123 @@ void DisplayUI::onKeyboardEvent(lv_event_t *e) {
     lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
   }
 }
+void DisplayUI::showFormatSelectionModal() {
+  if (formatModal) return;
+
+  formatModal = lv_obj_create(lv_layer_top());
+  lv_obj_set_size(formatModal, screenWidth, screenHeight);
+  lv_obj_set_style_bg_color(formatModal, lv_color_hex(0x0f1118), 0);
+  lv_obj_set_style_bg_opa(formatModal, LV_OPA_COVER, 0);
+  lv_obj_set_style_border_width(formatModal, 0, 0);
+  lv_obj_set_style_pad_all(formatModal, 0, 0);
+  lv_obj_remove_flag(formatModal, LV_OBJ_FLAG_SCROLLABLE);
+
+  lv_obj_t *header = lv_label_create(formatModal);
+  lv_label_set_text(header, "Select Tag Format");
+  lv_obj_set_style_text_font(header, font_combined_20, 0);
+  lv_obj_set_style_text_color(header, lv_color_white(), 0);
+  lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 15);
+
+  lv_obj_t *cont = lv_obj_create(formatModal);
+  lv_obj_set_size(cont, screenWidth, 210);
+  lv_obj_align(cont, LV_ALIGN_TOP_MID, 0, 50);
+  lv_obj_set_style_bg_opa(cont, 0, 0);
+  lv_obj_set_style_border_width(cont, 0, 0);
+  lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+                        LV_FLEX_ALIGN_CENTER);
+  lv_obj_set_style_pad_all(cont, 10, 0);
+  lv_obj_set_style_pad_gap(cont, 15, 0);
+  lv_obj_set_scrollbar_mode(cont, LV_SCROLLBAR_MODE_AUTO);
+  lv_obj_set_scroll_dir(cont, LV_DIR_VER);
+
+  auto create_fmt_btn = [](lv_obj_t *parent, const char *text,
+                           const char *id) {
+    lv_obj_t *btn = lv_btn_create(parent);
+    lv_obj_set_size(btn, 200, 50);
+    apply_indigo_btn_style(btn);
+    lv_obj_t *lbl = lv_label_create(btn);
+    lv_label_set_text(lbl, text);
+    lv_obj_center(lbl);
+
+    // Store format string in user_data
+    lv_obj_set_user_data(btn, (void *)id);
+    lv_obj_add_event_cb(btn, onFormatSelected, LV_EVENT_CLICKED, NULL);
+    return btn;
+  };
+
+  create_fmt_btn(cont, "OpenSpool (JSON)", "openspool");
+  create_fmt_btn(cont, "OpenTag3D (Binary)", "opentag3d");
+
+  lv_obj_t *btnCont = lv_obj_create(formatModal);
+  lv_obj_set_size(btnCont, screenWidth, 50);
+  lv_obj_align(btnCont, LV_ALIGN_BOTTOM_MID, 0, 0);
+  lv_obj_set_style_bg_color(btnCont, lv_color_hex(0x0f1118), 0);
+  lv_obj_set_style_bg_opa(btnCont, LV_OPA_COVER, 0);
+  lv_obj_set_style_border_width(btnCont, 0, 0);
+  lv_obj_set_style_radius(btnCont, 0, 0);
+  lv_obj_remove_flag(btnCont, LV_OBJ_FLAG_SCROLLABLE);
+
+  lv_obj_t *cancel = lv_btn_create(btnCont);
+  lv_obj_set_size(cancel, 120, 38);
+  lv_obj_center(cancel);
+  apply_glass_style(cancel);
+  lv_obj_t *cLbl = lv_label_create(cancel);
+  lv_label_set_text(cLbl, "Cancel");
+  lv_obj_center(cLbl);
+  lv_obj_add_event_cb(
+      cancel,
+      [](lv_event_t *e) {
+        lv_obj_del(formatModal);
+        formatModal = nullptr;
+      },
+      LV_EVENT_CLICKED, NULL);
+}
+
+void DisplayUI::onFormatSelected(lv_event_t *e) {
+  lv_obj_t *target = (lv_obj_t *)lv_event_get_target(e);
+  const char *format = (const char *)lv_obj_get_user_data(target);
+  currentLoadedData.protocol = format;
+
+  if (formatModal) {
+    lv_obj_del(formatModal);
+    formatModal = nullptr;
+  }
+
+  // Trigger the actual save now that format is selected
+#ifndef USE_SDL2
+  if (writingOverlay)
+    lv_obj_clear_flag(writingOverlay, LV_OBJ_FLAG_HIDDEN);
+  writePending = true;
+  writeStartTime = millis();
+#else
+  // Simulator: handle write
+  bool success = false;
+  if (currentLoadedData.protocol == "opentag3d") {
+    std::vector<uint8_t> bin = OpenTag3DParser::generateBinary(currentLoadedData);
+    FILE *fp = fopen("simulator/spool.bin", "wb");
+    if (fp) {
+        fwrite(bin.data(), 1, bin.size(), fp);
+        fclose(fp);
+        success = true;
+    }
+  } else {
+    std::string json = OpenSpoolParser::toJson(currentLoadedData);
+    FILE *fp = fopen("simulator/spool.json", "w");
+    if (fp) {
+        fputs(json.c_str(), fp);
+        fclose(fp);
+        success = true;
+    }
+  }
+  if (success) {
+    showToast("Tag Saved Successfully!");
+    showScanScreen();
+  } else {
+    showToast("Error Saving Tag", true);
+  }
+#endif
+}
 
 void DisplayUI::onSaveButtonClicked(lv_event_t *e) {
   if (!validateAll()) {
@@ -1281,35 +1431,25 @@ void DisplayUI::onSaveButtonClicked(lv_event_t *e) {
   currentLoadedData.max_temp = lv_textarea_get_text(editMaxTempTextArea);
   currentLoadedData.bed_min_temp = lv_textarea_get_text(editBedMinTextArea);
   currentLoadedData.bed_max_temp = lv_textarea_get_text(editBedMaxTextArea);
-  currentLoadedData.protocol = "openspool"; // Ensure protocol is set
-
-#ifndef USE_SDL2
-  // Hardware: Trigger non-blocking write
-  if (writingOverlay)
-    lv_obj_clear_flag(writingOverlay, LV_OBJ_FLAG_HIDDEN);
-
-  writePending = true;
-  writeStartTime = millis();
-
-  // Return for hardware, polling will happen in main loop
-  return;
-#else
-  // Simulator: Update mock tag file (keep synchronous)
-  std::string json = OpenSpoolParser::toJson(currentLoadedData);
-  FILE *fp = fopen("simulator/spool.json", "w");
-  bool success = false;
-  if (fp) {
-    fputs(json.c_str(), fp);
-    fclose(fp);
-    success = true;
-  }
-  if (success) {
-    showToast("Tag written successfully!", false);
-    showInfoScreen(currentLoadedData);
+  currentLoadedData.diameter = lv_textarea_get_text(editDiameterTextArea);
+  
+  // Use config to decide format
+  std::string prefFormat = ConfigManager::getTagFormat();
+  if (prefFormat == "ask") {
+    showFormatSelectionModal();
   } else {
-    showToast("Failed to write tag!", true);
-  }
+    currentLoadedData.protocol = prefFormat;
+    // Trigger write
+#ifndef USE_SDL2
+    if (writingOverlay)
+      lv_obj_clear_flag(writingOverlay, LV_OBJ_FLAG_HIDDEN);
+    writePending = true;
+    writeStartTime = millis();
+#else
+    // Simulator handle same as in onFormatSelected
+    onFormatSelected(e); // Reuse logic
 #endif
+  }
 }
 
 void DisplayUI::onCancelEditButtonClicked(lv_event_t *e) {
