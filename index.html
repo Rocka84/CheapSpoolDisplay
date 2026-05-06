@@ -335,12 +335,13 @@
                 document.getElementById('fw-version').textContent = m.version;
             });
         </script>
-        <p class="subtitle">OpenSpool Firmware for the ESP32 Cheap Yellow Display</p>
+        <p class="subtitle">Multi-Protocol NFC Firmware for the ESP32 Cheap Yellow Display</p>
 
         <div class="description">
-            <p>CheapSpoolDisplay is a dedicated firmware for the ESP32 Cheap Yellow Display (CYD) designed specifically
-                for <strong>OpenSpool Tags</strong>. It allows you to scan, view, and organize your 3D printer filament
-                spools using the standardized OpenSpool NFC tag format. It also serves as an external RFID reader for
+            <p>CheapSpoolDisplay is a versatile firmware for the ESP32 Cheap Yellow Display (CYD) supporting
+                <strong>multiple NFC standards</strong> (OpenSpool, OpenTag3D). It allows you to scan, view, and
+                organize your 3D printer filament
+                spools using standardized formats. It also serves as an external RFID reader for
                 the <a href="https://github.com/paxx12/SnapmakerU1-Extended-Firmware">SnapmakerU1-Extended-Firmware</a>.
             </p>
         </div>
@@ -368,8 +369,9 @@
                     <circle cx="5" cy="19" r="1"></circle>
                 </svg>
                 <div class="feature-text">
-                    <strong>NFC Tag Reader + Writer</strong>
-                    Reads and writes NTAG215/216 tags formatted via the OpenSpool JSON specification.
+                    <strong>Multi-Protocol NFC</strong>
+                    Reads and writes NTAG215/216 tags using <strong>OpenSpool (JSON)</strong> and <strong>OpenTag3D
+                        (Binary)</strong>.
                 </div>
             </div>
             <div class="feature-item">
@@ -424,6 +426,8 @@
                         <ul>
                             <li><code>set wifi &lt;ssid&gt; &lt;password&gt;</code> to configure your wireless network
                             </li>
+                            <li><code>set tag_format &lt;openspool|opentag3d|ask&gt;</code> to set default writing
+                                format</li>
                             <li><code>set spoolman &lt;url&gt;</code> to enable Spoolman enrichment</li>
                             <li><code>set u1_host &lt;ip&gt;</code> to enable Snapmaker U1 integration</li>
                             <li><code>set webhook &lt;url&gt;</code> to set your webhook URL</li>
@@ -446,7 +450,6 @@
         </details>
 
         <footer>
-            Built for <a href="https://openspool.io" target="_blank">OpenSpool</a> |
             <a href="https://github.com/Rocka84/CheapSpoolDisplay" target="_blank">Source</a> |
             <a href="docs.html">Documentation</a> |
             <a href="https://github.com/Rocka84/CheapSpoolDisplay/blob/master/LICENSE" target="_blank">MIT License</a>
