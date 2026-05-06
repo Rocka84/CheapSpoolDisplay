@@ -1,4 +1,5 @@
 #include "data/OpenSpool.h"
+#include "data/OpenTag3D.h"
 #include "ui/DisplayUI.h"
 
 #include "config/ConfigManager.h"
@@ -126,8 +127,7 @@ void loop() {
         if (lastModTime == 0) {
           printf("Found simulator/spool.json. Reading mock tag...\n");
         } else {
-          printf("simulator/spool.json changed. Triggering new mock tag "
-                 "read...\n");
+          printf("simulator/spool.json changed. Triggering new mock tag read...\n");
         }
         lastModTime = fileStat.st_mtime;
 
@@ -150,6 +150,37 @@ void loop() {
                 printf("Error parsing simulator/spool.json!\n");
               }
               free(buffer);
+            }
+          }
+          fclose(fp);
+        }
+      }
+    }
+
+    // Also check for simulator/spool.bin (OpenTag3D binary mock)
+    if (stat("simulator/spool.bin", &fileStat) == 0) {
+      if (fileStat.st_mtime > lastModTime) {
+        if (lastModTime == 0) {
+          printf("Found simulator/spool.bin. Reading mock OpenTag3D tag...\n");
+        } else {
+          printf("simulator/spool.bin changed. Triggering new mock tag read...\n");
+        }
+        lastModTime = fileStat.st_mtime;
+
+        FILE *fp = fopen("simulator/spool.bin", "rb");
+        if (fp) {
+          fseek(fp, 0, SEEK_END);
+          long size = ftell(fp);
+          fseek(fp, 0, SEEK_SET);
+
+          if (size >= 0x60) { // Minimum OpenTag3D payload
+            std::vector<uint8_t> buffer(size);
+            fread(buffer.data(), 1, size, fp);
+
+            if (OpenTag3DParser::parseBinary(buffer, currentSpoolData)) {
+              tagScanned = true;
+            } else {
+              printf("Error parsing simulator/spool.bin!\n");
             }
           }
           fclose(fp);

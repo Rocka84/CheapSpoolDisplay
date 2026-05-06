@@ -932,9 +932,8 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
       lv_obj_set_style_bg_opa(colorBox, LV_OPA_COVER, 0);
     }
 
-    std::string full_color = spool.color_hex;
-    if (!spool.alpha.empty())
-      full_color += spool.alpha;
+    std::string full_color = displayData.color_hex;
+    if (!displayData.alpha.empty()) full_color += displayData.alpha;
     lv_label_set_text(labelColorHex, full_color.c_str());
   } else {
     lv_obj_set_style_bg_color(colorBox, lv_color_hex(0x000000), 0);

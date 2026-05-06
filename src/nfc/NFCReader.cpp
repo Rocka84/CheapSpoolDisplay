@@ -1,4 +1,5 @@
 #include "NFCReader.h"
+#include "../data/OpenTag3D.h"
 #include <vector>
 
 // Hardware pins for CYD SD Card slot
@@ -47,22 +48,33 @@ bool NFCReader::scanForTag(OpenSpoolData &data) {
 
   Serial.println("Tag detected!");
 
-  std::string ndefJson = readNDEFPayload();
+  PayloadResult res = readNDEFPayload();
   // Halt PICC
   mfrc522.PICC_HaltA();
   // Stop encryption on PCD
   mfrc522.PCD_StopCrypto1();
 
-  if (ndefJson.empty()) {
-    Serial.println("Error: NDEF payload was empty or read failed.");
+  if (res.type == PayloadType::UNKNOWN) {
+    Serial.println("Error: Unknown or empty NDEF payload.");
     return false;
   }
 
-  bool parsed = OpenSpoolParser::parseJson(ndefJson, data);
-  if (!parsed) {
-    Serial.printf("JSON parse failed. Raw payload:\n%s\n", ndefJson.c_str());
+  if (res.type == PayloadType::OPEN_SPOOL_JSON) {
+    std::string jsonStr(res.data.begin(), res.data.end());
+    bool parsed = OpenSpoolParser::parseJson(jsonStr, data);
+    if (!parsed) {
+      Serial.printf("JSON parse failed. Raw payload:\n%s\n", jsonStr.c_str());
+    }
+    return parsed;
+  } else if (res.type == PayloadType::OPEN_TAG_3D_BINARY) {
+    bool parsed = OpenTag3DParser::parseBinary(res.data, data);
+    if (!parsed) {
+      Serial.println("OpenTag3D binary parse failed.");
+    }
+    return parsed;
   }
-  return parsed;
+
+  return false;
 }
 
 bool NFCReader::writeTag(const OpenSpoolData &data) {
@@ -78,43 +90,125 @@ bool NFCReader::writeTag(const OpenSpoolData &data) {
   return success;
 }
 
-std::string NFCReader::readNDEFPayload() {
-  // A full NDEF parser for NTAG215/216 is quite complex (CC, TLV, NDEF Record,
-  // Payload). For this implementation, we will perform a basic search for the
-  // JSON payload assuming it starts with `{"protocol":"openspool"` to extract
-  // it directly. In a production app, an NDEF library like NdefRecord should be
-  // used.
-
-  std::string payload = "";
+PayloadResult NFCReader::readNDEFPayload() {
+  PayloadResult result;
+  std::vector<uint8_t> rawData;
   byte buffer[18];
 
-  // NTAG215 pages start user memory at page 4. Read up to page 128 (covers up
-  // to 496 bytes)
-  for (byte page = 4; page < 128; page += 4) {
+  // Read first few pages to find NDEF TLV
+  // Page 4 starts user data
+  for (byte page = 4; page < 40; page += 4) {
     byte size = sizeof(buffer);
     MFRC522::StatusCode status = mfrc522.MIFARE_Read(page, buffer, &size);
     if (status == MFRC522::STATUS_OK) {
       for (int i = 0; i < 16; i++) {
-        payload += (char)buffer[i];
+        rawData.push_back(buffer[i]);
       }
     } else {
-      Serial.printf("MIFARE_Read failed at page %d with status: %s\n", page,
-                    mfrc522.GetStatusCodeName(status));
       break;
     }
   }
 
-  // Look for JSON start and end
-  size_t start = payload.find("{");
-  size_t end = payload.rfind("}");
+  if (rawData.empty())
+    return result;
 
-  if (start != std::string::npos && end != std::string::npos && end > start) {
-    std::string jsonStr = payload.substr(start, end - start + 1);
-    Serial.printf("Extracted JSON:\n%s\n", jsonStr.c_str());
-    return jsonStr;
+  // Find NDEF TLV (0x03)
+  size_t ndefIdx = 0;
+  bool foundTlv = false;
+  for (size_t i = 0; i < rawData.size(); i++) {
+    if (rawData[i] == 0x03) {
+      ndefIdx = i;
+      foundTlv = true;
+      break;
+    }
   }
 
-  return "";
+  if (!foundTlv) {
+    // Fallback: Check for raw JSON if no NDEF TLV is found (legacy/non-standard)
+    std::string fallback(rawData.begin(), rawData.end());
+    size_t start = fallback.find("{");
+    size_t end = fallback.rfind("}");
+    if (start != std::string::npos && end != std::string::npos && end > start) {
+      result.type = PayloadType::OPEN_SPOOL_JSON;
+      std::string json = fallback.substr(start, end - start + 1);
+      result.data.assign(json.begin(), json.end());
+      return result;
+    }
+    return result;
+  }
+
+  // Parse NDEF TLV Length
+  ndefIdx++; // Move to length
+  if (ndefIdx >= rawData.size())
+    return result;
+
+  uint16_t ndefLen = rawData[ndefIdx];
+  if (ndefLen == 0xFF) {
+    if (ndefIdx + 2 >= rawData.size())
+      return result;
+    ndefLen = (rawData[ndefIdx + 1] << 8) | rawData[ndefIdx + 2];
+    ndefIdx += 3;
+  } else {
+    ndefIdx += 1;
+  }
+
+  // Now at NDEF Record Header
+  if (ndefIdx >= rawData.size())
+    return result;
+
+  uint8_t header = rawData[ndefIdx++];
+  bool sr = (header & 0x10) != 0; // Short Record
+  uint8_t typeLen = rawData[ndefIdx++];
+
+  uint32_t payloadLen = 0;
+  if (sr) {
+    payloadLen = rawData[ndefIdx++];
+  } else {
+    payloadLen = (rawData[ndefIdx] << 24) | (rawData[ndefIdx + 1] << 16) |
+                 (rawData[ndefIdx + 2] << 8) | rawData[ndefIdx + 3];
+    ndefIdx += 4;
+  }
+
+  // Record Type
+  std::string mimeType = "";
+  for (uint8_t i = 0; i < typeLen && ndefIdx < rawData.size(); i++) {
+    mimeType += (char)rawData[ndefIdx++];
+  }
+
+  // Extract Payload
+  // If payloadLen exceeds current rawData, we need to read more from the tag
+  if (ndefIdx + payloadLen > rawData.size()) {
+    // Read remaining pages
+    byte lastPage = 4 + (rawData.size() / 4);
+    byte endPage = 4 + ((ndefIdx + payloadLen + 3) / 4);
+    if (endPage > 128)
+      endPage = 128; // Safety limit
+
+    for (byte page = lastPage; page < endPage; page += 4) {
+      byte size = sizeof(buffer);
+      MFRC522::StatusCode status = mfrc522.MIFARE_Read(page, buffer, &size);
+      if (status == MFRC522::STATUS_OK) {
+        for (int i = 0; i < 16; i++) {
+          rawData.push_back(buffer[i]);
+        }
+      } else {
+        break;
+      }
+    }
+  }
+
+  if (ndefIdx + payloadLen <= rawData.size()) {
+    result.data.assign(rawData.begin() + ndefIdx,
+                       rawData.begin() + ndefIdx + payloadLen);
+
+    if (mimeType == "application/json") {
+      result.type = PayloadType::OPEN_SPOOL_JSON;
+    } else if (mimeType == "application/opentag3d") {
+      result.type = PayloadType::OPEN_TAG_3D_BINARY;
+    }
+  }
+
+  return result;
 }
 
 bool NFCReader::writeNDEFPayload(const std::string &json) {

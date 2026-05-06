@@ -2,6 +2,8 @@
 #include "../../src/data/OpenSpool.h"
 #include "../../src/network/WebhookFormatter.cpp"
 #include "../../src/network/WebhookFormatter.h"
+#include "../../src/data/OpenTag3D.cpp"
+#include "../../src/data/OpenTag3D.h"
 #include <string>
 #include <unity.h>
 
@@ -171,6 +173,41 @@ void test_openspool_deserialization_no_protocol(void) {
   TEST_ASSERT_FALSE(result);
 }
 
+void test_opentag3d_parsing(void) {
+    std::vector<uint8_t> payload(200, 0);
+    // Version 1.000 (1000 = 0x03E8)
+    payload[0x00] = 0x03;
+    payload[0x01] = 0xE8;
+    // Material "PLA  "
+    memcpy(&payload[0x02], "PLA  ", 5);
+    // Brand "Prusa           "
+    memcpy(&payload[0x1B], "Prusa           ", 16);
+    // Color Name "Galaxy Black                    "
+    memcpy(&payload[0x2B], "Galaxy Black                    ", 32);
+    // Color RGBA (255, 10, 20, 128) -> FF, 0A, 14, 80
+    payload[0x4B] = 0xFF;
+    payload[0x4C] = 0x0A;
+    payload[0x4D] = 0x14;
+    payload[0x4E] = 0x80;
+    // Nozzle 210C -> 210/5 = 42 (0x2A)
+    payload[0x60] = 0x2A;
+    // URL with ID
+    memcpy(&payload[0x70], "spoolman.local/spool/show/1234  ", 32);
+
+    OpenSpoolData data;
+    bool result = OpenTag3DParser::parseBinary(payload, data);
+
+    TEST_ASSERT_TRUE(result);
+    TEST_ASSERT_EQUAL_STRING("opentag3d", data.protocol.c_str());
+    TEST_ASSERT_EQUAL_STRING("PLA", data.type.c_str());
+    TEST_ASSERT_EQUAL_STRING("Prusa", data.brand.c_str());
+    TEST_ASSERT_EQUAL_STRING("Galaxy Black", data.filament_name.c_str());
+    TEST_ASSERT_EQUAL_STRING("#FF0A14", data.color_hex.c_str());
+    TEST_ASSERT_EQUAL_STRING("80", data.alpha.c_str());
+    TEST_ASSERT_EQUAL_STRING("210", data.min_temp.c_str());
+    TEST_ASSERT_EQUAL_STRING("1234", data.spool_id.c_str());
+}
+
 int main(int argc, char **argv) {
   UNITY_BEGIN();
   RUN_TEST(test_openspool_empty_initialization);
@@ -189,6 +226,7 @@ int main(int argc, char **argv) {
   RUN_TEST(test_webhook_format_both);
   RUN_TEST(test_webhook_format_multi_placeholders);
   RUN_TEST(test_webhook_format_malformed_placeholder);
+  RUN_TEST(test_opentag3d_parsing);
   UNITY_END();
 
   return 0;
