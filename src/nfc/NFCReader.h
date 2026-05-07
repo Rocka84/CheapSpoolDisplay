@@ -2,13 +2,18 @@
 #define NFC_READER_H
 
 #include "../data/OpenSpool.h"
+#ifdef USE_PN5180
+#include <PN5180ISO15693.h>
+#else
 #include <MFRC522.h>
+#endif
 #include <SPI.h>
 
 enum class PayloadType {
   UNKNOWN,
   OPEN_SPOOL_JSON,
-  OPEN_TAG_3D_BINARY
+  OPEN_TAG_3D_BINARY,
+  OPEN_PRINT_TAG_CBOR
 };
 
 struct PayloadResult {
@@ -27,7 +32,11 @@ public:
   static bool writeTag(const OpenSpoolData &data);
 
 private:
+#ifdef USE_PN5180
+  static PN5180ISO15693 pn5180;
+#else
   static MFRC522 mfrc522;
+#endif
 
   // NDEF reading helpers (simplified for multi-protocol support)
   static PayloadResult readNDEFPayload();

@@ -6,10 +6,11 @@ Get your CheapSpoolDisplay up and running from scratch.
 See [HARDWARE_SETUP.md](HARDWARE_SETUP.md) for details.
 
 *   **Device**: ESP32-2432S028R (Cheap Yellow Display).
-*   **NFC Reader**: Connect an **RC522** SPI module.
+*   **NFC Reader**: Connect an **RC522** or **PN5180** SPI module.
 *   **Wiring**: 
     *   Sacrifice the SD card slot pins for the NFC reader.
-    *   Connect: `SDA` (CS) -> `IO5`, `SCK` -> `IO18`, `MOSI` -> `IO23`, `MISO` -> `IO19`, `RST` -> `IO22`.
+    *   **Common Pins**: `SDA` (CS) -> `IO5`, `SCK` -> `IO18`, `MOSI` -> `IO23`, `MISO` -> `IO19`, `RST` -> `IO22`.
+    *   **PN5180 Only**: `BUSY` -> `IO27` (available on CN1 header).
 
 ## 2. Print the Case
 - [Case Main](../cad/CheapSpoolDisplay%20-%20Case%20main.stl)

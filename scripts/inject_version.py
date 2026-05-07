@@ -15,8 +15,8 @@ except Exception as e:
     version = "unknown"
 
 # Inject into C++
-print(f"Injecting FIRMWARE_VERSION={version} from VERSION")
-env.Append(CPPDEFINES=[("FIRMWARE_VERSION", f'\\"{version}\\"')])
+print(f"Injecting PROJECT_VERSION={version} from VERSION")
+env.Append(CPPDEFINES=[("PROJECT_VERSION", f'\\"{version}\\"')])
 
 # Keep web/manifest.json automatically synced
 try:

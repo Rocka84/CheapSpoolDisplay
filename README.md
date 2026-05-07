@@ -8,7 +8,9 @@ CheapSpoolDisplay is a firmware for the ESP32 Cheap Yellow Display (CYD) support
 Follow the [Quickstart Guide](docs/QUICKSTART.md) to get your device flashed and configured.
 
 ## Features
-- **Multi-Protocol NFC Support**: Reads and writes both **OpenSpool (JSON)** and **OpenTag3D (Binary)** NFC tags (NTAG215/216).
+- **Multi-Protocol NFC Support**: 
+  - **ISO14443A** (NTAG215/216): Reads and writes **OpenSpool** and **OpenTag3D** formats using MFRC522.
+  - **ISO15693** (ICODE): High-frequency tag support via PN5180.
 - **Flexible Tag Writing**: Edit spool data on-device and choose your preferred encoding format.
 - **Visual Interface**: Provides a modern, touch-friendly UI powered by LVGL to display the filament Brand, Type, Spool ID, and material color.
 - **Spoolman List Selection**: Paginate, browse, and load active spools directly from your Spoolman inventory without starting with an initial scan.
@@ -18,7 +20,9 @@ Follow the [Quickstart Guide](docs/QUICKSTART.md) to get your device flashed and
 
 ## Hardware Requirements
 - **ESP32 Cheap Yellow Display (CYD)**
-- **MFRC522 RFID SPI Module**
+- **RFID Module**:
+  - **MFRC522** (Standard ISO14443A support)
+  - **PN5180** (Advanced ISO15693/ICODE support)
 
 ## 3D Printed Case
 You can find a 3D printable case for this project inside the [cad/](./cad) directory:
