@@ -2,6 +2,7 @@
 #include "../config/ConfigManager.h"
 #include "../network/NetworkManager.h"
 #include "../data/OpenTag3D.h"
+#include "../data/OpenPrintTag.h"
 
 #ifndef USE_SDL2
 #include "../nfc/NFCReader.h"
@@ -1328,6 +1329,7 @@ void DisplayUI::showFormatSelectionModal() {
 
   create_fmt_btn(cont, "OpenSpool (JSON)", "openspool");
   create_fmt_btn(cont, "OpenTag3D (Binary)", "opentag3d");
+  create_fmt_btn(cont, "OpenPrintTag (CBOR)", "openprinttag");
 
   lv_obj_t *btnCont = lv_obj_create(formatModal);
   lv_obj_set_size(btnCont, screenWidth, 50);
@@ -1380,6 +1382,14 @@ void DisplayUI::onFormatSelected(lv_event_t *e) {
         fwrite(bin.data(), 1, bin.size(), fp);
         fclose(fp);
         success = true;
+    }
+  } else if (currentLoadedData.protocol == "openprinttag") {
+    std::vector<uint8_t> cbor = OpenPrintTagParser::generate(currentLoadedData);
+    FILE *fp = fopen("simulator/spool.cbor", "wb");
+    if (fp) {
+      fwrite(cbor.data(), 1, cbor.size(), fp);
+      fclose(fp);
+      success = true;
     }
   } else {
     std::string json = OpenSpoolParser::toJson(currentLoadedData);

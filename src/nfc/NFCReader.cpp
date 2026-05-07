@@ -1,5 +1,6 @@
 #include "NFCReader.h"
 #include "../data/OpenTag3D.h"
+#include "../data/OpenPrintTag.h"
 #include <vector>
 
 // Hardware pins for CYD SD Card slot
@@ -115,6 +116,8 @@ bool NFCReader::scanForTag(OpenSpoolData &data) {
     return OpenSpoolParser::parseJson(jsonStr, data);
   } else if (res.type == PayloadType::OPEN_TAG_3D_BINARY) {
     return OpenTag3DParser::parseBinary(res.data, data);
+  } else if (res.type == PayloadType::OPEN_PRINT_TAG_CBOR) {
+    return OpenPrintTagParser::parse(res.data, data);
   }
 
   return false;
@@ -134,6 +137,10 @@ bool NFCReader::writeTag(const OpenSpoolData &data) {
   if (data.protocol == "opentag3d") {
     std::vector<uint8_t> payload = OpenTag3DParser::generateBinary(data);
     success = writeNDEFPayload("application/opentag3d", payload);
+  } else if (data.protocol == "openprinttag") {
+    Serial.println("Writing OpenPrintTag (application/vnd.openprinttag)");
+    std::vector<uint8_t> payload = OpenPrintTagParser::generate(data);
+    success = writeNDEFPayload("application/vnd.openprinttag", payload);
   } else {
     // Default to OpenSpool JSON
     std::string json = OpenSpoolParser::toJson(data);
@@ -268,7 +275,10 @@ PayloadResult NFCReader::readNDEFPayload() {
     result.data.assign(rawData.begin() + ndefIdx, rawData.begin() + ndefIdx + payloadLen);
     if (mimeType == "application/json") result.type = PayloadType::OPEN_SPOOL_JSON;
     else if (mimeType == "application/opentag3d") result.type = PayloadType::OPEN_TAG_3D_BINARY;
-    else if (mimeType == "application/vnd.snapmaker.filament") result.type = PayloadType::OPEN_PRINT_TAG_CBOR;
+    else if (mimeType == "application/openprinttag" || 
+             mimeType == "application/vnd.openprinttag" || 
+             mimeType == "application/vnd.snapmaker.filament") 
+      result.type = PayloadType::OPEN_PRINT_TAG_CBOR;
   }
 
   return result;

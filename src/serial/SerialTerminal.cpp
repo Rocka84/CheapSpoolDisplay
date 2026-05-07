@@ -63,7 +63,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.println("  set sleep_timeout <seconds> (60-3600)");
     Serial.println("  set power_mode <0=Always On|1=Deep Sleep|2=Smart USB>");
     Serial.println("  set u1_host <hostname>");
-    Serial.println("  set tag_format <openspool|opentag3d|ask>");
+    Serial.println("  set tag_format <openspool|opentag3d|openprinttag|ask>");
     Serial.println("  get config");
     Serial.println("  format (Erases all settings)");
     return;
@@ -142,11 +142,11 @@ void SerialTerminal::processCommand(const String &cmdLine) {
       ConfigManager::setU1Host(value.c_str());
       Serial.println("Snapmaker U1 host saved.");
     } else if (key.equalsIgnoreCase("tag_format")) {
-      if (value == "openspool" || value == "opentag3d" || value == "ask") {
+      if (value == "openspool" || value == "opentag3d" || value == "openprinttag" || value == "ask") {
           ConfigManager::setTagFormat(value.c_str());
           Serial.printf("Tag format saved: %s\n", value.c_str());
       } else {
-          Serial.println("Error: tag_format must be 'openspool', 'opentag3d', or 'ask'.");
+          Serial.println("Error: tag_format must be 'openspool', 'opentag3d', 'openprinttag', or 'ask'.");
       }
     } else if (key.equalsIgnoreCase("wifi_timeout")) {
       int num = value.toInt();
