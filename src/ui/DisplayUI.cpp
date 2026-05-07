@@ -3,6 +3,7 @@
 #include "../network/NetworkManager.h"
 #include "../data/OpenTag3D.h"
 #include "../data/OpenPrintTag.h"
+#include "../data/WriteGuard.h"
 
 #ifndef USE_SDL2
 #include "../nfc/NFCReader.h"
@@ -49,6 +50,8 @@ lv_obj_t *DisplayUI::scanScreen = nullptr;
 lv_obj_t *DisplayUI::infoScreen = nullptr;
 lv_obj_t *DisplayUI::toolSelectionScreen = nullptr;
 lv_obj_t *DisplayUI::editScreen = nullptr;
+lv_obj_t *DisplayUI::extendedInfoScreen = nullptr;
+lv_obj_t *DisplayUI::extendedEditScreen = nullptr;
 
 lv_obj_t *DisplayUI::labelBrand = nullptr;
 lv_obj_t *DisplayUI::labelType = nullptr;
@@ -66,6 +69,23 @@ lv_obj_t *DisplayUI::infoCard = nullptr;
 lv_obj_t *DisplayUI::loadBtn = nullptr;
 lv_obj_t *DisplayUI::spoolmanBtn = nullptr;
 lv_obj_t *DisplayUI::createNewBtn = nullptr;
+lv_obj_t *DisplayUI::moreInfoBtn = nullptr;
+
+lv_obj_t *DisplayUI::labelDensity = nullptr;
+lv_obj_t *DisplayUI::labelActualWeight = nullptr;
+lv_obj_t *DisplayUI::labelEmptyWeight = nullptr;
+lv_obj_t *DisplayUI::labelDryTemp = nullptr;
+lv_obj_t *DisplayUI::labelDryTime = nullptr;
+lv_obj_t *DisplayUI::labelTD = nullptr;
+lv_obj_t *DisplayUI::labelShore = nullptr;
+lv_obj_t *DisplayUI::labelTags = nullptr;
+lv_obj_t *DisplayUI::labelLocation = nullptr;
+lv_obj_t *DisplayUI::labelPrice = nullptr;
+lv_obj_t *DisplayUI::labelNotes = nullptr;
+lv_obj_t *DisplayUI::labelFirstUsed = nullptr;
+lv_obj_t *DisplayUI::labelLastUsed = nullptr;
+lv_obj_t *DisplayUI::noDataLabel = nullptr;
+lv_obj_t *DisplayUI::weightBar = nullptr;
 
 lv_obj_t *DisplayUI::editBrandDropdown = nullptr;
 lv_obj_t *DisplayUI::editCustomBrandRow = nullptr;
@@ -81,7 +101,21 @@ lv_obj_t *DisplayUI::editMaxTempTextArea = nullptr;
 lv_obj_t *DisplayUI::editBedMinTextArea = nullptr;
 lv_obj_t *DisplayUI::editBedMaxTextArea = nullptr;
 lv_obj_t *DisplayUI::editDiameterTextArea = nullptr;
-lv_obj_t *DisplayUI::keyboard = nullptr;
+lv_obj_t *DisplayUI::moreEditBtn = nullptr;
+
+lv_obj_t *DisplayUI::editActualWeightTextArea = nullptr;
+lv_obj_t *DisplayUI::editEmptyWeightTextArea = nullptr;
+lv_obj_t *DisplayUI::editDensityTextArea = nullptr;
+lv_obj_t *DisplayUI::editDryTempTextArea = nullptr;
+lv_obj_t *DisplayUI::editDryTimeTextArea = nullptr;
+lv_obj_t *DisplayUI::editTDTextArea = nullptr;
+lv_obj_t *DisplayUI::editShoreTextArea = nullptr;
+lv_obj_t *DisplayUI::editTagsTextArea = nullptr;
+lv_obj_t *DisplayUI::editLocationTextArea = nullptr;
+lv_obj_t *DisplayUI::editSubtypeTextArea = nullptr;
+lv_obj_t *DisplayUI::editNotesTextArea = nullptr;
+lv_obj_t *DisplayUI::keyboardCore = nullptr;
+lv_obj_t *DisplayUI::keyboardExtended = nullptr;
 lv_obj_t *DisplayUI::writingOverlay = nullptr;
 lv_obj_t *DisplayUI::fetchingOverlay = nullptr;
 lv_obj_t *DisplayUI::selectSpoolScreen = nullptr;
@@ -104,6 +138,11 @@ lv_obj_t *DisplayUI::labelWeight = nullptr;
 lv_obj_t *DisplayUI::toolGrid = nullptr;
 lv_obj_t *DisplayUI::formatModal = nullptr;
 lv_obj_t *DisplayUI::dontAskCheckbox = nullptr;
+lv_obj_t *DisplayUI::extCard = nullptr;
+lv_obj_t *DisplayUI::editCont = nullptr;
+lv_obj_t *DisplayUI::extendedEditCont = nullptr;
+lv_obj_t *DisplayUI::formatCont = nullptr;
+lv_obj_t *DisplayUI::spoolListCont_ignored = nullptr;
 
 // Static member initialization
 OpenSpoolData DisplayUI::currentLoadedData;
@@ -192,15 +231,16 @@ void DisplayUI::init() {
   lv_sdl_mousewheel_create();
 #endif
 
-  // Build screens
+  // Create shared keyboard once at the very beginning
+  keyboardCore = lv_keyboard_create(lv_layer_top());
+  lv_obj_add_flag(keyboardCore, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_add_flag(keyboardCore, LV_OBJ_FLAG_FLOATING);
+  lv_obj_add_event_cb(keyboardCore, onKeyboardEvent, LV_EVENT_ALL, NULL);
+  keyboardExtended = keyboardCore;
+
+  // Build initial screen only
   setup_combined_fonts();
   buildScanScreen();
-  buildInfoScreen();
-  buildToolSelectionScreen();
-  buildEditScreen();
-  buildSelectSpoolScreen();
-  buildWritingOverlay();
-  buildFetchingOverlay();
 
   // Set default dark background for all screens and hide scrollbars
   auto set_premium_scr = [](lv_obj_t *scr) {
@@ -209,12 +249,15 @@ void DisplayUI::init() {
     lv_obj_set_style_bg_color(scr, lv_color_hex(0x0f1118), 0);
     lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
     lv_obj_set_scrollbar_mode(scr, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_set_style_text_color(scr, lv_color_white(), 0);
     lv_obj_set_style_text_font(scr, font_combined_14, 0);
   };
   set_premium_scr(scanScreen);
   set_premium_scr(infoScreen);
+  set_premium_scr(extendedInfoScreen);
   set_premium_scr(toolSelectionScreen);
   set_premium_scr(editScreen);
+  set_premium_scr(extendedEditScreen);
   set_premium_scr(selectSpoolScreen);
 
   // Show initial screen
@@ -320,6 +363,11 @@ static uint32_t parse_hex_color(const std::string &hex) {
 
 void DisplayUI::buildSelectSpoolScreen() {
   selectSpoolScreen = lv_obj_create(NULL);
+  lv_obj_set_style_bg_color(selectSpoolScreen, lv_color_hex(0x0f1118), 0);
+  lv_obj_set_style_bg_opa(selectSpoolScreen, LV_OPA_COVER, 0);
+  lv_obj_set_scrollbar_mode(selectSpoolScreen, LV_SCROLLBAR_MODE_OFF);
+  lv_obj_set_style_text_color(selectSpoolScreen, lv_color_white(), 0);
+  lv_obj_set_style_text_font(selectSpoolScreen, font_combined_14, 0);
 
   lv_obj_t *title = lv_label_create(selectSpoolScreen);
   lv_label_set_text(title, "Select Spool");
@@ -383,6 +431,7 @@ void DisplayUI::buildSelectSpoolScreen() {
 
 void DisplayUI::updateSelectSpoolList(const std::vector<SpoolmanItem> &items,
                                       int total_count) {
+  if (!selectSpoolScreen) buildSelectSpoolScreen();
   if (!spoolListCont)
     return;
   lv_obj_clean(spoolListCont);
@@ -476,6 +525,11 @@ void DisplayUI::updateSelectSpoolList(const std::vector<SpoolmanItem> &items,
 
 void DisplayUI::buildInfoScreen() {
   infoScreen = lv_obj_create(NULL);
+  lv_obj_set_style_bg_color(infoScreen, lv_color_hex(0x0f1118), 0);
+  lv_obj_set_style_bg_opa(infoScreen, LV_OPA_COVER, 0);
+  lv_obj_set_scrollbar_mode(infoScreen, LV_SCROLLBAR_MODE_OFF);
+  lv_obj_set_style_text_color(infoScreen, lv_color_white(), 0);
+  lv_obj_set_style_text_font(infoScreen, font_combined_14, 0);
   lv_obj_set_scroll_dir(infoScreen, LV_DIR_NONE);
 
   // Glass Card Content
@@ -555,12 +609,28 @@ void DisplayUI::buildInfoScreen() {
   lv_obj_align(labelColorHex, LV_ALIGN_TOP_LEFT, 80, 0);
 
   create_row("Weight", &labelWeight, &keyWeight);
+  
+  weightBar = lv_bar_create(infoCard);
+  lv_obj_set_size(weightBar, LV_PCT(100), 8);
+  lv_obj_set_style_anim_duration(weightBar, 1000, 0);
+  lv_obj_add_flag(weightBar, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_set_style_bg_color(weightBar, lv_color_hex(0x374151), LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(weightBar, LV_OPA_COVER, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(weightBar, lv_color_hex(0x6366f1), LV_PART_INDICATOR);
+  lv_obj_set_style_bg_opa(weightBar, LV_OPA_COVER, LV_PART_INDICATOR);
+  lv_obj_set_style_radius(weightBar, 4, 0);
   create_row("Spool ID", &labelSpoolId);
-  create_row("Subtype", &labelSubtype);
   create_row("Nozzle T.", &labelTemp);
   create_row("Bed T.", &labelBedTemp);
-  create_row("Lot Nr", &labelLotNr, &keyLotNr);
-  create_row("Diameter", &labelDiameter, &keyDiameter);
+
+  // More Details Button (Inline)
+  moreInfoBtn = lv_btn_create(infoCard);
+  lv_obj_set_size(moreInfoBtn, LV_PCT(100), 32);
+  apply_glass_style(moreInfoBtn);
+  lv_obj_add_event_cb(moreInfoBtn, onMoreInfoButtonClicked, LV_EVENT_CLICKED, NULL);
+  lv_obj_t *moreLbl = lv_label_create(moreInfoBtn);
+  lv_label_set_text(moreLbl, "Extended Data");
+  lv_obj_center(moreLbl);
 
   // Bottom Buttons
   loadBtn = lv_btn_create(infoScreen);
@@ -595,6 +665,11 @@ void DisplayUI::buildInfoScreen() {
 
 void DisplayUI::buildToolSelectionScreen() {
   toolSelectionScreen = lv_obj_create(NULL);
+  lv_obj_set_style_bg_color(toolSelectionScreen, lv_color_hex(0x0f1118), 0);
+  lv_obj_set_style_bg_opa(toolSelectionScreen, LV_OPA_COVER, 0);
+  lv_obj_set_scrollbar_mode(toolSelectionScreen, LV_SCROLLBAR_MODE_OFF);
+  lv_obj_set_style_text_color(toolSelectionScreen, lv_color_white(), 0);
+  lv_obj_set_style_text_font(toolSelectionScreen, font_combined_14, 0);
 
   lv_obj_t *header = lv_label_create(toolSelectionScreen);
   lv_label_set_text(header, "Assign to Tool");
@@ -623,8 +698,95 @@ void DisplayUI::buildToolSelectionScreen() {
   lv_obj_center(backLbl);
 }
 
+void DisplayUI::buildExtendedInfoScreen() {
+  extendedInfoScreen = lv_obj_create(NULL);
+  lv_obj_set_style_bg_color(extendedInfoScreen, lv_color_hex(0x0f1118), 0);
+  lv_obj_set_style_bg_opa(extendedInfoScreen, LV_OPA_COVER, 0);
+  lv_obj_set_scrollbar_mode(extendedInfoScreen, LV_SCROLLBAR_MODE_OFF);
+  lv_obj_set_style_text_color(extendedInfoScreen, lv_color_white(), 0);
+  lv_obj_set_style_text_font(extendedInfoScreen, font_combined_14, 0);
+  lv_obj_set_scroll_dir(extendedInfoScreen, LV_DIR_NONE);
+
+  lv_obj_t *header = lv_label_create(extendedInfoScreen);
+  lv_label_set_text(header, "Extended Data");
+  lv_obj_set_style_text_font(header, font_combined_20, 0);
+  lv_obj_set_style_text_color(header, lv_color_white(), 0);
+  lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 10);
+
+  extCard = lv_obj_create(extendedInfoScreen);
+  lv_obj_set_size(extCard, 220, 205);
+  lv_obj_align(extCard, LV_ALIGN_TOP_MID, 0, 40);
+  apply_glass_style(extCard);
+  lv_obj_set_scrollbar_mode(extCard, LV_SCROLLBAR_MODE_AUTO);
+  lv_obj_set_scroll_dir(extCard, LV_DIR_VER);
+  lv_obj_set_style_pad_all(extCard, 12, 0);
+  lv_obj_set_style_pad_row(extCard, 8, 0);
+  lv_obj_set_flex_flow(extCard, LV_FLEX_FLOW_COLUMN);
+  
+  noDataLabel = lv_label_create(extCard);
+  lv_label_set_text(noDataLabel, "No extended data available");
+  lv_obj_set_style_text_color(noDataLabel, lv_color_hex(0x6b7280), 0); // Gray-500
+  lv_obj_set_style_text_align(noDataLabel, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_set_width(noDataLabel, LV_PCT(100));
+  lv_obj_set_style_margin_top(noDataLabel, 40, 0);
+  lv_obj_add_flag(noDataLabel, LV_OBJ_FLAG_HIDDEN);
+
+  auto create_ext_row = [&](const char *key, lv_obj_t **val_label) {
+    lv_obj_t *row_cont = lv_obj_create(extCard);
+    lv_obj_set_size(row_cont, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_opa(row_cont, 0, 0);
+    lv_obj_set_style_border_width(row_cont, 0, 0);
+    lv_obj_set_style_pad_all(row_cont, 0, 0);
+    lv_obj_clear_flag(row_cont, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t *k = lv_label_create(row_cont);
+    lv_label_set_text(k, key);
+    lv_obj_set_style_text_color(k, lv_color_hex(0x9ca3af), 0);
+    lv_obj_align(k, LV_ALIGN_TOP_LEFT, 0, 0);
+
+    *val_label = lv_label_create(row_cont);
+    lv_label_set_text(*val_label, "---");
+    lv_obj_set_style_text_color(*val_label, lv_color_white(), 0);
+    lv_obj_set_style_text_font(*val_label, font_combined_14, 0);
+    lv_obj_align(*val_label, LV_ALIGN_TOP_LEFT, 85, 0);
+  };
+
+  create_ext_row("Diameter", &labelDiameter);
+  create_ext_row("Subtype", &labelSubtype);
+  create_ext_row("Lot Nr", &labelLotNr);
+  create_ext_row("Density", &labelDensity);
+  create_ext_row("Actual W.", &labelActualWeight);
+  create_ext_row("Empty W.", &labelEmptyWeight);
+  create_ext_row("Dry Temp", &labelDryTemp);
+  create_ext_row("Dry Time", &labelDryTime);
+  create_ext_row("Transm. D.", &labelTD);
+  create_ext_row("Shore", &labelShore);
+  create_ext_row("Tags", &labelTags);
+  create_ext_row("Location", &labelLocation);
+  create_ext_row("Price", &labelPrice);
+  create_ext_row("First Used", &labelFirstUsed);
+  create_ext_row("Last Used", &labelLastUsed);
+  create_ext_row("Notes", &labelNotes);
+
+  lv_obj_t *backBtn = lv_btn_create(extendedInfoScreen);
+  lv_obj_set_size(backBtn, 120, 38);
+  lv_obj_align(backBtn, LV_ALIGN_BOTTOM_MID, 0, -12);
+  apply_glass_style(backBtn);
+  lv_obj_add_event_cb(backBtn, [](lv_event_t *e) {
+      lv_scr_load(infoScreen);
+  }, LV_EVENT_CLICKED, NULL);
+  lv_obj_t *backLbl = lv_label_create(backBtn);
+  lv_label_set_text(backLbl, "Back");
+  lv_obj_center(backLbl);
+}
+
 void DisplayUI::buildEditScreen() {
   editScreen = lv_obj_create(NULL);
+  lv_obj_set_style_bg_color(editScreen, lv_color_hex(0x0f1118), 0);
+  lv_obj_set_style_bg_opa(editScreen, LV_OPA_COVER, 0);
+  lv_obj_set_scrollbar_mode(editScreen, LV_SCROLLBAR_MODE_OFF);
+  lv_obj_set_style_text_color(editScreen, lv_color_white(), 0);
+  lv_obj_set_style_text_font(editScreen, font_combined_14, 0);
 
   lv_obj_t *header = lv_label_create(editScreen);
   lv_label_set_text(header, "Edit Spool Data");
@@ -634,18 +796,21 @@ void DisplayUI::buildEditScreen() {
   lv_obj_remove_flag(editScreen, LV_OBJ_FLAG_SCROLLABLE);
 
   // Scrollable container for form (Main content area)
-  lv_obj_t *cont = lv_obj_create(editScreen);
+  editCont = lv_obj_create(editScreen);
   lv_obj_set_size(
-      cont, 240,
+      editCont, 240,
       220); // Width back to 240, Height to fit between header and footer
-  lv_obj_align(cont, LV_ALIGN_TOP_MID, 0, 40);
-  lv_obj_set_style_bg_opa(cont, 0, 0);
-  lv_obj_set_style_border_width(cont, 0, 0);
-  lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
+  lv_obj_align(editCont, LV_ALIGN_TOP_MID, 0, 40);
+  lv_obj_set_style_bg_opa(editCont, 0, 0);
+  lv_obj_set_style_border_width(editCont, 0, 0);
+  lv_obj_set_flex_flow(editCont, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(editCont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,
                         LV_FLEX_ALIGN_START);
-  lv_obj_set_style_pad_all(cont, 5, 0);
-  lv_obj_set_style_pad_row(cont, 4, 0); // Reduced gap for more compactness
+  lv_obj_set_style_pad_all(editCont, 5, 0);
+  lv_obj_set_style_pad_row(editCont, 4, 0);
+  lv_obj_set_scrollbar_mode(editCont, LV_SCROLLBAR_MODE_AUTO);
+  lv_obj_add_flag(editCont, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_remove_flag(editScreen, LV_OBJ_FLAG_SCROLLABLE);
 
   auto create_label = [&](lv_obj_t *parent, const char *txt) {
     lv_obj_t *l = lv_label_create(parent);
@@ -655,8 +820,8 @@ void DisplayUI::buildEditScreen() {
     return l;
   };
 
-  create_label(cont, "Brand");
-  editBrandDropdown = lv_dropdown_create(cont);
+  create_label(editCont, "Brand");
+  editBrandDropdown = lv_dropdown_create(editCont);
   lv_obj_set_width(editBrandDropdown, LV_PCT(95));
   lv_dropdown_set_options(
       editBrandDropdown,
@@ -667,7 +832,7 @@ void DisplayUI::buildEditScreen() {
   lv_obj_add_event_cb(editBrandDropdown, onBrandDropdownChanged,
                       LV_EVENT_VALUE_CHANGED, NULL);
 
-  editCustomBrandRow = lv_obj_create(cont);
+  editCustomBrandRow = lv_obj_create(editCont);
   lv_obj_set_size(editCustomBrandRow, LV_PCT(95), LV_SIZE_CONTENT);
   lv_obj_set_style_bg_opa(editCustomBrandRow, 0, 0);
   lv_obj_set_style_border_width(editCustomBrandRow, 0, 0);
@@ -680,22 +845,23 @@ void DisplayUI::buildEditScreen() {
   editCustomBrandTextArea = lv_textarea_create(editCustomBrandRow);
   lv_obj_set_width(editCustomBrandTextArea, LV_PCT(100));
   lv_textarea_set_one_line(editCustomBrandTextArea, true);
+  lv_obj_remove_flag(editCustomBrandTextArea, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
   lv_obj_add_event_cb(editCustomBrandTextArea, onTextAreaFocused,
                       LV_EVENT_FOCUSED, NULL);
   lv_obj_add_event_cb(editCustomBrandTextArea, onTextAreaChanged,
                       LV_EVENT_VALUE_CHANGED, NULL);
 
-  create_label(cont, "Material Type");
-  editTypeDropdown = lv_dropdown_create(cont);
+  create_label(editCont, "Material Type");
+  editTypeDropdown = lv_dropdown_create(editCont);
   lv_obj_set_width(editTypeDropdown, LV_PCT(95));
   lv_dropdown_set_options(editTypeDropdown,
                           "PLA\nPETG\nABS\nASA\nTPU\nPA\nPA12\nPC\nPEEK\nPVA\n"
                           "HIPS\nPCTG\nPLA-CF\nPETG-CF\nPA-CF");
   lv_obj_set_style_text_font(editTypeDropdown, &lv_font_montserrat_14,
                              LV_PART_INDICATOR);
-  create_label(cont, "Hex Color (#RRGGBB[AA])");
-  lv_obj_t *hexRow = lv_obj_create(cont);
-  lv_obj_set_size(hexRow, LV_PCT(95), LV_SIZE_CONTENT);
+  create_label(editCont, "Hex Color (#RRGGBB[AA])");
+  lv_obj_t *hexRow = lv_obj_create(editCont);
+  lv_obj_set_size(hexRow, LV_PCT(95), 45);
   lv_obj_set_style_bg_opa(hexRow, 0, 0);
   lv_obj_set_style_border_width(hexRow, 0, 0);
   lv_obj_set_style_pad_all(hexRow, 0, 0);
@@ -709,9 +875,10 @@ void DisplayUI::buildEditScreen() {
   lv_obj_set_style_pad_right(prefix, 5, 0);
 
   editColorHexTextArea = lv_textarea_create(hexRow);
-  lv_obj_set_flex_grow(editColorHexTextArea, 1);
+  lv_obj_set_width(editColorHexTextArea, 120);
   lv_textarea_set_one_line(editColorHexTextArea, true);
   lv_textarea_set_max_length(editColorHexTextArea, 8);
+  lv_obj_remove_flag(editColorHexTextArea, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
   lv_obj_add_event_cb(editColorHexTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
                       NULL);
   lv_obj_add_event_cb(editColorHexTextArea, onColorHexChanged,
@@ -724,27 +891,19 @@ void DisplayUI::buildEditScreen() {
   lv_obj_set_style_border_color(editColorPreview, lv_color_hex(0x374151), 0);
   lv_obj_set_style_bg_color(editColorPreview, lv_color_hex(0xFFFFFF), 0);
 
-  create_label(cont, "Spool ID");
-  editSpoolIdTextArea = lv_textarea_create(cont);
+  create_label(editCont, "Spool ID");
+  editSpoolIdTextArea = lv_textarea_create(editCont);
   lv_obj_set_width(editSpoolIdTextArea, LV_PCT(95));
   lv_textarea_set_one_line(editSpoolIdTextArea, true);
+  lv_obj_remove_flag(editSpoolIdTextArea, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
   lv_obj_add_event_cb(editSpoolIdTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
                       NULL);
   lv_obj_add_event_cb(editSpoolIdTextArea, onTextAreaChanged,
                       LV_EVENT_VALUE_CHANGED, NULL);
 
-  create_label(cont, "Lot Number");
-  editLotNrTextArea = lv_textarea_create(cont);
-  lv_obj_set_width(editLotNrTextArea, LV_PCT(95));
-  lv_textarea_set_one_line(editLotNrTextArea, true);
-  lv_obj_add_event_cb(editLotNrTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
-                      NULL);
-  lv_obj_add_event_cb(editLotNrTextArea, onTextAreaChanged,
-                      LV_EVENT_VALUE_CHANGED, NULL);
-
-  create_label(cont, "Nozzle Temp Min/Max");
-  lv_obj_t *tempRow = lv_obj_create(cont);
-  lv_obj_set_size(tempRow, LV_PCT(95), LV_SIZE_CONTENT);
+  create_label(editCont, "Nozzle Temp Min/Max");
+  lv_obj_t *tempRow = lv_obj_create(editCont);
+  lv_obj_set_size(tempRow, LV_PCT(95), 45);
   lv_obj_set_style_bg_opa(tempRow, 0, 0);
   lv_obj_set_style_border_width(tempRow, 0, 0);
   lv_obj_set_style_pad_all(tempRow, 0, 0);
@@ -754,6 +913,7 @@ void DisplayUI::buildEditScreen() {
   editMinTempTextArea = lv_textarea_create(tempRow);
   lv_obj_set_width(editMinTempTextArea, 70);
   lv_textarea_set_one_line(editMinTempTextArea, true);
+  lv_obj_remove_flag(editMinTempTextArea, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
   lv_obj_add_event_cb(editMinTempTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
                       NULL);
   lv_obj_add_event_cb(editMinTempTextArea, onTextAreaChanged,
@@ -762,14 +922,15 @@ void DisplayUI::buildEditScreen() {
   editMaxTempTextArea = lv_textarea_create(tempRow);
   lv_obj_set_width(editMaxTempTextArea, 70);
   lv_textarea_set_one_line(editMaxTempTextArea, true);
+  lv_obj_remove_flag(editMaxTempTextArea, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
   lv_obj_add_event_cb(editMaxTempTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
                       NULL);
   lv_obj_add_event_cb(editMaxTempTextArea, onTextAreaChanged,
                       LV_EVENT_VALUE_CHANGED, NULL);
 
-  create_label(cont, "Bed Temp Min/Max");
-  lv_obj_t *bedTempRow = lv_obj_create(cont);
-  lv_obj_set_size(bedTempRow, LV_PCT(95), LV_SIZE_CONTENT);
+  create_label(editCont, "Bed Temp Min/Max");
+  lv_obj_t *bedTempRow = lv_obj_create(editCont);
+  lv_obj_set_size(bedTempRow, LV_PCT(95), 45);
   lv_obj_set_style_bg_opa(bedTempRow, 0, 0);
   lv_obj_set_style_border_width(bedTempRow, 0, 0);
   lv_obj_set_style_pad_all(bedTempRow, 0, 0);
@@ -779,6 +940,7 @@ void DisplayUI::buildEditScreen() {
   editBedMinTextArea = lv_textarea_create(bedTempRow);
   lv_obj_set_width(editBedMinTextArea, 70);
   lv_textarea_set_one_line(editBedMinTextArea, true);
+  lv_obj_remove_flag(editBedMinTextArea, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
   lv_obj_add_event_cb(editBedMinTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
                       NULL);
   lv_obj_add_event_cb(editBedMinTextArea, onTextAreaChanged,
@@ -787,19 +949,20 @@ void DisplayUI::buildEditScreen() {
   editBedMaxTextArea = lv_textarea_create(bedTempRow);
   lv_obj_set_width(editBedMaxTextArea, 70);
   lv_textarea_set_one_line(editBedMaxTextArea, true);
+  lv_obj_remove_flag(editBedMaxTextArea, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
   lv_obj_add_event_cb(editBedMaxTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
                       NULL);
   lv_obj_add_event_cb(editBedMaxTextArea, onTextAreaChanged,
                       LV_EVENT_VALUE_CHANGED, NULL);
 
-  create_label(cont, "Diameter (mm)");
-  editDiameterTextArea = lv_textarea_create(cont);
-  lv_obj_set_width(editDiameterTextArea, LV_PCT(95));
-  lv_textarea_set_one_line(editDiameterTextArea, true);
-  lv_obj_add_event_cb(editDiameterTextArea, onTextAreaFocused, LV_EVENT_FOCUSED,
-                      NULL);
-  lv_obj_add_event_cb(editDiameterTextArea, onTextAreaChanged,
-                      LV_EVENT_VALUE_CHANGED, NULL);
+  // More Settings Button
+  moreEditBtn = lv_btn_create(editCont);
+  lv_obj_set_size(moreEditBtn, LV_PCT(95), 32);
+  apply_glass_style(moreEditBtn);
+  lv_obj_add_event_cb(moreEditBtn, onMoreEditButtonClicked, LV_EVENT_CLICKED, NULL);
+  lv_obj_t *moreELbl = lv_label_create(moreEditBtn);
+  lv_label_set_text(moreELbl, "Extended Data");
+  lv_obj_center(moreELbl);
 
   // Bottom Buttons (Fixed Footer)
   lv_obj_t *btnCont = lv_obj_create(editScreen);
@@ -833,11 +996,76 @@ void DisplayUI::buildEditScreen() {
   lv_obj_t *saveLbl = lv_label_create(editSaveBtn);
   lv_label_set_text(saveLbl, "Save Tag");
   lv_obj_center(saveLbl);
+  lv_obj_center(saveLbl);
+}
 
-  // Keyboard (initially hidden, on top layer to be shared)
-  keyboard = lv_keyboard_create(lv_layer_top());
-  lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
-  lv_obj_add_event_cb(keyboard, onKeyboardEvent, LV_EVENT_ALL, NULL);
+void DisplayUI::buildExtendedEditScreen() {
+  extendedEditScreen = lv_obj_create(NULL);
+  lv_obj_set_style_bg_color(extendedEditScreen, lv_color_hex(0x0f1118), 0);
+  lv_obj_set_style_bg_opa(extendedEditScreen, LV_OPA_COVER, 0);
+  lv_obj_set_scrollbar_mode(extendedEditScreen, LV_SCROLLBAR_MODE_OFF);
+  lv_obj_set_style_text_color(extendedEditScreen, lv_color_white(), 0);
+  lv_obj_set_style_text_font(extendedEditScreen, font_combined_14, 0);
+
+  lv_obj_t *header = lv_label_create(extendedEditScreen);
+  lv_label_set_text(header, "Extended Data");
+  lv_obj_set_style_text_font(header, font_combined_20, 0);
+  lv_obj_set_style_text_color(header, lv_color_white(), 0);
+  lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 10);
+
+  extendedEditCont = lv_obj_create(extendedEditScreen);
+  lv_obj_set_size(extendedEditCont, 240, 220);
+  lv_obj_align(extendedEditCont, LV_ALIGN_TOP_MID, 0, 40);
+  lv_obj_set_style_bg_opa(extendedEditCont, 0, 0);
+  lv_obj_set_style_border_width(extendedEditCont, 0, 0);
+  lv_obj_set_flex_flow(extendedEditCont, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_style_pad_all(extendedEditCont, 10, 0);
+  lv_obj_set_style_pad_row(extendedEditCont, 4, 0);
+  lv_obj_set_scrollbar_mode(extendedEditCont, LV_SCROLLBAR_MODE_AUTO);
+  lv_obj_add_flag(extendedEditCont, LV_OBJ_FLAG_SCROLLABLE);
+
+  auto create_edit_field = [&](lv_obj_t *parent, const char *label, lv_obj_t **ta, const char *placeholder = "") {
+    lv_obj_t *l = lv_label_create(parent);
+    lv_label_set_text(l, label);
+    lv_obj_set_style_text_color(l, lv_color_hex(0x9ca3af), 0);
+    lv_obj_set_style_margin_top(l, 5, 0);
+
+    *ta = lv_textarea_create(parent);
+    lv_obj_set_width(*ta, LV_PCT(95));
+    lv_textarea_set_one_line(*ta, true);
+    lv_textarea_set_placeholder_text(*ta, placeholder);
+    lv_obj_remove_flag(*ta, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+    lv_obj_add_event_cb(*ta, onTextAreaFocused, LV_EVENT_FOCUSED, NULL);
+    lv_obj_add_event_cb(*ta, onTextAreaChanged, LV_EVENT_VALUE_CHANGED, NULL);
+  };
+
+  create_edit_field(extendedEditCont, "Diameter (mm)", &editDiameterTextArea, "1.75");
+  create_edit_field(extendedEditCont, "Subtype/Modifier", &editSubtypeTextArea);
+  create_edit_field(extendedEditCont, "Lot Number", &editLotNrTextArea);
+  create_edit_field(extendedEditCont, "Density (g/cm3)", &editDensityTextArea, "1.24");
+  create_edit_field(extendedEditCont, "Actual Net Weight (g)", &editActualWeightTextArea);
+  create_edit_field(extendedEditCont, "Empty Spool Weight (g)", &editEmptyWeightTextArea);
+  create_edit_field(extendedEditCont, "Drying Temp (C)", &editDryTempTextArea);
+  create_edit_field(extendedEditCont, "Drying Time (min)", &editDryTimeTextArea);
+  create_edit_field(extendedEditCont, "Transm. Dist. (TD)", &editTDTextArea);
+  create_edit_field(extendedEditCont, "Shore Hardness", &editShoreTextArea, "95A");
+  create_edit_field(extendedEditCont, "Tags (comma sep)", &editTagsTextArea);
+  create_edit_field(extendedEditCont, "Location", &editLocationTextArea);
+  create_edit_field(extendedEditCont, "Notes", &editNotesTextArea);
+
+  lv_obj_t *backBtn = lv_btn_create(extendedEditScreen);
+  lv_obj_set_size(backBtn, 120, 38);
+  lv_obj_align(backBtn, LV_ALIGN_BOTTOM_MID, 0, -12);
+  apply_glass_style(backBtn);
+  lv_obj_add_event_cb(backBtn, [](lv_event_t *e) {
+      lv_scr_load(editScreen);
+  }, LV_EVENT_CLICKED, NULL);
+  lv_obj_t *backLbl = lv_label_create(backBtn);
+  lv_label_set_text(backLbl, "Back");
+  lv_obj_center(backLbl);
+
+  lv_obj_remove_flag(extendedEditScreen, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_scrollbar_mode(extendedEditScreen, LV_SCROLLBAR_MODE_OFF);
 }
 
 void DisplayUI::buildWritingOverlay() {
@@ -860,6 +1088,8 @@ void DisplayUI::buildWritingOverlay() {
 }
 
 void DisplayUI::showScanScreen() {
+  if (!scanScreen) buildScanScreen();
+  
   bool hasWifi = !ConfigManager::getWifiSSID().empty();
 #ifdef USE_SDL2
   hasWifi = true; // Simulator always has network
@@ -878,6 +1108,11 @@ void DisplayUI::showScanScreen() {
 }
 
 void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
+  if (!infoScreen) {
+    buildInfoScreen();
+  }
+  if (infoCard) lv_obj_scroll_to_y(infoCard, 0, LV_ANIM_OFF);
+  currentLoadedData = spool;
   OpenSpoolData displayData = spool;
 
 #ifdef USE_SDL2
@@ -892,34 +1127,19 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
   lv_label_set_text(labelBrand, displayData.brand.c_str());
   lv_label_set_text(labelType, displayData.type.c_str());
   lv_label_set_text(labelSpoolId, spool.spool_id.c_str());
-  lv_label_set_text(labelSubtype, spool.subtype.c_str());
-
-  if (spool.lot_nr.empty()) {
-    lv_obj_add_flag(labelLotNr, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(keyLotNr, LV_OBJ_FLAG_HIDDEN);
-  } else {
-    lv_label_set_text(labelLotNr, spool.lot_nr.c_str());
-    lv_obj_remove_flag(labelLotNr, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_remove_flag(keyLotNr, LV_OBJ_FLAG_HIDDEN);
-  }
-
-  if (spool.diameter.empty()) {
-    lv_obj_add_flag(labelDiameter, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(keyDiameter, LV_OBJ_FLAG_HIDDEN);
-  } else {
-    lv_label_set_text(labelDiameter, (spool.diameter + "mm").c_str());
-    lv_obj_remove_flag(labelDiameter, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_remove_flag(keyDiameter, LV_OBJ_FLAG_HIDDEN);
-  }
 
   std::string tempStr = spool.min_temp + " - " + spool.max_temp;
   if (tempStr == " - ")
     tempStr = "";
+  else if (!tempStr.empty())
+    tempStr += " °C";
   lv_label_set_text(labelTemp, tempStr.c_str());
 
   std::string bedTempStr = spool.bed_min_temp + " - " + spool.bed_max_temp;
   if (bedTempStr == " - ")
     bedTempStr = "";
+  else if (!bedTempStr.empty())
+    bedTempStr += " °C";
   lv_label_set_text(labelBedTemp, bedTempStr.c_str());
 
   // Spoolman enrichment updates
@@ -946,7 +1166,42 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
     lv_label_set_text(labelWeight, weightCombined.c_str());
     lv_obj_clear_flag(labelWeight, LV_OBJ_FLAG_HIDDEN);
     lv_obj_clear_flag(keyWeight, LV_OBJ_FLAG_HIDDEN);
+
+    // Update Weight Bar
+    auto parse_weight = [](const std::string &s) -> float {
+      if (s.empty()) return 0.0f;
+      std::string clean;
+      for (char c : s) {
+        if (isdigit(c) || c == '.' || c == ',') {
+          if (c == ',') continue; // Skip thousands separator
+          clean += c;
+        }
+      }
+      try {
+        if (clean.empty()) return 0.0f;
+        return std::stof(clean);
+      } catch (...) {
+        return 0.0f;
+      }
+    };
+
+    float rem = parse_weight(spool.remaining_weight);
+    float tot = parse_weight(spool.total_weight);
+    if (tot <= 0 && !spool.actual_weight.empty()) tot = parse_weight(spool.actual_weight);
+
+    if (tot > 0 && rem > 0) {
+      int pct = (int)((rem / tot) * 100.0f);
+      if (pct > 100) pct = 100;
+      if (pct < 0) pct = 0;
+      lv_bar_set_value(weightBar, pct, LV_ANIM_OFF);
+      lv_obj_clear_flag(weightBar, LV_OBJ_FLAG_HIDDEN);
+    } else {
+      lv_obj_add_flag(weightBar, LV_OBJ_FLAG_HIDDEN);
+    }
   }
+
+  // Cache spool data for screens and webhooks
+  currentLoadedData = spool;
 
   // Convert hex string to lv_color_t
   // We assume color_hex is like "#FF0000"
@@ -969,8 +1224,6 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
     lv_label_set_text(labelColorHex, "Unknown");
   }
 
-  // Cache spool data globally for webhook/U1
-  currentLoadedData = spool;
 
   // Hide the Load button if no webhook or U1 is configured, expanding the
   // infoCard
@@ -993,8 +1246,11 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
 }
 
 void DisplayUI::showToolSelectionScreen() {
+  if (!toolSelectionScreen) buildToolSelectionScreen();
+  
   // Always rebuild the grid to reflect latest num_tools config
   lv_obj_clean(toolGrid);
+  lv_obj_scroll_to_y(toolGrid, 0, LV_ANIM_OFF);
 
   uint8_t num_tools = ConfigManager::getNumTools();
   if (num_tools <= 4) {
@@ -1041,8 +1297,9 @@ void DisplayUI::buildFetchingOverlay() {
 }
 
 void DisplayUI::showFetchingOverlay() {
-  if (fetchingOverlay)
-    lv_obj_clear_flag(fetchingOverlay, LV_OBJ_FLAG_HIDDEN);
+  if (!fetchingOverlay) buildFetchingOverlay();
+  lv_obj_clear_flag(fetchingOverlay, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_move_to_index(fetchingOverlay, -1); // Bring to front
 }
 
 void DisplayUI::hideFetchingOverlay() {
@@ -1051,8 +1308,14 @@ void DisplayUI::hideFetchingOverlay() {
 }
 
 void DisplayUI::showEditScreen() {
+  if (!editScreen) {
+    buildEditScreen();
+  }
+  if (editCont) lv_obj_scroll_to_y(editCont, 0, LV_ANIM_OFF);
+  
   // Populate from currentLoadedData
   lv_dropdown_set_selected_highlight(editBrandDropdown, false);
+  
   // Manual search for brand in list
   const char *opts = lv_dropdown_get_options(editBrandDropdown);
   std::string options(opts);
@@ -1066,8 +1329,8 @@ void DisplayUI::showEditScreen() {
       size_t next_pos = options.find('\n', current_pos);
       std::string opt =
           (next_pos == std::string::npos)
-              ? options.substr(current_pos)
-              : options.substr(current_pos, next_pos - current_pos);
+               ? options.substr(current_pos)
+               : options.substr(current_pos, next_pos - current_pos);
       if (opt == currentLoadedData.brand) {
         lv_dropdown_set_selected(editBrandDropdown, idx);
         lv_obj_add_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
@@ -1081,14 +1344,12 @@ void DisplayUI::showEditScreen() {
     }
 
     if (!found) {
-      // It's a custom brand even if the string exists as a substring elsewhere
       lv_dropdown_set_selected(editBrandDropdown, 12); // "Custom"
       lv_obj_clear_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
       lv_textarea_set_text(editCustomBrandTextArea,
                            currentLoadedData.brand.c_str());
     }
   } else if (!currentLoadedData.brand.empty()) {
-    // Brand not in list
     lv_dropdown_set_selected(editBrandDropdown, 12); // "Custom"
     lv_obj_clear_flag(editCustomBrandRow, LV_OBJ_FLAG_HIDDEN);
     lv_textarea_set_text(editCustomBrandTextArea,
@@ -1119,16 +1380,17 @@ void DisplayUI::showEditScreen() {
   if (!currentLoadedData.alpha.empty()) {
     hex += currentLoadedData.alpha;
   }
-  lv_textarea_set_text(editColorHexTextArea, hex.c_str());
-  lv_textarea_set_text(editSpoolIdTextArea, currentLoadedData.spool_id.c_str());
-  lv_textarea_set_text(editLotNrTextArea, currentLoadedData.lot_nr.c_str());
-  lv_textarea_set_text(editMinTempTextArea, currentLoadedData.min_temp.c_str());
-  lv_textarea_set_text(editMaxTempTextArea, currentLoadedData.max_temp.c_str());
-  lv_textarea_set_text(editBedMinTextArea,
-                       currentLoadedData.bed_min_temp.c_str());
-  lv_textarea_set_text(editBedMaxTextArea,
-                       currentLoadedData.bed_max_temp.c_str());
-  lv_textarea_set_text(editDiameterTextArea, currentLoadedData.diameter.c_str());
+  
+  if (editColorHexTextArea) lv_textarea_set_text(editColorHexTextArea, hex.c_str());
+  if (editSpoolIdTextArea) lv_textarea_set_text(editSpoolIdTextArea, currentLoadedData.spool_id.c_str());
+  if (editLotNrTextArea) lv_textarea_set_text(editLotNrTextArea, currentLoadedData.lot_nr.c_str());
+  
+  if (editMinTempTextArea) lv_textarea_set_text(editMinTempTextArea, currentLoadedData.min_temp.c_str());
+  if (editMaxTempTextArea) lv_textarea_set_text(editMaxTempTextArea, currentLoadedData.max_temp.c_str());
+  if (editBedMinTextArea) lv_textarea_set_text(editBedMinTextArea, currentLoadedData.bed_min_temp.c_str());
+  if (editBedMaxTextArea) lv_textarea_set_text(editBedMaxTextArea, currentLoadedData.bed_max_temp.c_str());
+  
+  if (editDiameterTextArea) lv_textarea_set_text(editDiameterTextArea, currentLoadedData.diameter.c_str());
 
   // Sync color preview
   if (currentLoadedData.color_hex[0] == '#' &&
@@ -1137,9 +1399,7 @@ void DisplayUI::showEditScreen() {
     lv_obj_set_style_bg_color(editColorPreview, lv_color_hex(color), 0);
   }
 
-  // Initial validation
   updateSaveButtonState();
-
   lv_scr_load(editScreen);
 }
 
@@ -1195,7 +1455,10 @@ void DisplayUI::onCreateNewButtonClicked(lv_event_t *e) {
   showEditScreen();
 }
 
-void DisplayUI::showSelectSpoolScreen() { lv_scr_load(selectSpoolScreen); }
+void DisplayUI::showSelectSpoolScreen() { 
+  if (!selectSpoolScreen) buildSelectSpoolScreen();
+  lv_scr_load(selectSpoolScreen); 
+}
 
 void DisplayUI::onSelectSpoolButtonClicked(lv_event_t *e) {
   currentSpoolPage = 0;
@@ -1207,7 +1470,7 @@ void DisplayUI::onSelectSpoolButtonClicked(lv_event_t *e) {
   if (NetworkManager::fetchSpoolmanList(currentSpoolPage, 4, items,
                                         total_count)) {
     updateSelectSpoolList(items, total_count);
-    showSelectSpoolScreen();
+    lv_scr_load(selectSpoolScreen); 
   } else {
     showToast("Spoolman lookup failed", true);
   }
@@ -1278,12 +1541,19 @@ void DisplayUI::onBrandDropdownChanged(lv_event_t *e) {
 
 void DisplayUI::onKeyboardEvent(lv_event_t *e) {
   lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t *kb = (lv_obj_t *)lv_event_get_target(e);
   if (code == LV_EVENT_READY || code == LV_EVENT_CANCEL) {
-    lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
+    printf("UI: Keyboard %s\n", (code == LV_EVENT_READY) ? "READY" : "CANCEL");
+    lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
+    if (code == LV_EVENT_READY) updateSaveButtonState();
   }
 }
 void DisplayUI::showFormatSelectionModal() {
-  if (formatModal) return;
+  if (formatModal) {
+    lv_obj_scroll_to_y(formatCont, 0, LV_ANIM_OFF);
+    lv_obj_clear_flag(formatModal, LV_OBJ_FLAG_HIDDEN);
+    return;
+  }
 
   formatModal = lv_obj_create(lv_layer_top());
   lv_obj_set_size(formatModal, screenWidth, screenHeight);
@@ -1291,6 +1561,8 @@ void DisplayUI::showFormatSelectionModal() {
   lv_obj_set_style_bg_opa(formatModal, LV_OPA_COVER, 0);
   lv_obj_set_style_border_width(formatModal, 0, 0);
   lv_obj_set_style_pad_all(formatModal, 0, 0);
+  lv_obj_set_style_text_font(formatModal, font_combined_14, 0);
+  lv_obj_set_style_text_color(formatModal, lv_color_white(), 0);
   lv_obj_remove_flag(formatModal, LV_OBJ_FLAG_SCROLLABLE);
 
   lv_obj_t *header = lv_label_create(formatModal);
@@ -1299,18 +1571,18 @@ void DisplayUI::showFormatSelectionModal() {
   lv_obj_set_style_text_color(header, lv_color_white(), 0);
   lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 15);
 
-  lv_obj_t *cont = lv_obj_create(formatModal);
-  lv_obj_set_size(cont, screenWidth, 210);
-  lv_obj_align(cont, LV_ALIGN_TOP_MID, 0, 50);
-  lv_obj_set_style_bg_opa(cont, 0, 0);
-  lv_obj_set_style_border_width(cont, 0, 0);
-  lv_obj_set_flex_flow(cont, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_flex_align(cont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
+  formatCont = lv_obj_create(formatModal);
+  lv_obj_set_size(formatCont, screenWidth, 210);
+  lv_obj_align(formatCont, LV_ALIGN_TOP_MID, 0, 50);
+  lv_obj_set_style_bg_opa(formatCont, 0, 0);
+  lv_obj_set_style_border_width(formatCont, 0, 0);
+  lv_obj_set_flex_flow(formatCont, LV_FLEX_FLOW_COLUMN);
+  lv_obj_set_flex_align(formatCont, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                         LV_FLEX_ALIGN_CENTER);
-  lv_obj_set_style_pad_all(cont, 10, 0);
-  lv_obj_set_style_pad_gap(cont, 15, 0);
-  lv_obj_set_scrollbar_mode(cont, LV_SCROLLBAR_MODE_AUTO);
-  lv_obj_set_scroll_dir(cont, LV_DIR_VER);
+  lv_obj_set_style_pad_all(formatCont, 10, 0);
+  lv_obj_set_style_pad_gap(formatCont, 15, 0);
+  lv_obj_set_scrollbar_mode(formatCont, LV_SCROLLBAR_MODE_AUTO);
+  lv_obj_set_scroll_dir(formatCont, LV_DIR_VER);
 
   auto create_fmt_btn = [](lv_obj_t *parent, const char *text,
                            const char *id) {
@@ -1319,6 +1591,7 @@ void DisplayUI::showFormatSelectionModal() {
     apply_indigo_btn_style(btn);
     lv_obj_t *lbl = lv_label_create(btn);
     lv_label_set_text(lbl, text);
+    lv_obj_set_style_text_font(lbl, font_combined_14, 0);
     lv_obj_center(lbl);
 
     // Store format string in user_data
@@ -1327,9 +1600,9 @@ void DisplayUI::showFormatSelectionModal() {
     return btn;
   };
 
-  create_fmt_btn(cont, "OpenSpool (JSON)", "openspool");
-  create_fmt_btn(cont, "OpenTag3D (Binary)", "opentag3d");
-  create_fmt_btn(cont, "OpenPrintTag (CBOR)", "openprinttag");
+  create_fmt_btn(formatCont, "OpenSpool", "openspool");
+  create_fmt_btn(formatCont, "OpenPrintTag", "openprinttag");
+  create_fmt_btn(formatCont, "OpenTag3D", "opentag3d");
 
   lv_obj_t *btnCont = lv_obj_create(formatModal);
   lv_obj_set_size(btnCont, screenWidth, 50);
@@ -1359,6 +1632,7 @@ void DisplayUI::showFormatSelectionModal() {
 void DisplayUI::onFormatSelected(lv_event_t *e) {
   lv_obj_t *target = (lv_obj_t *)lv_event_get_target(e);
   const char *format = (const char *)lv_obj_get_user_data(target);
+  if (!format) return;
   currentLoadedData.protocol = format;
 
   if (formatModal) {
@@ -1368,14 +1642,14 @@ void DisplayUI::onFormatSelected(lv_event_t *e) {
 
   // Trigger the actual save now that format is selected
 #ifndef USE_SDL2
-  if (writingOverlay)
-    lv_obj_clear_flag(writingOverlay, LV_OBJ_FLAG_HIDDEN);
+  showWritingOverlay();
   writePending = true;
   writeStartTime = millis();
 #else
-  // Simulator: handle write
+  // Simulator: handle write directly using current protocol
   bool success = false;
-  if (currentLoadedData.protocol == "opentag3d") {
+  std::string fmt = currentLoadedData.protocol;
+  if (fmt == "opentag3d") {
     std::vector<uint8_t> bin = OpenTag3DParser::generateBinary(currentLoadedData);
     FILE *fp = fopen("simulator/spool.bin", "wb");
     if (fp) {
@@ -1436,28 +1710,83 @@ void DisplayUI::onSaveButtonClicked(lv_event_t *e) {
     currentLoadedData.alpha = "";
   }
   currentLoadedData.spool_id = lv_textarea_get_text(editSpoolIdTextArea);
-  currentLoadedData.lot_nr = lv_textarea_get_text(editLotNrTextArea);
   currentLoadedData.min_temp = lv_textarea_get_text(editMinTempTextArea);
   currentLoadedData.max_temp = lv_textarea_get_text(editMaxTempTextArea);
   currentLoadedData.bed_min_temp = lv_textarea_get_text(editBedMinTextArea);
   currentLoadedData.bed_max_temp = lv_textarea_get_text(editBedMaxTextArea);
-  currentLoadedData.diameter = lv_textarea_get_text(editDiameterTextArea);
+  if (editDiameterTextArea) currentLoadedData.diameter = lv_textarea_get_text(editDiameterTextArea);
+  if (editSubtypeTextArea) currentLoadedData.subtype = lv_textarea_get_text(editSubtypeTextArea);
+  if (editLotNrTextArea) currentLoadedData.lot_nr = lv_textarea_get_text(editLotNrTextArea);
+  if (editDensityTextArea) currentLoadedData.density = lv_textarea_get_text(editDensityTextArea);
+  if (editActualWeightTextArea) currentLoadedData.actual_weight = lv_textarea_get_text(editActualWeightTextArea);
+  if (editEmptyWeightTextArea) currentLoadedData.empty_weight = lv_textarea_get_text(editEmptyWeightTextArea);
+  if (editDryTempTextArea) currentLoadedData.dry_temp = lv_textarea_get_text(editDryTempTextArea);
+  if (editDryTimeTextArea) currentLoadedData.dry_time = lv_textarea_get_text(editDryTimeTextArea);
+  if (editTDTextArea) currentLoadedData.td = lv_textarea_get_text(editTDTextArea);
+  if (editShoreTextArea) currentLoadedData.shore = lv_textarea_get_text(editShoreTextArea);
+  if (editTagsTextArea) currentLoadedData.tags = lv_textarea_get_text(editTagsTextArea);
+  if (editLocationTextArea) currentLoadedData.location = lv_textarea_get_text(editLocationTextArea);
+  if (editNotesTextArea) currentLoadedData.notes = lv_textarea_get_text(editNotesTextArea);
   
+  // Apply Safeguards
+  // For now assume NTAG215 (504 bytes) as common baseline
+  WriteGuard::applySafeguards(currentLoadedData, 504);
+
   // Use config to decide format
   std::string prefFormat = ConfigManager::getTagFormat();
   if (prefFormat == "ask") {
     showFormatSelectionModal();
   } else {
     currentLoadedData.protocol = prefFormat;
+    
+    // Final size check
+    size_t size = WriteGuard::estimateSize(currentLoadedData, prefFormat);
+    if (size > 504) {
+        showToast("Warning: Data might be too large for tag!", true);
+    }
+
     // Trigger write
 #ifndef USE_SDL2
-    if (writingOverlay)
-      lv_obj_clear_flag(writingOverlay, LV_OBJ_FLAG_HIDDEN);
+    showWritingOverlay();
     writePending = true;
     writeStartTime = millis();
 #else
-    // Simulator handle same as in onFormatSelected
-    onFormatSelected(e); // Reuse logic
+    // Simulator: handle write directly
+    currentLoadedData.protocol = prefFormat;
+    
+    // Call simulator write logic directly instead of reusing button event
+    bool success = false;
+    if (currentLoadedData.protocol == "opentag3d") {
+        std::vector<uint8_t> bin = OpenTag3DParser::generateBinary(currentLoadedData);
+        FILE *fp = fopen("simulator/spool.bin", "wb");
+        if (fp) {
+            fwrite(bin.data(), 1, bin.size(), fp);
+            fclose(fp);
+            success = true;
+        }
+    } else if (currentLoadedData.protocol == "openprinttag") {
+        std::vector<uint8_t> cbor = OpenPrintTagParser::generate(currentLoadedData);
+        FILE *fp = fopen("simulator/spool.cbor", "wb");
+        if (fp) {
+          fwrite(cbor.data(), 1, cbor.size(), fp);
+          fclose(fp);
+          success = true;
+        }
+    } else {
+        std::string json = OpenSpoolParser::toJson(currentLoadedData);
+        FILE *fp = fopen("simulator/spool.json", "w");
+        if (fp) {
+            fputs(json.c_str(), fp);
+            fclose(fp);
+            success = true;
+        }
+    }
+    if (success) {
+      showToast("Tag Saved Successfully!");
+      showScanScreen();
+    } else {
+      showToast("Error Saving Tag", true);
+    }
 #endif
   }
 }
@@ -1489,21 +1818,28 @@ void DisplayUI::onBackButtonClicked(lv_event_t *e) {
 
 void DisplayUI::onTextAreaFocused(lv_event_t *e) {
   lv_obj_t *ta = (lv_obj_t *)lv_event_get_target(e);
-  lv_keyboard_set_textarea(keyboard, ta);
-  lv_obj_clear_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
-  // Auto switch to numeric mode for temps and Spool ID
+  
+  if (!keyboardCore) return;
+
+  lv_keyboard_set_textarea(keyboardCore, ta);
+  lv_obj_clear_flag(keyboardCore, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_move_to_index(keyboardCore, -1);
+  
   if (ta == editMinTempTextArea || ta == editMaxTempTextArea ||
       ta == editBedMinTextArea || ta == editBedMaxTextArea ||
-      ta == editSpoolIdTextArea) {
-    lv_keyboard_set_mode(keyboard, LV_KEYBOARD_MODE_NUMBER);
-  } else if (ta == editColorHexTextArea) {
-    lv_keyboard_set_mode(keyboard, LV_KEYBOARD_MODE_TEXT_UPPER);
+      ta == editSpoolIdTextArea || ta == editDiameterTextArea ||
+      ta == editActualWeightTextArea || ta == editEmptyWeightTextArea ||
+      ta == editDensityTextArea || ta == editDryTempTextArea ||
+      ta == editDryTimeTextArea || ta == editTDTextArea) {
+    lv_keyboard_set_mode(keyboardCore, LV_KEYBOARD_MODE_NUMBER);
   } else {
-    lv_keyboard_set_mode(keyboard, LV_KEYBOARD_MODE_TEXT_LOWER);
+    lv_keyboard_set_mode(keyboardCore, LV_KEYBOARD_MODE_TEXT_LOWER);
   }
 }
 
-void DisplayUI::onTextAreaChanged(lv_event_t *e) { updateSaveButtonState(); }
+void DisplayUI::onTextAreaChanged(lv_event_t *e) { 
+    updateSaveButtonState(); 
+}
 
 bool DisplayUI::validateField(lv_obj_t *ta) {
   const char *txt = lv_textarea_get_text(ta);
@@ -1639,6 +1975,12 @@ void DisplayUI::onToastTimer(lv_timer_t *t) {
   toastTimer = nullptr;
 }
 
+void DisplayUI::showWritingOverlay() {
+  if (!writingOverlay) buildWritingOverlay();
+  lv_obj_clear_flag(writingOverlay, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_move_to_index(writingOverlay, -1); // Bring to front
+}
+
 void DisplayUI::hideWritingOverlay() {
   if (writingOverlay) {
     lv_obj_add_flag(writingOverlay, LV_OBJ_FLAG_HIDDEN);
@@ -1647,4 +1989,79 @@ void DisplayUI::hideWritingOverlay() {
 
 const OpenSpoolData &DisplayUI::getPendingData() { return currentLoadedData; }
 
-bool DisplayUI::isEditing() { return lv_scr_act() == editScreen; }
+bool DisplayUI::isEditing() { return lv_scr_act() == editScreen || lv_scr_act() == extendedEditScreen; }
+
+void DisplayUI::onMoreInfoButtonClicked(lv_event_t *e) {
+  showExtendedInfoScreen();
+}
+
+void DisplayUI::onMoreEditButtonClicked(lv_event_t *e) {
+  showExtendedEditScreen();
+}
+
+void DisplayUI::showExtendedInfoScreen() {
+  if (!extendedInfoScreen) buildExtendedInfoScreen();
+  if (extCard) lv_obj_scroll_to_y(extCard, 0, LV_ANIM_OFF);
+  const OpenSpoolData &spool = currentLoadedData;
+  
+  int visibleRows = 0;
+
+  auto set_field = [&](lv_obj_t *label, const std::string &val, const char *unit = nullptr) {
+    lv_obj_t *row = lv_obj_get_parent(label);
+    if (val.empty() || val == "0" || val == "0.0") {
+      lv_obj_add_flag(row, LV_OBJ_FLAG_HIDDEN);
+    } else {
+      lv_obj_clear_flag(row, LV_OBJ_FLAG_HIDDEN);
+      visibleRows++;
+      if (unit && !val.empty()) {
+        lv_label_set_text_fmt(label, "%s %s", val.c_str(), unit);
+      } else {
+        lv_label_set_text(label, val.c_str());
+      }
+    }
+  };
+
+  set_field(labelDiameter, spool.diameter, "mm");
+  set_field(labelSubtype, spool.subtype);
+  set_field(labelLotNr, spool.lot_nr);
+  set_field(labelDensity, spool.density, "g/cm3");
+  set_field(labelActualWeight, spool.actual_weight, "g");
+  set_field(labelEmptyWeight, spool.empty_weight, "g");
+  set_field(labelDryTemp, spool.dry_temp, "°C");
+  set_field(labelDryTime, spool.dry_time, "min");
+  set_field(labelTD, spool.td);
+  set_field(labelShore, spool.shore);
+  set_field(labelTags, spool.tags);
+  set_field(labelLocation, spool.location);
+  set_field(labelPrice, spool.price);
+  set_field(labelFirstUsed, spool.first_used);
+  set_field(labelLastUsed, spool.last_used);
+  set_field(labelNotes, spool.notes);
+
+  if (visibleRows == 0) {
+    lv_obj_clear_flag(noDataLabel, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_add_flag(noDataLabel, LV_OBJ_FLAG_HIDDEN);
+  }
+
+  lv_scr_load(extendedInfoScreen);
+}
+
+void DisplayUI::showExtendedEditScreen() {
+  if (!extendedEditScreen) buildExtendedEditScreen();
+  if (extendedEditCont) lv_obj_scroll_to_y(extendedEditCont, 0, LV_ANIM_OFF);
+  lv_textarea_set_text(editDiameterTextArea, currentLoadedData.diameter.c_str());
+  lv_textarea_set_text(editSubtypeTextArea, currentLoadedData.subtype.c_str());
+  lv_textarea_set_text(editLotNrTextArea, currentLoadedData.lot_nr.c_str());
+  lv_textarea_set_text(editDensityTextArea, currentLoadedData.density.c_str());
+  lv_textarea_set_text(editActualWeightTextArea, currentLoadedData.actual_weight.c_str());
+  lv_textarea_set_text(editEmptyWeightTextArea, currentLoadedData.empty_weight.c_str());
+  lv_textarea_set_text(editDryTempTextArea, currentLoadedData.dry_temp.c_str());
+  lv_textarea_set_text(editDryTimeTextArea, currentLoadedData.dry_time.c_str());
+  lv_textarea_set_text(editTDTextArea, currentLoadedData.td.c_str());
+  lv_textarea_set_text(editShoreTextArea, currentLoadedData.shore.c_str());
+  lv_textarea_set_text(editTagsTextArea, currentLoadedData.tags.c_str());
+  lv_textarea_set_text(editLocationTextArea, currentLoadedData.location.c_str());
+  lv_textarea_set_text(editNotesTextArea, currentLoadedData.notes.c_str());
+  lv_scr_load(extendedEditScreen);
+}

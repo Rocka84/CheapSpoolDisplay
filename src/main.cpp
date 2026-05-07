@@ -1,5 +1,6 @@
 #include "data/OpenSpool.h"
 #include "data/OpenTag3D.h"
+#include "data/OpenPrintTag.h"
 #include "ui/DisplayUI.h"
 
 #include "config/ConfigManager.h"
@@ -117,19 +118,20 @@ void loop() {
       tagScanned = true;
     }
 #else
-    static time_t lastModTime = 0;
+    static time_t lastModTimeJson = -1;
+    static time_t lastModTimeCbor = -1;
+    static time_t lastModTimeBin = -1;
     struct stat fileStat;
 
     // Check if simulator/spool.json was updated
     if (stat("simulator/spool.json", &fileStat) == 0) {
-      if (fileStat.st_mtime > lastModTime) {
-        // Updated or first read
-        if (lastModTime == 0) {
-          printf("Found simulator/spool.json. Reading mock tag...\n");
-        } else {
-          printf("simulator/spool.json changed. Triggering new mock tag read...\n");
-        }
-        lastModTime = fileStat.st_mtime;
+      if (lastModTimeJson == -1) {
+        // Initial state: just record the time
+        lastModTimeJson = fileStat.st_mtime;
+        printf("Monitoring simulator/spool.json for changes...\n");
+      } else if (fileStat.st_mtime > lastModTimeJson) {
+        printf("simulator/spool.json changed. Triggering mock tag read...\n");
+        lastModTimeJson = fileStat.st_mtime;
 
         FILE *fp = fopen("simulator/spool.json", "r");
         if (fp) {
@@ -157,15 +159,44 @@ void loop() {
       }
     }
 
+    // Also check for simulator/spool.cbor (OpenPrintTag binary mock)
+    if (stat("simulator/spool.cbor", &fileStat) == 0) {
+      if (lastModTimeCbor == -1) {
+        lastModTimeCbor = fileStat.st_mtime;
+        printf("Monitoring simulator/spool.cbor for changes...\n");
+      } else if (fileStat.st_mtime > lastModTimeCbor) {
+        printf("simulator/spool.cbor changed. Triggering mock tag read...\n");
+        lastModTimeCbor = fileStat.st_mtime;
+
+        FILE *fp = fopen("simulator/spool.cbor", "rb");
+        if (fp) {
+          fseek(fp, 0, SEEK_END);
+          long size = ftell(fp);
+          fseek(fp, 0, SEEK_SET);
+
+          if (size > 0) {
+            std::vector<uint8_t> buffer(size);
+            fread(buffer.data(), 1, size, fp);
+
+            if (OpenPrintTagParser::parse(buffer, currentSpoolData)) {
+              tagScanned = true;
+            } else {
+              printf("Error parsing simulator/spool.cbor!\n");
+            }
+          }
+          fclose(fp);
+        }
+      }
+    }
+
     // Also check for simulator/spool.bin (OpenTag3D binary mock)
     if (stat("simulator/spool.bin", &fileStat) == 0) {
-      if (fileStat.st_mtime > lastModTime) {
-        if (lastModTime == 0) {
-          printf("Found simulator/spool.bin. Reading mock OpenTag3D tag...\n");
-        } else {
-          printf("simulator/spool.bin changed. Triggering new mock tag read...\n");
-        }
-        lastModTime = fileStat.st_mtime;
+      if (lastModTimeBin == -1) {
+        lastModTimeBin = fileStat.st_mtime;
+        printf("Monitoring simulator/spool.bin for changes...\n");
+      } else if (fileStat.st_mtime > lastModTimeBin) {
+        printf("simulator/spool.bin changed. Triggering mock tag read...\n");
+        lastModTimeBin = fileStat.st_mtime;
 
         FILE *fp = fopen("simulator/spool.bin", "rb");
         if (fp) {
@@ -267,6 +298,7 @@ int main(int argc, char **argv) {
   setup();
   while (1) {
     loop();
+    lv_timer_handler();
   }
   return 0;
 }

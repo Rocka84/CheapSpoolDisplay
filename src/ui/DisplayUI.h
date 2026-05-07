@@ -24,12 +24,15 @@ public:
   static void showEditScreen();
   static void showEditScreenForNew();
   static void showSelectSpoolScreen();
+  static void showExtendedInfoScreen();
+  static void showExtendedEditScreen();
 
   static bool isScanScreenActive();
 
   static bool isWritePending() { return writePending; }
   static void setWritePending(bool pending) { writePending = pending; }
   static const OpenSpoolData& getPendingData();
+  static void showWritingOverlay();
   static void hideWritingOverlay();
   static void showFetchingOverlay();
   static void hideFetchingOverlay();
@@ -47,6 +50,8 @@ private:
   static void buildWritingOverlay();
   static void buildFetchingOverlay();
   static void buildSelectSpoolScreen();
+  static void buildExtendedInfoScreen();
+  static void buildExtendedEditScreen();
   static void updateSelectSpoolList(const std::vector<SpoolmanItem>& items, int total_count);
 
   // Event callbacks
@@ -65,6 +70,8 @@ private:
   static void onSelectSpoolButtonClicked(lv_event_t *e);
   static void onPrevPageClicked(lv_event_t *e);
   static void onNextPageClicked(lv_event_t *e);
+  static void onMoreInfoButtonClicked(lv_event_t *e);
+  static void onMoreEditButtonClicked(lv_event_t *e);
 
   // Validation
   static bool validateField(lv_obj_t *ta);
@@ -83,6 +90,8 @@ private:
   static lv_obj_t *writingOverlay;
   static lv_obj_t *fetchingOverlay;
   static lv_obj_t *selectSpoolScreen;
+  static lv_obj_t *extendedInfoScreen;
+  static lv_obj_t *extendedEditScreen;
   static lv_obj_t *spoolListCont;
   static lv_obj_t *pageLabel;
   static lv_obj_t *selectSpoolPrevBtn;
@@ -109,10 +118,37 @@ private:
   static lv_obj_t *labelTemp;
   static lv_obj_t *labelBedTemp;
   static lv_obj_t *labelColorHex;
+  
+  // Containers for scrolling
   static lv_obj_t *infoCard;
+  static lv_obj_t *extCard;
+  static lv_obj_t *editCont;
+  static lv_obj_t *extendedEditCont;
+  static lv_obj_t *formatCont;
+  static lv_obj_t *toolGrid;
+  static lv_obj_t *spoolListCont_ignored; // Dummy to avoid conflict if I misread header
+
   static lv_obj_t *loadBtn;
   static lv_obj_t *spoolmanBtn;
   static lv_obj_t *createNewBtn;
+  static lv_obj_t *moreInfoBtn;
+
+  // Extended Info Elements
+  static lv_obj_t *labelDensity;
+  static lv_obj_t *labelActualWeight;
+  static lv_obj_t *labelEmptyWeight;
+  static lv_obj_t *labelDryTemp;
+  static lv_obj_t *labelDryTime;
+  static lv_obj_t *labelTD;
+  static lv_obj_t *labelShore;
+  static lv_obj_t *labelTags;
+  static lv_obj_t *labelLocation;
+  static lv_obj_t *labelPrice;
+  static lv_obj_t *labelNotes;
+  static lv_obj_t *labelFirstUsed;
+  static lv_obj_t *labelLastUsed;
+  static lv_obj_t *noDataLabel;
+  static lv_obj_t *weightBar;
 
   // Edit Screen Elements
   static lv_obj_t *editBrandDropdown;
@@ -129,14 +165,28 @@ private:
   static lv_obj_t *editBedMinTextArea;
   static lv_obj_t *editBedMaxTextArea;
   static lv_obj_t *editDiameterTextArea;
-  static lv_obj_t *keyboard;
+  static lv_obj_t *moreEditBtn;
+
+  // Extended Edit Elements
+  static lv_obj_t *editActualWeightTextArea;
+  static lv_obj_t *editEmptyWeightTextArea;
+  static lv_obj_t *editDensityTextArea;
+  static lv_obj_t *editDryTempTextArea;
+  static lv_obj_t *editDryTimeTextArea;
+  static lv_obj_t *editTDTextArea;
+  static lv_obj_t *editShoreTextArea;
+  static lv_obj_t *editTagsTextArea;
+  static lv_obj_t *editLocationTextArea;
+  static lv_obj_t *editSubtypeTextArea;
+  static lv_obj_t *editNotesTextArea;
+  static lv_obj_t *keyboardCore;
+  static lv_obj_t *keyboardExtended;
 
   // Spoolman enrichment UI
   static lv_obj_t *keyFilament;
   static lv_obj_t *labelFilamentName;
   static lv_obj_t *keyWeight;
   static lv_obj_t *labelWeight;
-  static lv_obj_t *toolGrid;
 
   static void showFormatSelectionModal();
 

@@ -24,10 +24,26 @@ struct OpenSpoolData {
   std::string alpha;
   std::string diameter;
 
-  // Spoolman enrichment fields
+  // Technical & Manufacturing fields
+  std::string actual_weight;
+  std::string empty_weight;
+  std::string density;
+  std::string dry_temp;
+  std::string dry_time;
+  std::string td;
+  std::string shore;
+  std::string tags;
+  std::string gtin;
+
+  // Inventory & Spoolman fields
   std::string filament_name;
   std::string remaining_weight;
   std::string total_weight;
+  std::string location;
+  std::string price;
+  std::string notes;
+  std::string first_used;
+  std::string last_used;
 
   OpenSpoolData() { reset(); }
 
@@ -49,6 +65,20 @@ struct OpenSpoolData {
     remaining_weight = "";
     total_weight = "";
     diameter = "";
+    actual_weight = "";
+    empty_weight = "";
+    density = "";
+    dry_temp = "";
+    dry_time = "";
+    td = "";
+    shore = "";
+    tags = "";
+    gtin = "";
+    location = "";
+    price = "";
+    notes = "";
+    first_used = "";
+    last_used = "";
   }
 };
 

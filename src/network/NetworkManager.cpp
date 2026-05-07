@@ -144,7 +144,7 @@ bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
       }
     }
     info["RGB_1"] = rgb;
-    info["ALPHA"] = data.alpha.empty() ? 255 : std::stoi(data.alpha);
+    info["ALPHA"] = data.alpha.empty() ? 255 : std::stoi(data.alpha, nullptr, 16);
 
     // Temperature parsing
     auto s2i = [](const std::string &s) {
@@ -157,7 +157,10 @@ bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
     info["HOTEND_MIN_TEMP"] = s2i(data.min_temp);
     info["HOTEND_MAX_TEMP"] = s2i(data.max_temp);
     info["BED_TEMP"] = s2i(data.bed_min_temp);
-    info["SPOOL_ID"] = s2i(data.spool_id);
+    
+    int s_id = 0;
+    try { s_id = std::stoi(data.spool_id); } catch(...) { s_id = 0; }
+    info["SPOOL_ID"] = s_id;
 
     std::string payload;
     serializeJson(doc, payload);

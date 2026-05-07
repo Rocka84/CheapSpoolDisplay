@@ -15,6 +15,11 @@
 #define OFFSET_TEMP_NOZZLE 0x60
 #define OFFSET_TEMP_BED 0x61
 #define OFFSET_URL 0x70
+#define OFFSET_BATCH_ID 0x90
+#define OFFSET_DENSITY 0xA0
+#define OFFSET_WEIGHT_EMPTY 0xA2
+#define OFFSET_DRY_TEMP 0xA4
+#define OFFSET_DRY_TIME 0xA5
 
 bool OpenTag3DParser::parseBinary(const std::vector<uint8_t>& payload, OpenSpoolData& data) {
     if (payload.size() < 0x60) { // Core minimum
@@ -75,13 +80,23 @@ bool OpenTag3DParser::parseBinary(const std::vector<uint8_t>& payload, OpenSpool
         snprintf(diaStr, sizeof(diaStr), "%.3f", (float)diameterUm / 1000.0f);
         data.diameter = diaStr;
     }
-    data.lot_nr = ""; // Not supported in binary format
     
     if (weightG > 0) {
         data.total_weight = std::to_string(weightG);
     }
 
-    // Extended Fields (URL)
+    // Extended technical fields
+    if (payload.size() >= OFFSET_BATCH_ID + 16) {
+        data.lot_nr = trimString((const char*)&payload[OFFSET_BATCH_ID], 16);
+    }
+    if (payload.size() >= OFFSET_DENSITY + 2) {
+        uint16_t dens = readUint16BE(&payload[OFFSET_DENSITY]);
+        if (dens > 0) {
+            char dBuf[16];
+            snprintf(dBuf, sizeof(dBuf), "%.2f", (float)dens / 100.0f);
+            data.density = dBuf;
+        }
+    }
     // The standard specifies 32 bytes at 0x70
     if (payload.size() >= OFFSET_URL + 32) {
         std::string url = trimString((const char*)&payload[OFFSET_URL], 32);
@@ -102,6 +117,26 @@ bool OpenTag3DParser::parseBinary(const std::vector<uint8_t>& payload, OpenSpool
                 }
             }
         }
+    }
+
+    // New Extended Fields
+    if (payload.size() >= 0xA6) {
+        data.lot_nr = trimString((const char*)&payload[OFFSET_BATCH_ID], 16);
+        
+        uint16_t density = readUint16BE(&payload[OFFSET_DENSITY]);
+        if (density > 0) {
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%.2f", (float)density / 100.0f);
+            data.density = buf;
+        }
+
+        uint16_t emptyW = readUint16BE(&payload[OFFSET_WEIGHT_EMPTY]);
+        if (emptyW > 0) data.empty_weight = std::to_string(emptyW);
+
+        if (payload[OFFSET_DRY_TEMP] > 0) data.dry_temp = std::to_string(payload[OFFSET_DRY_TEMP] * 5);
+        
+        uint16_t dryTime = readUint16BE(&payload[OFFSET_DRY_TIME]);
+        if (dryTime > 0) data.dry_time = std::to_string(dryTime);
     }
 
     return true;
@@ -176,6 +211,25 @@ std::vector<uint8_t> OpenTag3DParser::generateBinary(const OpenSpoolData& data) 
         std::string url = "spoolman.local/spool/show/" + data.spool_id;
         if (url.length() > 32) url = url.substr(0, 32);
         memcpy(&payload[OFFSET_URL], url.c_str(), url.length());
+    }
+
+    // Extended technical fields
+    if (!data.lot_nr.empty()) {
+        std::string lot = data.lot_nr;
+        if (lot.length() > 16) lot = lot.substr(0, 16);
+        memcpy(&payload[OFFSET_BATCH_ID], lot.c_str(), lot.length());
+    }
+    if (!data.density.empty()) {
+        writeUint16BE(&payload[OFFSET_DENSITY], (uint16_t)(atof(data.density.c_str()) * 100));
+    }
+    if (!data.empty_weight.empty()) {
+        writeUint16BE(&payload[OFFSET_WEIGHT_EMPTY], (uint16_t)atoi(data.empty_weight.c_str()));
+    }
+    if (!data.dry_temp.empty()) {
+        payload[OFFSET_DRY_TEMP] = (uint8_t)(atoi(data.dry_temp.c_str()) / 5);
+    }
+    if (!data.dry_time.empty()) {
+        writeUint16BE(&payload[OFFSET_DRY_TIME], (uint16_t)atoi(data.dry_time.c_str()));
     }
 
     return payload;

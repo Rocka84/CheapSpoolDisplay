@@ -61,6 +61,20 @@ bool OpenSpoolParser::parseJson(const std::string &json, OpenSpoolData &data) {
     data.diameter = buf;
   }
 
+  if (doc["actual_weight"].is<std::string>()) data.actual_weight = doc["actual_weight"].as<std::string>();
+  if (doc["empty_weight"].is<std::string>()) data.empty_weight = doc["empty_weight"].as<std::string>();
+  if (doc["density"].is<std::string>()) data.density = doc["density"].as<std::string>();
+  if (doc["dry_temp"].is<std::string>()) data.dry_temp = doc["dry_temp"].as<std::string>();
+  if (doc["dry_time"].is<std::string>()) data.dry_time = doc["dry_time"].as<std::string>();
+  if (doc["td"].is<std::string>()) data.td = doc["td"].as<std::string>();
+  if (doc["shore"].is<std::string>()) data.shore = doc["shore"].as<std::string>();
+  if (doc["tags"].is<std::string>()) data.tags = doc["tags"].as<std::string>();
+  if (doc["location"].is<std::string>()) data.location = doc["location"].as<std::string>();
+  if (doc["price"].is<std::string>()) data.price = doc["price"].as<std::string>();
+  if (doc["notes"].is<std::string>()) data.notes = doc["notes"].as<std::string>();
+  if (doc["first_used"].is<std::string>()) data.first_used = doc["first_used"].as<std::string>();
+  if (doc["last_used"].is<std::string>()) data.last_used = doc["last_used"].as<std::string>();
+
   // Protocol check according to OpenSpool spec
   if (data.protocol != "openspool") {
     return false;
@@ -107,6 +121,17 @@ bool OpenSpoolParser::enrichFromSpoolman(const std::string &json,
     data.bed_max_temp = std::to_string(doc["filament"]["settings_bed_temp"].as<int>());
   }
 
+  if (data.diameter.empty() && doc["filament"]["diameter"].is<float>()) {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%.2f", doc["filament"]["diameter"].as<float>());
+    data.diameter = buf;
+  }
+  if (data.density.empty() && doc["filament"]["density"].is<float>()) {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%.2f", doc["filament"]["density"].as<float>());
+    data.density = buf;
+  }
+
   if (doc["remaining_weight"].is<float>()) {
     float remaining = doc["remaining_weight"].as<float>();
     char buf[32];
@@ -116,8 +141,8 @@ bool OpenSpoolParser::enrichFromSpoolman(const std::string &json,
 
   if (doc["initial_weight"].is<float>() && doc["spool_weight"].is<float>()) {
     float initial = doc["initial_weight"].as<float>();
-    float spool = doc["spool_weight"].as<float>();
-    float total = initial + spool;
+    float spool_w = doc["spool_weight"].as<float>();
+    float total = initial + spool_w;
     if (total > 0) {
       char buf[32];
       if (total >= 1000) {
@@ -128,6 +153,33 @@ bool OpenSpoolParser::enrichFromSpoolman(const std::string &json,
       }
       data.total_weight = buf;
     }
+  }
+
+  if (data.empty_weight.empty() && doc["spool_weight"].is<float>()) {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%.0f", doc["spool_weight"].as<float>());
+    data.empty_weight = buf;
+  }
+
+  if (doc["lot_nr"].is<std::string>()) {
+    data.lot_nr = doc["lot_nr"].as<std::string>();
+  }
+  if (doc["location"].is<std::string>()) {
+    data.location = doc["location"].as<std::string>();
+  }
+  if (doc["price"].is<float>()) {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%.2f", doc["price"].as<float>());
+    data.price = buf;
+  }
+  if (doc["comment"].is<std::string>()) {
+    data.notes = doc["comment"].as<std::string>();
+  }
+  if (doc["first_used"].is<std::string>()) {
+    data.first_used = doc["first_used"].as<std::string>();
+  }
+  if (doc["last_used"].is<std::string>()) {
+    data.last_used = doc["last_used"].as<std::string>();
   }
 
   // Finalize temperature ranges: if only one side is present, mirror it
@@ -224,6 +276,21 @@ std::string OpenSpoolParser::toJson(const OpenSpoolData &data) {
   if (data.diameter.empty() == false) {
     doc["diameter"] = data.diameter;
   }
+  
+  // Only serialize if not empty (NDEF safeguard)
+  if (!data.actual_weight.empty()) doc["actual_weight"] = data.actual_weight;
+  if (!data.empty_weight.empty()) doc["empty_weight"] = data.empty_weight;
+  if (!data.density.empty()) doc["density"] = data.density;
+  if (!data.dry_temp.empty()) doc["dry_temp"] = data.dry_temp;
+  if (!data.dry_time.empty()) doc["dry_time"] = data.dry_time;
+  if (!data.td.empty()) doc["td"] = data.td;
+  if (!data.shore.empty()) doc["shore"] = data.shore;
+  if (!data.tags.empty()) doc["tags"] = data.tags;
+  if (!data.location.empty()) doc["location"] = data.location;
+  if (!data.price.empty()) doc["price"] = data.price;
+  if (!data.notes.empty()) doc["notes"] = data.notes;
+  if (!data.first_used.empty()) doc["first_used"] = data.first_used;
+  if (!data.last_used.empty()) doc["last_used"] = data.last_used;
 
   std::string output;
   serializeJson(doc, output);

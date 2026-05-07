@@ -1,6 +1,6 @@
 # CheapSpoolDisplay
 
-CheapSpoolDisplay is a firmware for the ESP32 Cheap Yellow Display (CYD) supporting **multiple NFC standards** (OpenSpool, OpenTag3D, OpenPrintTag). It allows you to scan, view, and organize your 3D printer filament spools using standardized NFC formats.
+CheapSpoolDisplay is a firmware for the ESP32 Cheap Yellow Display (CYD) supporting **multiple NFC standards** (OpenSpool, OpenPrintTag, OpenTag3D). It allows you to scan, view, and organize your 3D printer filament spools using standardized NFC formats.
 
 ![Scan Screen](./docs/images/screen_scan.png) ![Spool Info Screen](./docs/images/screen_info.png) ![Tool Selection Screen](./docs/images/screen_tools.png) ![Edit Screen](./docs/images/screen_edit.png) ![Select Spool Screen](./docs/images/screen_select_spool.png)
 
@@ -9,7 +9,7 @@ Follow the [Quickstart Guide](docs/QUICKSTART.md) to get your device flashed and
 
 ## Features
 - **Multi-Protocol NFC Support**: 
-  - **ISO14443A** (NTAG215/216): Reads and writes **OpenSpool (JSON)**, **OpenTag3D (Binary)**, and **OpenPrintTag (CBOR)** formats using MFRC522.
+  - **ISO14443A** (NTAG215/216): Reads and writes **OpenSpool (JSON)**, **OpenPrintTag (CBOR)**, and **OpenTag3D (Binary)** formats using MFRC522.
   - **ISO15693** (ICODE): High-frequency tag support via PN5180.
 - **Flexible Tag Writing**: Edit spool data on-device and choose your preferred encoding format.
 - **Visual Interface**: Provides a modern, touch-friendly UI powered by LVGL to display the filament Brand, Type, Spool ID, and material color.
@@ -60,7 +60,7 @@ The device stores settings in non-volatile memory (NVS). Type `help` in the Seri
 - `set webhook http://your-hook-url/webhook?spool={spool_id}&tool={toolhead}` (Set your webhook URL)
 - `set spoolman http://your-spoolman-ip:8000` (Set your Spoolman URL)
 - `set u1_host your-u1-ip:7125` (Enable Snapmaker U1 loading)
-- `set tag_format <openspool|opentag3d|openprinttag|ask>` (Default tag format selection)
+- `set tag_format <openspool|openprinttag|opentag3d|ask>` to set your preferred NFC format
 - `set tools 4` (Set number of tools from 1 to 16)
 - `get config` (To verify)
 

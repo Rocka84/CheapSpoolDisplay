@@ -30,7 +30,7 @@ See [CONFIGURATION.md](CONFIGURATION.md) for details.
     * any **Serial Terminal** (115200 baud)
 2. Configuration Commands:
     *   `set wifi <SSID> <PASSWORD>` to configure your wireless network
-    *   `set tag_format <openspool|opentag3d|ask>` to set your preferred NFC format
+    *   `set tag_format <openspool|openprinttag|opentag3d|ask>` to set your preferred NFC format
     *   `set spoolman <URL>` to enable Spoolman enrichment (e.g., `http://192.168.1.50:8000`)
     *   `set u1_host <IP_OR_HOSTNAME>:7125` to enable Snapmaker U1 loading
     *   `set tools <1-16>` to set the number of toolheads

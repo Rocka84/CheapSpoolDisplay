@@ -290,50 +290,70 @@ bool NFCReader::writeNDEFPayload(const std::string &mimeType, const std::vector<
   if (pn5180.getInventory(uid) != ISO15693_EC_OK) return false;
 
   size_t payloadLen = payload.size();
-  size_t ndefLen = 3 + mimeType.length() + payloadLen; 
+  // VCOPT uses a specific 8-byte header before the records:
+  // [0..3] Magic: E1 40 27 01
+  // [4] NDEF Tag: 0x03
+  // [5..7] NDEF Length (3-byte format)
+  size_t recordSize = 6 + mimeType.length() + payloadLen; // 6 = header(1) + typeLen(1) + payloadLen(4)
+  size_t ndefLen = recordSize;
 
   std::vector<byte> ndef;
+  // Magic Header (Page 4)
+  ndef.push_back(0xE1); ndef.push_back(0x40); ndef.push_back(0x27); ndef.push_back(0x01);
+  
+  // NDEF TLV (Page 5)
   ndef.push_back(0x03); 
-  if (ndefLen < 255) ndef.push_back((byte)ndefLen);
-  else {
-    ndef.push_back(0xFF);
-    ndef.push_back((byte)((ndefLen >> 8) & 0xFF));
-    ndef.push_back((byte)(ndefLen & 0xFF));
-  }
+  ndef.push_back(0xFF);
+  ndef.push_back((byte)((ndefLen >> 8) & 0xFF));
+  ndef.push_back((byte)(ndefLen & 0xFF));
 
-  ndef.push_back(0xD2);
+  // Records start (Page 6)
+  ndef.push_back(0xC2); // MB=1, ME=1, TNF=2 (MIME), SR=0 (Long Record)
   ndef.push_back((byte)mimeType.length());
-  ndef.push_back((byte)payloadLen);
+  ndef.push_back((byte)((payloadLen >> 24) & 0xFF));
+  ndef.push_back((byte)((payloadLen >> 16) & 0xFF));
+  ndef.push_back((byte)((payloadLen >> 8) & 0xFF));
+  ndef.push_back((byte)(payloadLen & 0xFF));
+  
   for (char c : mimeType) ndef.push_back((byte)c);
   for (byte b : payload) ndef.push_back(b);
-  ndef.push_back(0xFE);
+  ndef.push_back(0xFE); // Terminator
 
   while (ndef.size() % 4 != 0) ndef.push_back(0x00);
 
   for (size_t i = 0; i < ndef.size(); i += 4) {
     uint8_t block = i / 4;
-    if (pn5180.writeSingleBlock(uid, block, &ndef[i], 4) != ISO15693_EC_OK) return false;
+    // We write starting from block 4 to match VCOPT's user data start
+    if (pn5180.writeSingleBlock(uid, 4 + block, &ndef[i], 4) != ISO15693_EC_OK) return false;
   }
   return true;
 #else
-  byte cc[4] = {0xE1, 0x10, 0x3E, 0x00};
+  // CC for NTAG215 (Standard Page 3)
+  byte cc[4] = {0xE1, 0x11, 0x40, 0x00}; 
   if (mfrc522.MIFARE_Ultralight_Write(3, cc, 4) != MFRC522::STATUS_OK) return false;
 
   size_t payloadLen = payload.size();
-  size_t ndefLen = 3 + mimeType.length() + payloadLen; 
+  size_t recordSize = 6 + mimeType.length() + payloadLen;
+  size_t ndefLen = recordSize; 
 
   std::vector<byte> ndef;
+  // Page 4: VCOPT Magic
+  ndef.push_back(0xE1); ndef.push_back(0x40); ndef.push_back(0x27); ndef.push_back(0x01);
+  
+  // Page 5: NDEF TLV
   ndef.push_back(0x03); 
-  if (ndefLen < 255) ndef.push_back((byte)ndefLen);
-  else {
-    ndef.push_back(0xFF);
-    ndef.push_back((byte)((ndefLen >> 8) & 0xFF));
-    ndef.push_back((byte)(ndefLen & 0xFF));
-  }
+  ndef.push_back(0xFF);
+  ndef.push_back((byte)((ndefLen >> 8) & 0xFF));
+  ndef.push_back((byte)(ndefLen & 0xFF));
 
-  ndef.push_back(0xD2);
+  // Page 6: Records Start
+  ndef.push_back(0xC2); // MB=1, ME=1, TNF=2, SR=0
   ndef.push_back((byte)mimeType.length());
-  ndef.push_back((byte)payloadLen);
+  ndef.push_back((byte)((payloadLen >> 24) & 0xFF));
+  ndef.push_back((byte)((payloadLen >> 16) & 0xFF));
+  ndef.push_back((byte)((payloadLen >> 8) & 0xFF));
+  ndef.push_back((byte)(payloadLen & 0xFF));
+  
   for (char c : mimeType) ndef.push_back((byte)c);
   for (byte b : payload) ndef.push_back(b);
   ndef.push_back(0xFE);

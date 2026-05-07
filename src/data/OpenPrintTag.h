@@ -4,21 +4,17 @@
 #include "../data/OpenSpool.h"
 #include <vector>
 #include <cstdint>
-#ifndef USE_SDL2
-#include <cbor.h>
-#endif
+#include "cbor.h"
 
 class OpenPrintTagParser {
 public:
-    static bool parse(const std::vector<uint8_t>& payload, OpenSpoolData& data);
-    static std::vector<uint8_t> generate(const OpenSpoolData& data);
+    static bool parse(const std::vector<uint8_t>& payload, OpenSpoolData& spoolData);
+    static std::vector<uint8_t> generate(const OpenSpoolData& spoolData);
 
 private:
-#ifndef USE_SDL2
     // CBOR decoding helpers
-    static bool decodeMainSection(CborValue* it, OpenSpoolData& data);
-    static bool decodeAuxSection(CborValue* it, OpenSpoolData& data);
-#endif
+    static bool decodeMainSection(CborValue* it, OpenSpoolData& spoolData);
+    static bool decodeAuxSection(CborValue* it, OpenSpoolData& spoolData);
 };
 
 #endif // OPENPRINTTAG_H
