@@ -1,6 +1,7 @@
 #include "NFCReader.h"
 #include "../data/OpenTag3D.h"
 #include "../data/OpenPrintTag.h"
+#include "../data/SnapmakerTag.h"
 #include <vector>
 
 // Hardware pins for CYD SD Card slot
@@ -98,6 +99,16 @@ bool NFCReader::scanForTag(OpenSpoolData &data) {
 #else
   if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
     return false;
+  }
+
+  // Check if it's a Snapmaker (Mifare Classic 1K) tag
+  MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
+  if (piccType == MFRC522::PICC_TYPE_MIFARE_1K) {
+    if (readSnapmakerTag(data)) {
+        mfrc522.PICC_HaltA();
+        mfrc522.PCD_StopCrypto1();
+        return true;
+    }
   }
 
   Serial.println("ISO14443A Tag detected!");
@@ -366,5 +377,59 @@ bool NFCReader::writeNDEFPayload(const std::string &mimeType, const std::vector<
     if (mfrc522.MIFARE_Ultralight_Write(page, &ndef[i], 4) != MFRC522::STATUS_OK) return false;
   }
   return true;
+#endif
+}
+
+bool NFCReader::readSnapmakerTag(OpenSpoolData &data) {
+#ifdef USE_PN5180
+  // PN5180 implementation for Mifare Classic is not yet added
+  return false;
+#else
+  MFRC522::MIFARE_Key key;
+  std::vector<uint8_t> rawData(1024, 0);
+  
+  Serial.println("Attempting Snapmaker authentication...");
+
+  // We need at least sectors 0, 1, 2 for the basic data
+  for (uint8_t sector = 0; sector < 3; sector++) {
+      // Derive Snapmaker key for this sector
+      uint8_t derivedKey[6];
+      SnapmakerTagParser::deriveKey(mfrc522.uid.uidByte, sector, 'a', derivedKey);
+      memcpy(key.keyByte, derivedKey, 6);
+
+      // Authenticate Sector
+      MFRC522::StatusCode status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, sector * 4, &key, &(mfrc522.uid));
+      if (status != MFRC522::STATUS_OK) {
+          Serial.print("PCD_Authenticate() failed for sector ");
+          Serial.print(sector);
+          Serial.print(": ");
+          Serial.println(mfrc522.GetStatusCodeName(status));
+          return false;
+      }
+
+      // Read blocks (0-2, block 3 is trailer)
+      for (uint8_t block = 0; block < 3; block++) {
+          uint8_t blockAddr = sector * 4 + block;
+          byte buffer[18];
+          byte size = sizeof(buffer);
+          status = mfrc522.MIFARE_Read(blockAddr, buffer, &size);
+          if (status != MFRC522::STATUS_OK) {
+              Serial.print("MIFARE_Read() failed for block ");
+              Serial.print(blockAddr);
+              Serial.print(": ");
+              Serial.println(mfrc522.GetStatusCodeName(status));
+              return false;
+          }
+          memcpy(&rawData[blockAddr * 16], buffer, 16);
+      }
+  }
+
+  // Parse the data
+  if (SnapmakerTagParser::parse(rawData, mfrc522.uid.uidByte, data)) {
+      Serial.println("Snapmaker tag parsed successfully!");
+      return true;
+  }
+
+  return false;
 #endif
 }

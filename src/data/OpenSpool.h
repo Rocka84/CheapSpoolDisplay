@@ -23,6 +23,7 @@ struct OpenSpoolData {
   std::string subtype;
   std::string alpha;
   std::string diameter;
+  std::string hardware_uid; // Hardware serial/UID for read-only tags
 
   // Technical & Manufacturing fields
   std::string actual_weight;
@@ -79,6 +80,7 @@ struct OpenSpoolData {
     notes = "";
     first_used = "";
     last_used = "";
+    hardware_uid = "";
   }
 };
 

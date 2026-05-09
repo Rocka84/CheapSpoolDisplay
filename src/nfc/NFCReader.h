@@ -38,8 +38,9 @@ private:
   static MFRC522 mfrc522;
 #endif
 
-  // NDEF reading helpers (simplified for multi-protocol support)
+  // Protocol-specific readers
   static PayloadResult readNDEFPayload();
+  static bool readSnapmakerTag(OpenSpoolData &data);
   static bool writeNDEFPayload(const std::string &mimeType, const std::vector<uint8_t> &payload);
 };
 

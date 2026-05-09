@@ -226,7 +226,7 @@ void loop() {
     // Enrich with Spoolman data if configured and WiFi network is set
     if (!ConfigManager::getSpoolmanUrl().empty() &&
         !ConfigManager::getWifiSSID().empty() &&
-        !currentSpoolData.spool_id.empty()) {
+        (!currentSpoolData.spool_id.empty() || !currentSpoolData.hardware_uid.empty())) {
       DisplayUI::showFetchingOverlay();
       lv_timer_handler(); // Force overlay render before blocking
       NetworkManager::fetchSpoolmanData(currentSpoolData);
