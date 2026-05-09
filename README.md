@@ -1,6 +1,6 @@
 # CheapSpoolDisplay
 
-CheapSpoolDisplay is a firmware for the ESP32 Cheap Yellow Display (CYD) supporting **multiple NFC standards** (OpenSpool, OpenPrintTag, OpenTag3D). It allows you to scan, view, and organize your 3D printer filament spools using standardized NFC formats.
+CheapSpoolDisplay is a firmware for the ESP32 Cheap Yellow Display (CYD) supporting **all major tag standards** (OpenSpool, OpenPrintTag, OpenTag3D). It allows you to scan, view, and organize your 3D printer filament spools using standardized NFC formats.
 
 ![Scan Screen](./docs/images/screen_scan.png) ![Spool Info Screen](./docs/images/screen_info.png) ![Tool Selection Screen](./docs/images/screen_tools.png) ![Edit Screen](./docs/images/screen_edit.png) ![Select Spool Screen](./docs/images/screen_select_spool.png)
 
@@ -8,9 +8,9 @@ CheapSpoolDisplay is a firmware for the ESP32 Cheap Yellow Display (CYD) support
 Follow the [Quickstart Guide](docs/QUICKSTART.md) to get your device flashed and configured.
 
 ## Features
-- **Multi-Protocol NFC Support**: 
-  - **ISO14443A** (NTAG215/216): Reads and writes **OpenSpool (JSON)**, **OpenPrintTag (CBOR)**, and **OpenTag3D (Binary)** formats using MFRC522.
-  - **ISO15693** (ICODE): High-frequency tag support via PN5180.
+- **Universal Tag Support**: 
+  - Reads and writes all major filament tag standards: **OpenSpool (JSON)**, **OpenPrintTag (CBOR)**, and **OpenTag3D (Binary)**.
+  - Support for **NTAG215/216** (ISO14443A) and high-frequency **ICODE** (ISO15693) tags.
 - **Flexible Tag Writing**: Edit spool data on-device and choose your preferred encoding format.
 - **Visual Interface**: Provides a modern, touch-friendly UI powered by LVGL to display the filament Brand, Type, Spool ID, and material color.
 - **Spoolman List Selection**: Paginate, browse, and load active spools directly from your Spoolman inventory without starting with an initial scan.
