@@ -335,14 +335,14 @@
                 document.getElementById('fw-version').textContent = m.version;
             });
         </script>
-        <p class="subtitle">Multi-Protocol NFC Firmware for the ESP32 Cheap Yellow Display</p>
+        <p class="subtitle">A versatile NFC scanner for 3D printer filament spools</p>
 
         <div class="description">
             <p>CheapSpoolDisplay is a versatile firmware for the ESP32 Cheap Yellow Display (CYD) supporting
-                <strong>multiple NFC standards</strong> (OpenSpool, OpenTag3D, OpenPrintTag). It allows you to scan, view, and
-                organize your 3D printer filament
-                spools using standardized formats. It also serves as an external multi-protocol RFID reader for
-                the <a href="https://github.com/paxx12/SnapmakerU1-Extended-Firmware">SnapmakerU1-Extended-Firmware</a>.
+                <strong>multiple tag standards</strong> (OpenSpool, OpenPrintTag, OpenTag3D, Snapmaker). It allows you
+                to scan, view, and organize your 3D printer filament spools using standardized formats. It also serves
+                as an <strong>external filament scanner</strong> for the
+                <a href="https://github.com/paxx12/SnapmakerU1-Extended-Firmware">SnapmakerU1-Extended-Firmware</a>.
             </p>
         </div>
 
@@ -369,8 +369,9 @@
                     <circle cx="5" cy="19" r="1"></circle>
                 </svg>
                 <div class="feature-text">
-                    <strong>Multi-Protocol NFC</strong>
-                    Supports <strong>ISO14443A</strong> (NTAG215/216) for OpenSpool/OpenTag3D/OpenPrintTag and <strong>ISO15693</strong> (ICODE) for high-frequency tags.
+                    <strong>Multiple Tag Standards</strong>
+                    Scans and writes OpenSpool, OpenPrintTag, and
+                    OpenTag3D. Reads proprietary Snapmaker tags.
                 </div>
             </div>
             <div class="feature-item">
@@ -425,7 +426,8 @@
                         <ul>
                             <li><code>set wifi &lt;ssid&gt; &lt;password&gt;</code> to configure your wireless network
                             </li>
-                            <li><code>set tag_format &lt;openspool|opentag3d|openprinttag|ask&gt;</code> to set default writing
+                            <li><code>set tag_format &lt;openspool|opentag3d|openprinttag|ask&gt;</code> to set default
+                                writing
                                 format</li>
                             <li><code>set spoolman &lt;url&gt;</code> to enable Spoolman enrichment</li>
                             <li><code>set u1_host &lt;ip&gt;</code> to enable Snapmaker U1 integration</li>

@@ -1,6 +1,6 @@
 # CheapSpoolDisplay
 
-CheapSpoolDisplay is a firmware for the ESP32 Cheap Yellow Display (CYD) supporting **multiple NFC standards** (OpenSpool, OpenPrintTag, OpenTag3D). It allows you to scan, view, and organize your 3D printer filament spools using standardized NFC formats.
+CheapSpoolDisplay is a versatile firmware for the ESP32 Cheap Yellow Display (CYD) supporting **multiple tag standards** (OpenSpool, OpenPrintTag, OpenTag3D, Snapmaker). It allows you to scan, view, and organize your 3D printer filament spools using standardized formats. It also serves as an **external filament scanner** for the [SnapmakerU1-Extended-Firmware](https://github.com/paxx12/SnapmakerU1-Extended-Firmware).
 
 ![Scan Screen](./docs/images/screen_scan.png) ![Spool Info Screen](./docs/images/screen_info.png) ![Tool Selection Screen](./docs/images/screen_tools.png) ![Edit Screen](./docs/images/screen_edit.png) ![Select Spool Screen](./docs/images/screen_select_spool.png)
 
@@ -8,9 +8,10 @@ CheapSpoolDisplay is a firmware for the ESP32 Cheap Yellow Display (CYD) support
 Follow the [Quickstart Guide](docs/QUICKSTART.md) to get your device flashed and configured.
 
 ## Features
-- **Multi-Protocol NFC Support**: 
-  - **ISO14443A** (NTAG215/216): Reads and writes **OpenSpool (JSON)**, **OpenPrintTag (CBOR)**, and **OpenTag3D (Binary)** formats using MFRC522.
-  - **ISO15693** (ICODE): High-frequency tag support via PN5180.
+- **Universal Tag Support**: 
+  - Reads and writes all major filament tag standards: **OpenSpool (JSON)**, **OpenPrintTag (CBOR)**, and **OpenTag3D (Binary)**.
+  - **Read-only support** for official **Snapmaker** proprietary tags.
+  - Support for **NTAG215/216** (ISO14443A), **Mifare Classic 1K** (Snapmaker), and high-frequency **ICODE** (ISO15693) tags.
 - **Flexible Tag Writing**: Edit spool data on-device and choose your preferred encoding format.
 - **Visual Interface**: Provides a modern, touch-friendly UI powered by LVGL to display the filament Brand, Type, Spool ID, and material color.
 - **Spoolman List Selection**: Paginate, browse, and load active spools directly from your Spoolman inventory without starting with an initial scan.
@@ -75,6 +76,13 @@ The device determines the HTTP method based on your Webhook URL:
 ### 3. Snapmaker U1 Mode
 If `u1_host` is configured, it **overrides** standard webhooks. The device sends a direct HTTP POST request to `/printer/filament_detect/set` using the **OpenSpool U1 Extended Format**.
 This requires the [Snapmaker U1 Extended Firmware](https://github.com/paxx12/SnapmakerU1-Extended-Firmware) (v1.1.1+ with PR #303 support) to be installed on the printer.
+
+### 4. Linking Proprietary Tags (Snapmaker)
+Since official Snapmaker tags cannot be modified to store a Spoolman ID, you can link them to your Spoolman inventory using the **Lot Number** field:
+1. Scan the Snapmaker tag.
+2. Look up the "Lot Nr" in the extended info screen.
+3. In Spoolman, set your spool's **Lot Number** to this value.
+4. The device will now automatically find and sync with that Spoolman record whenever you scan the tag.
 
 ## Testing
 We utilize automated unit tests through PlatformIO (`Unity`). For detailed info, check [TESTING.md](docs/TESTING.md).
