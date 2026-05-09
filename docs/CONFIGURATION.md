@@ -14,7 +14,7 @@ CheapSpoolDisplay can be configured via a Serial Terminal (115200 baud) when con
 | `set spoolman http://<ip>:<port>` | Set the Spoolman server URL |
 | `set webhook http://...` | Set the webhook URL |
 | `set u1_host <ip>:<port>` | Set the Snapmaker U1 host URL |
-| `set tag_format <openspool\|opentag3d\|ask>` | Set the default NFC writing format (Default: ask) |
+| `set tag_format <openspool\|openprinttag\|opentag3d\|ask>` | Set the default NFC writing format (Default: ask) |
 | `set wifi_timeout <sec>` | Set the maximum wait time for Wi-Fi connection (10-300) |
 | `set tools <1-16>` | Set the number of toolheads |
 | `set display_timeout <sec>` | Set the screen auto-off time (0 = always on) |
@@ -57,10 +57,11 @@ Configures how many toolheads your printer has. Up to 4 tools result in a fixed 
 
 ### Tag Format
 
-`set tag_format <openspool|opentag3d|ask>`
+`set tag_format <openspool|openprinttag|opentag3d|ask>`
 
 Defines the default protocol used when writing or creating new NFC tags:
 - `openspool`: Standard JSON-based format.
+- `openprinttag`: CBOR-based binary format.
 - `opentag3d`: Binary-based format (compatible with OpenTag3D).
 - `ask`: Shows a selection dialog on the device every time you save. (Default)
 

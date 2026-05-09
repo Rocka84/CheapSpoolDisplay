@@ -2,21 +2,22 @@
 
 This document describes how to connect the MFRC522 RFID reader to the ESP32 Cheap Yellow Display (CYD) and details the hardware modifications required to support battery vs. USB power detection.
 
-## 1. MFRC522 RFID Connection
+The RFID modules communicate via SPI. To keep the screen functional and high-performance, we connect the reader to the **VSPI** bus (SD card slot pins), while the display operates on the **HSPI** bus.
 
-The MFRC522 communicates via SPI. To keep the screen functional, we connect the reader to the **VSPI** bus, which is typically routed to the SD card slot on the CYD. By sacrificing the SD card slot, we can repurpose its pins.
+Please wire your RFID module to the CYD as follows:
 
-Please wire your MFRC522 module to the CYD as follows:
-
-| MFRC522 Pin   | CYD Pin (Connector)   | Location Description          |
+| RFID Pin      | CYD Pin (Connector)   | Location Description          |
 | :------------ | :-------------------- | :-----------------------------|
 | `3.3V`        | `3.3V`                | 3.3V rail                     |
-| `RST`         | `IO22`                | Available on P3/CN1 connector |
 | `GND`         | `GND`                 | Ground / 6th pin from left    |
-| `SDA` (CS)    | `IO5`                 | 2nd pin from left             |
-| `MOSI`        | `IO23`                | 3rd pin from left             |
 | `SCK`         | `IO18`                | 5th pin from left             |
+| `MOSI`        | `IO23`                | 3rd pin from left             |
 | `MISO`        | `IO19`                | 7th pin from left             |
+| `SDA` (CS)    | `IO5`                 | 2nd pin from left             |
+| `RST`         | `IO22`                | Available on P3/CN1 connector |
+| `BUSY`*       | `IO27`                | Available on P3/CN1 connector |
+
+*\*Note: `BUSY` pin is only required for the **PN5180** module.*
 
 *(Note: With the board oriented as shown in the image below, **Pin 1 is on the far left**.)*
 
