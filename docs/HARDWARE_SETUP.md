@@ -4,7 +4,22 @@ This document describes how to connect the MFRC522 RFID reader to the ESP32 Chea
 
 The RFID modules communicate via SPI. To keep the screen functional and high-performance, we connect the reader to the **VSPI** bus (SD card slot pins), while the display operates on the **HSPI** bus.
 
-Please wire your RFID module to the CYD as follows:
+## 1. Choosing an NFC Module
+
+Two modules are supported. Choose based on the tags you intend to use:
+
+| Feature            | MFRC522 (Standard)      | PN5180 (Advanced)          |
+| :----------------- | :---------------------- | :------------------------- |
+| **ISO14443A**      | ✅ Yes (NTAG, Mifare)   | ✅ Yes (NTAG, Ultralight)   |
+| **ISO15693**       | ❌ No                  | ✅ Yes (ICODE SLIX)        |
+| **OpenSpool**      | ✅ Full support         | ✅ Full support            |
+| **OpenPrintTag**   | ✅ Full support         | ✅ Full support            |
+| **OpenTag3D**      | ✅ Yes (ISO14443A only) | ✅ Full support            |
+| **Snapmaker**      | ✅ Read-only            | ❌ Not yet implemented     |
+
+### Wiring Reference
+
+Please wire your chosen RFID module to the CYD as follows:
 
 | RFID Pin      | CYD Pin (Connector)   | Location Description          |
 | :------------ | :-------------------- | :-----------------------------|

@@ -144,3 +144,7 @@ Fixes for Edit / Create tag
 Prepared prompts
 ----------------
 
+Todo
+----
+* [ ] Implement Mifare Classic authentication for PN5180 (to enable Snapmaker tag support for PN5180 users).
+

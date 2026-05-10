@@ -1545,6 +1545,14 @@ void DisplayUI::onKeyboardEvent(lv_event_t *e) {
   if (code == LV_EVENT_READY || code == LV_EVENT_CANCEL) {
     printf("UI: Keyboard %s\n", (code == LV_EVENT_READY) ? "READY" : "CANCEL");
     lv_obj_add_flag(kb, LV_OBJ_FLAG_HIDDEN);
+    
+    // Reset container size
+    if (lv_scr_act() == editScreen && editCont) {
+      lv_obj_set_height(editCont, 220);
+    } else if (lv_scr_act() == extendedEditScreen && extendedEditCont) {
+      lv_obj_set_height(extendedEditCont, 220);
+    }
+
     if (code == LV_EVENT_READY) updateSaveButtonState();
   }
 }
@@ -1825,6 +1833,16 @@ void DisplayUI::onTextAreaFocused(lv_event_t *e) {
   lv_obj_clear_flag(keyboardCore, LV_OBJ_FLAG_HIDDEN);
   lv_obj_move_to_index(keyboardCore, -1);
   
+  // Resize container to make room for keyboard
+  if (lv_scr_act() == editScreen && editCont) {
+    lv_obj_set_height(editCont, 120);
+  } else if (lv_scr_act() == extendedEditScreen && extendedEditCont) {
+    lv_obj_set_height(extendedEditCont, 120);
+  }
+
+  // Scroll the text area into view
+  lv_obj_scroll_to_view_recursive(ta, LV_ANIM_ON);
+
   if (ta == editMinTempTextArea || ta == editMaxTempTextArea ||
       ta == editBedMinTextArea || ta == editBedMaxTextArea ||
       ta == editSpoolIdTextArea || ta == editDiameterTextArea ||
