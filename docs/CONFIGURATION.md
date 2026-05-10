@@ -60,9 +60,9 @@ Configures how many toolheads your printer has. Up to 4 tools result in a fixed 
 `set tag_format <openspool|openprinttag|opentag3d|ask>`
 
 Defines the default protocol used when writing or creating new NFC tags:
-- `openspool`: Standard JSON-based format.
-- `openprinttag`: CBOR-based binary format.
-- `opentag3d`: Binary-based format (compatible with OpenTag3D).
+- `openspool`: Standard format.
+- `openprinttag`: Efficient binary format.
+- `opentag3d`: Compact format.
 - `ask`: Shows a selection dialog on the device every time you save. (Default)
 
 ### Power & Display Management

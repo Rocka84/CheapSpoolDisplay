@@ -2,14 +2,14 @@
 
 CheapSpoolDisplay is a versatile firmware for the ESP32 Cheap Yellow Display (CYD) supporting **multiple tag standards** (OpenSpool, OpenPrintTag, OpenTag3D, Snapmaker). It allows you to scan, view, and organize your 3D printer filament spools using standardized formats. It also serves as an **external filament scanner** for the [SnapmakerU1-Extended-Firmware](https://github.com/paxx12/SnapmakerU1-Extended-Firmware).
 
-![Scan Screen](./docs/images/screen_scan.png) ![Spool Info Screen](./docs/images/screen_info.png) ![Tool Selection Screen](./docs/images/screen_tools.png) ![Edit Screen](./docs/images/screen_edit.png) ![Select Spool Screen](./docs/images/screen_select_spool.png)
+![Scan Screen](./docs/images/screen_scan.png) ![Spool Info Screen](./docs/images/screen_info.png) ![Extended Info Screen](./docs/images/screen_info_extended.png) ![Tool Selection Screen](./docs/images/screen_tools.png) ![Edit Screen](./docs/images/screen_edit.png) ![Select Spool Screen](./docs/images/screen_select_spool.png)
 
 ## Quickstart
 Follow the [Quickstart Guide](docs/QUICKSTART.md) to get your device flashed and configured.
 
 ## Features
 - **Universal Tag Support**: 
-  - Reads and writes all major filament tag standards: **OpenSpool (JSON)**, **OpenPrintTag (CBOR)**, and **OpenTag3D (Binary)**.
+  - Reads and writes all major filament tag standards: **OpenSpool**, **OpenPrintTag**, and **OpenTag3D**.
   - **Read-only support** for official **Snapmaker** proprietary tags.
   - Support for **NTAG215/216** (ISO14443A), **Mifare Classic 1K** (Snapmaker), and high-frequency **ICODE** (ISO15693) tags.
 - **Flexible Tag Writing**: Edit spool data on-device and choose your preferred encoding format.

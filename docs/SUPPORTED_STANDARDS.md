@@ -17,7 +17,7 @@ CheapSpoolDisplay is designed for maximum interoperability across the 3D printin
 
 These are the essential fields required for identifying the material and setting up the basic print parameters.
 
-| Field (UI)       | Example Value | OpenSpool (JSON) | OpenPrintTag (CBOR) | OpenTag3D (Binary) | Snapmaker          | Spoolman API           |
+| Field (UI)       | Example Value | OpenSpool       | OpenPrintTag        | OpenTag3D          | Snapmaker          | Spoolman API           |
 | ---------------- | ------------- | ---------------- | ------------------- | ------------------ | ------------------ | ---------------------- |
 | Brand            | Prusament     | `brand`          | Brand Name          | Brand Name         | Vendor Name        | `filament.vendor.name` |
 | Material/Type    | PLA           | `type`           | Material Type       | Material           | Main Type          | `filament.material`    |
@@ -35,7 +35,7 @@ These are the essential fields required for identifying the material and setting
 
 These fields provide technical material properties, manufacturing tracking, and inventory management data.
 
-| Field (UI)         | Example Value  | OpenSpool (JSON) | OpenPrintTag (CBOR) | OpenTag3D (Binary) | Snapmaker          | Spoolman API        |
+| Field (UI)         | Example Value  | OpenSpool       | OpenPrintTag        | OpenTag3D          | Snapmaker          | Spoolman API        |
 | ------------------ | -------------- | ---------------- | ------------------- | ------------------ | ------------------ | ------------------- |
 | Diameter           | 1.75           | `diameter`       | Filament Diameter   | Diameter           | Diameter           | `filament.diameter` |
 | Subtype            | Pro            | `subtype`        | Abbreviation        | Modifier           | Sub Type           | N/A (Extra Field)   |
@@ -58,12 +58,12 @@ These fields provide technical material properties, manufacturing tracking, and 
 
 ## Technical Details
 
-### OpenSpool (JSON)
+### OpenSpool
 *   **Storage**: NDEF MIME Record `application/json`
 *   **Encoding**: Plain text UTF-8 JSON.
 *   **Best For**: Direct integration with Spoolman and human-readable tag verification.
 
-### OpenPrintTag (CBOR)
+### OpenPrintTag
 *   **Storage**: NDEF MIME Record `application/vnd.openprinttag`
 *   **Encoding**: Concise Binary Object Representation (CBOR) using a region-based offset table.
 *   **Structure**: 
@@ -72,7 +72,7 @@ These fields provide technical material properties, manufacturing tracking, and 
     3.  **Auxiliary Section**: Dynamic data (Remaining weight/consumed weight).
 *   **Spoolman ID Handling**: To maintain compatibility with the spec's 16-byte `Instance UUID` field, integer Spoolman IDs are encoded as a specialized UUID with the prefix `SPMN` (e.g., ID `123` becomes `53504d4e-0000-0000-0000-00000000007b`).
 
-### OpenTag3D (Binary)
+### OpenTag3D
 *   **Storage**: NDEF MIME Record `application/opentag3d`
 *   **Encoding**: Fixed-offset binary structure.
 *   **Note**: Temperatures are stored as Celsius divided by 5 to fit in a single byte.
