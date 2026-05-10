@@ -1,6 +1,7 @@
 #include "data/OpenSpool.h"
 #include "data/OpenTag3D.h"
 #include "data/OpenPrintTag.h"
+#include "data/BambuLabTag.h"
 #include "ui/DisplayUI.h"
 
 #include "config/ConfigManager.h"
@@ -218,15 +219,83 @@ void loop() {
         }
       }
     }
+
+    // Also check for simulator/spool.bambu (Bambu Lab binary mock)
+    if (stat("simulator/spool.bambu", &fileStat) == 0) {
+      static time_t lastModTimeBambu = -1;
+      if (lastModTimeBambu == -1) {
+        lastModTimeBambu = fileStat.st_mtime;
+        printf("Monitoring simulator/spool.bambu for changes...\n");
+      } else if (fileStat.st_mtime > lastModTimeBambu) {
+        printf("simulator/spool.bambu changed. Triggering mock tag read...\n");
+        lastModTimeBambu = fileStat.st_mtime;
+
+        FILE *fp = fopen("simulator/spool.bambu", "rb");
+        if (fp) {
+          fseek(fp, 0, SEEK_END);
+          long size = ftell(fp);
+          fseek(fp, 0, SEEK_SET);
+
+            if (size >= 1024) { // Full Mifare Classic 1K dump
+              std::vector<uint8_t> buffer(size);
+              fread(buffer.data(), 1, size, fp);
+
+              // Get UID from block 0 (first 4 bytes)
+              uint8_t uid[4];
+              memcpy(uid, buffer.data(), 4);
+              printf("Mock tag UID: %02X%02X%02X%02X\n", uid[0], uid[1], uid[2], uid[3]);
+
+              // Derive keys if salt is present
+              std::string saltHex = ConfigManager::getBambuSalt();
+              if (!saltHex.empty()) {
+                  uint8_t salt[16];
+                  // Simple hex to bytes for the simulator
+                  for (int i = 0; i < 16; i++) {
+                      std::string byteString = saltHex.substr(i * 2, 2);
+                      salt[i] = (uint8_t)strtol(byteString.c_str(), nullptr, 16);
+                  }
+
+                  std::vector<std::vector<uint8_t>> derivedKeys;
+                  if (BambuLabTagParser::deriveKeys(uid, salt, derivedKeys)) {
+                      printf("Derived Keys:\n");
+                      for (int i = 0; i < 16; i++) {
+                          printf("  Sector %2d: ", i);
+                          for (int j = 0; j < 6; j++) {
+                              printf("%02X ", derivedKeys[i][j]);
+                          }
+                          printf("\n");
+                      }
+                  }
+              }
+
+              if (BambuLabTagParser::parse(buffer, uid, currentSpoolData)) {
+                tagScanned = true;
+                printf("Bambu Lab tag parsed successfully!\n");
+                printf("  Brand: %s\n", currentSpoolData.brand.c_str());
+                printf("  Material: %s\n", currentSpoolData.type.c_str());
+                printf("  Color: %s\n", currentSpoolData.color_hex.c_str());
+                printf("  Lot Number (for Spoolman): %s\n", currentSpoolData.lot_nr.c_str());
+              } else {
+                printf("Error parsing simulator/spool.bambu!\n");
+              }
+            }
+          fclose(fp);
+        }
+      }
+    }
 #endif
   }
 
   // If a tag was scanned, we always transition to or refresh the Info Screen
   if (tagScanned) {
-    // Enrich with Spoolman data if configured and WiFi network is set
-    if (!ConfigManager::getSpoolmanUrl().empty() &&
-        !ConfigManager::getWifiSSID().empty() &&
-        (!currentSpoolData.spool_id.empty() || !currentSpoolData.hardware_uid.empty())) {
+    // Enrich with Spoolman data if configured
+    bool networkReady = !ConfigManager::getWifiSSID().empty();
+#ifdef USE_SDL2
+    networkReady = true; // Simulator is always "connected"
+#endif
+
+    if (!ConfigManager::getSpoolmanUrl().empty() && networkReady &&
+        (!currentSpoolData.spool_id.empty() || !currentSpoolData.lot_nr.empty())) {
       DisplayUI::showFetchingOverlay();
       lv_timer_handler(); // Force overlay render before blocking
       NetworkManager::fetchSpoolmanData(currentSpoolData);

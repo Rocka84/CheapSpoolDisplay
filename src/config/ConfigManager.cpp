@@ -118,6 +118,16 @@ void ConfigManager::setTagFormat(const std::string &format) {
   preferences.putString("tag_format", format.c_str());
 }
 
+std::string ConfigManager::getBambuSalt() {
+  if (!preferences.isKey("bambu_salt"))
+    return "";
+  return std::string(preferences.getString("bambu_salt", "").c_str());
+}
+
+void ConfigManager::setBambuSalt(const std::string &salt) {
+  preferences.putString("bambu_salt", salt.c_str());
+}
+
 #else
 // SIMULATOR IMPLEMENTATION
 #include <fstream>
@@ -256,6 +266,17 @@ std::string ConfigManager::getTagFormat() {
 
 void ConfigManager::setTagFormat(const std::string &format) {
   simConfig["tag_format"] = format;
+}
+
+std::string ConfigManager::getBambuSalt() {
+  auto it = simConfig.find("bambu_salt");
+  if (it != simConfig.end())
+    return it->second;
+  return "";
+}
+
+void ConfigManager::setBambuSalt(const std::string &salt) {
+  simConfig["bambu_salt"] = salt;
 }
 
 #endif

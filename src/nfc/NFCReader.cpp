@@ -2,6 +2,8 @@
 #include "../data/OpenTag3D.h"
 #include "../data/OpenPrintTag.h"
 #include "../data/SnapmakerTag.h"
+#include "../data/BambuLabTag.h"
+#include "../config/ConfigManager.h"
 #include <vector>
 
 // Hardware pins for CYD SD Card slot
@@ -19,6 +21,15 @@ PN5180ISO15693 NFCReader::pn5180(SS_PIN, CONFIG_NFC_BUSY, RST_PIN);
 #else
 MFRC522 NFCReader::mfrc522(SS_PIN, RST_PIN);
 #endif
+
+// Utility to convert hex string to bytes
+static void hexToBytes(const std::string& hex, uint8_t* bytes, size_t maxLen) {
+    size_t len = hex.length();
+    for (size_t i = 0; i < len && i/2 < maxLen; i += 2) {
+        std::string byteString = hex.substr(i, 2);
+        bytes[i/2] = (uint8_t)strtol(byteString.c_str(), nullptr, 16);
+    }
+}
 
 void NFCReader::init() {
   pinMode(SS_PIN, OUTPUT);
@@ -108,6 +119,15 @@ bool NFCReader::scanForTag(OpenSpoolData &data) {
         mfrc522.PICC_HaltA();
         mfrc522.PCD_StopCrypto1();
         return true;
+    }
+
+    // Check if it's a Bambu Lab tag (only if salt is configured)
+    if (!ConfigManager::getBambuSalt().empty()) {
+        if (readBambuTag(data)) {
+            mfrc522.PICC_HaltA();
+            mfrc522.PCD_StopCrypto1();
+            return true;
+        }
     }
   }
 
@@ -390,8 +410,8 @@ bool NFCReader::readSnapmakerTag(OpenSpoolData &data) {
   
   Serial.println("Attempting Snapmaker authentication...");
 
-  // We need at least sectors 0, 1, 2 for the basic data
-  for (uint8_t sector = 0; sector < 3; sector++) {
+  // We need at least 10 sectors (0-9) as per SnapmakerTagParser
+  for (uint8_t sector = 0; sector < 10; sector++) {
       // Derive Snapmaker key for this sector
       uint8_t derivedKey[6];
       SnapmakerTagParser::deriveKey(mfrc522.uid.uidByte, sector, 'a', derivedKey);
@@ -427,6 +447,64 @@ bool NFCReader::readSnapmakerTag(OpenSpoolData &data) {
   // Parse the data
   if (SnapmakerTagParser::parse(rawData, mfrc522.uid.uidByte, data)) {
       Serial.println("Snapmaker tag parsed successfully!");
+      return true;
+  }
+
+  return false;
+#endif
+}
+
+bool NFCReader::readBambuTag(OpenSpoolData &data) {
+#ifdef USE_PN5180
+  return false;
+#else
+  std::string saltHex = ConfigManager::getBambuSalt();
+  if (saltHex.empty()) return false;
+
+  uint8_t salt[16];
+  hexToBytes(saltHex, salt, 16);
+
+  std::vector<std::vector<uint8_t>> derivedKeys;
+  if (!BambuLabTagParser::deriveKeys(mfrc522.uid.uidByte, salt, derivedKeys)) {
+      return false;
+  }
+
+  std::vector<uint8_t> rawData(1024, 0);
+  MFRC522::MIFARE_Key key;
+
+  Serial.println("Attempting Bambu Lab authentication...");
+
+  // We need sectors 0, 1, 2, 3, 4, 5, 6 for the full data (including Tray UID and Production Date)
+  uint8_t sectorsToRead[] = {0, 1, 2, 3, 4, 5, 6};
+  for (uint8_t sector : sectorsToRead) {
+      memcpy(key.keyByte, derivedKeys[sector].data(), 6);
+
+      // Authenticate Sector
+      MFRC522::StatusCode status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, sector * 4, &key, &(mfrc522.uid));
+      if (status != MFRC522::STATUS_OK) {
+          Serial.print("Bambu auth failed for sector ");
+          Serial.print(sector);
+          Serial.print(": ");
+          Serial.println(mfrc522.GetStatusCodeName(status));
+          return false;
+      }
+
+      // Read blocks (0-2, block 3 is trailer)
+      for (uint8_t block = 0; block < 3; block++) {
+          uint8_t blockAddr = sector * 4 + block;
+          byte buffer[18];
+          byte size = sizeof(buffer);
+          status = mfrc522.MIFARE_Read(blockAddr, buffer, &size);
+          if (status != MFRC522::STATUS_OK) {
+              return false;
+          }
+          memcpy(&rawData[blockAddr * 16], buffer, 16);
+      }
+  }
+
+  // Parse the data
+  if (BambuLabTagParser::parse(rawData, mfrc522.uid.uidByte, data)) {
+      Serial.println("Bambu Lab tag parsed successfully!");
       return true;
   }
 

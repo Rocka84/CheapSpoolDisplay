@@ -332,9 +332,9 @@ bool NetworkManager::fetchSpoolmanByExternalId(OpenSpoolData &data) {
   if (baseUrl.back() == '/')
     baseUrl.pop_back();
   
-  // Spoolman API: GET /api/v1/spool?lot_nr="<UID>"&allow_archived=true
+  // Spoolman API: GET /api/v1/spool?lot_nr="<LOT>"&allow_archived=true
   // We use quotes to ensure exact match for the lot_nr
-  std::string api_url = baseUrl + "/api/v1/spool?lot_nr=%22" + data.hardware_uid + "%22&allow_archived=true";
+  std::string api_url = baseUrl + "/api/v1/spool?lot_nr=%22" + data.lot_nr + "%22&allow_archived=true";
 
   std::string payload;
   long response_code = 0;
@@ -366,8 +366,11 @@ bool NetworkManager::fetchSpoolmanByExternalId(OpenSpoolData &data) {
     if (!error && doc.is<JsonArray>() && doc.as<JsonArray>().size() > 0) {
         // Take the first matching spool
         JsonObject first = doc[0];
-        if (first.containsKey("id")) {
+        if (first["id"].is<std::string>()) {
             data.spool_id = first["id"].as<std::string>();
+            return true;
+        } else if (first["id"].is<int>()) {
+            data.spool_id = std::to_string(first["id"].as<int>());
             return true;
         }
     }

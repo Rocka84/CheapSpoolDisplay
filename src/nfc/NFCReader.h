@@ -41,6 +41,7 @@ private:
   // Protocol-specific readers
   static PayloadResult readNDEFPayload();
   static bool readSnapmakerTag(OpenSpoolData &data);
+  static bool readBambuTag(OpenSpoolData &data);
   static bool writeNDEFPayload(const std::string &mimeType, const std::vector<uint8_t> &payload);
 };
 

@@ -64,6 +64,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.println("  set power_mode <0=Always On|1=Deep Sleep|2=Smart USB>");
     Serial.println("  set u1_host <hostname>");
     Serial.println("  set tag_format <openspool|openprinttag|opentag3d|ask>");
+    Serial.println("  set bambu_salt <hex_string>");
     Serial.println("  get config");
     Serial.println("  format (Erases all settings)");
     return;
@@ -83,6 +84,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.printf("set sleep_timeout %d\n", ConfigManager::getSleepTimeout());
     Serial.printf("set u1_host %s\n", ConfigManager::getU1Host().c_str());
     Serial.printf("set tag_format %s\n", ConfigManager::getTagFormat().c_str());
+    Serial.printf("set bambu_salt %s\n", ConfigManager::getBambuSalt().c_str());
     return;
   }
 
@@ -98,6 +100,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     ConfigManager::setSleepTimeout(300);
     ConfigManager::setU1Host("");
     ConfigManager::setTagFormat("ask");
+    ConfigManager::setBambuSalt("");
     Serial.println("Configuration formatted/erased.");
     return;
   }
@@ -193,6 +196,9 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     } else if (key.equalsIgnoreCase("u1_host")) {
       ConfigManager::setU1Host(value.c_str());
       Serial.println("Snapmaker U1 Host saved.");
+    } else if (key.equalsIgnoreCase("bambu_salt")) {
+      ConfigManager::setBambuSalt(value.c_str());
+      Serial.println("Bambu Lab Secret Salt saved.");
     } else {
       Serial.printf("Error: Unknown key '%s'\n", key.c_str());
     }

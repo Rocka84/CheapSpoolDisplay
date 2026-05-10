@@ -52,6 +52,10 @@ public:
   static std::string getTagFormat(); // "openspool", "opentag3d", or "ask"
   static void setTagFormat(const std::string &format);
 
+  // Bambu Lab Settings
+  static std::string getBambuSalt();
+  static void setBambuSalt(const std::string &salt);
+
 private:
 #ifndef USE_SDL2
   static Preferences preferences;

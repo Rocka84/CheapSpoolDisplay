@@ -1,10 +1,20 @@
 # CheapSpoolDisplay Simulator Configuration
 # Copy this file to config.cfg and modify as needed
 
+# Wi-Fi Settings
 wifi_ssid=Simulator_WiFi
 wifi_pass=simulator_pass
+wifi_timeout=60
+
+# Services & Integration
 spoolman=http://localhost:7125
 u1_host=snapmaker-u1.local:7125
 webhook=http://localhost:7125/webhook?spool={spool_id}&tool={toolhead}
-num_tools=4
-timeout=60
+
+num_tools=1
+
+# tag_format: openspool, opentag3d, openprinttag, or ask
+tag_format=ask
+
+# Bambu Lab RFID (Secret Salt)
+bambu_salt=

@@ -10,11 +10,11 @@ Two modules are supported. Choose based on the tags you intend to use:
 
 | Feature            | MFRC522 (Standard)      | PN5180 (Advanced)          |
 | :----------------- | :---------------------- | :------------------------- |
-| **ISO14443A**      | ✅ Yes (NTAG, Mifare)   | ✅ Yes (NTAG, Ultralight)   |
-| **ISO15693**       | ❌ No                  | ✅ Yes (ICODE SLIX)        |
-| **OpenSpool**      | ✅ Full support         | ✅ Full support            |
-| **OpenPrintTag**   | ✅ Full support         | ✅ Full support            |
-| **OpenTag3D**      | ✅ Yes (ISO14443A only) | ✅ Full support            |
+| **ISO14443A**      | ✅ Yes (NTAG, Mifare)   | ✅ Yes (NTAG, Ultralight)  |
+| **ISO15693**       | ❌ No                   | ✅ Yes (ICODE SLIX)        |
+| **OpenSpool**      | ✅ ISO14443A only       | ✅ Full support            |
+| **OpenPrintTag**   | ✅ ISO14443A only       | ✅ Full support            |
+| **OpenTag3D**      | ✅ ISO14443A only       | ✅ Full support            |
 | **Snapmaker**      | ✅ Read-only            | ❌ Not yet implemented     |
 
 ### Wiring Reference

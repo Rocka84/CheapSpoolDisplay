@@ -15,6 +15,7 @@ CheapSpoolDisplay can be configured via a Serial Terminal (115200 baud) when con
 | `set webhook http://...` | Set the webhook URL |
 | `set u1_host <ip>:<port>` | Set the Snapmaker U1 host URL |
 | `set tag_format <openspool\|openprinttag\|opentag3d\|ask>` | Set the default NFC writing format (Default: ask) |
+| `set bambu_salt <hex_string>` | Set the Secret Salt for Bambu Lab tags |
 | `set wifi_timeout <sec>` | Set the maximum wait time for Wi-Fi connection (10-300) |
 | `set tools <1-16>` | Set the number of toolheads |
 | `set display_timeout <sec>` | Set the screen auto-off time (0 = always on) |
@@ -64,6 +65,15 @@ Defines the default protocol used when writing or creating new NFC tags:
 - `openprinttag`: Efficient binary format.
 - `opentag3d`: Compact format.
 - `ask`: Shows a selection dialog on the device every time you save. (Default)
+
+### Bambu Lab Support
+
+`set bambu_salt <hex_string>`
+
+To enable read-only support for authentic Bambu Lab filament tags, you must provide the Secret Salt used for key derivation.
+
+> [!IMPORTANT]
+> For legal reasons, this salt is not included in the firmware. You must obtain it from community resources (e.g., search for "Bambu Lab RFID secret salt").
 
 ### Power & Display Management
 

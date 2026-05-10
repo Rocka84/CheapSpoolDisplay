@@ -81,6 +81,10 @@ bool SnapmakerTagParser::parse(const std::vector<uint8_t>& data, const uint8_t* 
     snprintf(alphaBuf, sizeof(alphaBuf), "%02X", alpha);
     output.alpha = alphaBuf;
 
+    // Tray (Block 0, bytes 6-7)
+    uint16_t tray = data[1 * 64 + 6] | (data[1 * 64 + 7] << 8);
+    // If tray is non-zero, we could use it, but for now we just parse it.
+
     // RGB 1 (Block 1, bytes 0-2)
     uint32_t rgb = (data[1 * 64 + 16 + 0] << 16) | (data[1 * 64 + 16 + 1] << 8) | data[1 * 64 + 16 + 2];
     char colorBuf[8];
@@ -122,6 +126,33 @@ bool SnapmakerTagParser::parse(const std::vector<uint8_t>& data, const uint8_t* 
         output.bed_max_temp = std::to_string(bedTemp);
     }
 
+    // MF_DATE (Block 2, bytes 0-7)
+    char mfDate[9];
+    memcpy(mfDate, &data[2 * 64 + 32], 8);
+    mfDate[8] = '\0';
+    // Clean up non-printable characters
+    for (int i = 0; i < 8; i++) {
+        if ((uint8_t)mfDate[i] < 32 || (uint8_t)mfDate[i] > 126) mfDate[i] = ' ';
+    }
+    // Trim trailing spaces
+    char* end = mfDate + 7;
+    while (end >= mfDate && *end == ' ') {
+        *end = '\0';
+        end--;
+    }
+    
+    if (strlen(mfDate) > 0) {
+        // Shorten lot_nr to max 10 characters for UI space
+        char lotBuf[11];
+        uint64_t combined = (uint64_t)sku * 100000000ULL + strtoull(mfDate, nullptr, 10);
+        snprintf(lotBuf, sizeof(lotBuf), "%010llX", (unsigned long long)(combined % 0x10000000000ULL));
+        output.lot_nr = lotBuf;
+#ifdef ESP32
+        Serial.print("Snapmaker Lot Number (Hex): ");
+        Serial.println(lotBuf);
+#endif
+    }
+
 
 
     // Hardware UID
@@ -129,7 +160,9 @@ bool SnapmakerTagParser::parse(const std::vector<uint8_t>& data, const uint8_t* 
         char uidBuf[13]; 
         snprintf(uidBuf, sizeof(uidBuf), "%02X%02X%02X%02X", uid[0], uid[1], uid[2], uid[3]);
         output.hardware_uid = uidBuf;
-        output.lot_nr = uidBuf; // Use UID as Lot Number for linking
+        if (output.lot_nr.empty()) {
+            output.lot_nr = uidBuf; // Fallback to UID if no other ID found
+        }
 #ifdef ESP32
         Serial.print("Snapmaker Tag UID: ");
         Serial.println(uidBuf);

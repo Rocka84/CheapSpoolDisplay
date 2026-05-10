@@ -1128,18 +1128,26 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
   lv_label_set_text(labelType, displayData.type.c_str());
   lv_label_set_text(labelSpoolId, spool.spool_id.c_str());
 
-  std::string tempStr = spool.min_temp + " - " + spool.max_temp;
-  if (tempStr == " - ")
-    tempStr = "";
-  else if (!tempStr.empty())
-    tempStr += " °C";
+  std::string tempStr;
+  if (spool.min_temp == spool.max_temp || spool.max_temp.empty()) {
+    tempStr = spool.min_temp;
+  } else if (spool.min_temp.empty()) {
+    tempStr = spool.max_temp;
+  } else {
+    tempStr = spool.min_temp + " - " + spool.max_temp;
+  }
+  if (!tempStr.empty()) tempStr += " °C";
   lv_label_set_text(labelTemp, tempStr.c_str());
 
-  std::string bedTempStr = spool.bed_min_temp + " - " + spool.bed_max_temp;
-  if (bedTempStr == " - ")
-    bedTempStr = "";
-  else if (!bedTempStr.empty())
-    bedTempStr += " °C";
+  std::string bedTempStr;
+  if (spool.bed_min_temp == spool.bed_max_temp || spool.bed_max_temp.empty()) {
+    bedTempStr = spool.bed_min_temp;
+  } else if (spool.bed_min_temp.empty()) {
+    bedTempStr = spool.bed_max_temp;
+  } else {
+    bedTempStr = spool.bed_min_temp + " - " + spool.bed_max_temp;
+  }
+  if (!bedTempStr.empty()) bedTempStr += " °C";
   lv_label_set_text(labelBedTemp, bedTempStr.c_str());
 
   // Spoolman enrichment updates
