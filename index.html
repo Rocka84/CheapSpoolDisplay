@@ -339,7 +339,7 @@
 
         <div class="description">
             <p>CheapSpoolDisplay is a versatile firmware for the ESP32 Cheap Yellow Display (CYD) supporting
-                <strong>multiple tag standards</strong> (OpenSpool, OpenPrintTag, OpenTag3D, Snapmaker). It allows you
+                <strong>multiple tag standards</strong> (OpenSpool, OpenPrintTag, OpenTag3D, Snapmaker, Bambu Lab). It allows you
                 to scan, view, and organize your 3D printer filament spools using standardized formats. It also serves
                 as an <strong>external filament scanner</strong> for the
                 <a href="https://github.com/paxx12/SnapmakerU1-Extended-Firmware">SnapmakerU1-Extended-Firmware</a>.
@@ -371,7 +371,7 @@
                 <div class="feature-text">
                     <strong>Multiple Tag Standards</strong>
                     Scans and writes OpenSpool, OpenPrintTag, and
-                    OpenTag3D. Reads proprietary Snapmaker tags.
+                    OpenTag3D. Reads proprietary Snapmaker and Bambu Lab tags.
                 </div>
             </div>
             <div class="feature-item">
@@ -429,6 +429,7 @@
                             <li><code>set tag_format &lt;openspool|opentag3d|openprinttag|ask&gt;</code> to set default
                                 writing
                                 format</li>
+                            <li><code>set bambu_salt &lt;hex_string&gt;</code> to enable Bambu Lab tag support</li>
                             <li><code>set spoolman &lt;url&gt;</code> to enable Spoolman enrichment</li>
                             <li><code>set u1_host &lt;ip&gt;</code> to enable Snapmaker U1 integration</li>
                             <li><code>set webhook &lt;url&gt;</code> to set your webhook URL</li>

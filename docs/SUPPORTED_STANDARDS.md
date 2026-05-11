@@ -10,6 +10,7 @@ CheapSpoolDisplay is designed for maximum interoperability across the 3D printin
 | **OpenPrintTag** | CBOR   | Region-based, binary efficient.   | VCOPT, Bambu Lab        |
 | **OpenTag3D**    | Binary | Extremely compact, fast to parse. | OpenTag3D, Legacy tools |
 | **Snapmaker**    | Binary | Proprietary (Read-only).          | Snapmaker U1, official   |
+| **Bambu Lab**    | Binary | Proprietary (Read-only).          | Bambu Lab official tags  |
 
 ---
 
@@ -17,17 +18,17 @@ CheapSpoolDisplay is designed for maximum interoperability across the 3D printin
 
 These are the essential fields required for identifying the material and setting up the basic print parameters.
 
-| Field (UI)       | Example Value | OpenSpool       | OpenPrintTag        | OpenTag3D          | Snapmaker          | Spoolman API           |
-| ---------------- | ------------- | ---------------- | ------------------- | ------------------ | ------------------ | ---------------------- |
-| Brand            | Prusament     | `brand`          | Brand Name          | Brand Name         | Vendor Name        | `filament.vendor.name` |
-| Material/Type    | PLA           | `type`           | Material Type       | Material           | Main Type          | `filament.material`    |
-| Filament         | Galaxy Black  | `filament_name`  | Material Name       | Product Name       | N/A                | `filament.name`        |
-| Color (Hex)      | #FF0000       | `color_hex`      | Primary Color       | Color RGB          | RGB Color          | `filament.color_hex`   |
-| Nozzle Temp      | 215           | `min_temp`       | Print Temperature   | Max Nozzle Temp    | Hotend Temp        | `settings_extruder`    |
-| Bed Temp         | 60            | `bed_min`        | Bed Temperature     | Max Bed Temp       | Bed Temp           | `settings_bed`         |
-| Total Weight     | 1000          | `total_weight`   | Nominal Net Weight  | Total Weight       | Total Weight       | `initial_weight`       |
-| Remaining Weight | 750           | N/A              | N/A                 | N/A                | N/A                | `remaining_weight`     |
-| Spool ID         | 123           | `spool_id`       | Instance UUID*      | ID via URL         | N/A                | `spool.id`             |
+| Field (UI)       | Example Value | OpenSpool       | OpenPrintTag        | OpenTag3D          | Snapmaker          | Bambu Lab          | Spoolman API           |
+| ---------------- | ------------- | ---------------- | ------------------- | ------------------ | ------------------ | ------------------ | ---------------------- |
+| Brand            | Prusament     | `brand`          | Brand Name          | Brand Name         | Vendor Name        | "Bambu Lab"        | `filament.vendor.name` |
+| Material/Type    | PLA           | `type`           | Material Type       | Material           | Main Type          | Material Type      | `filament.material`    |
+| Filament         | Galaxy Black  | `filament_name`  | Material Name       | Product Name       | N/A                | Detailed Type      | `filament.name`        |
+| Color (Hex)      | #FF0000       | `color_hex`      | Primary Color       | Color RGB          | RGB Color          | RGBA Color         | `filament.color_hex`   |
+| Nozzle Temp      | 215           | `min_temp`       | Print Temperature   | Max Nozzle Temp    | Hotend Temp        | Hotend Temp        | `settings_extruder`    |
+| Bed Temp         | 60            | `bed_min`        | Bed Temperature     | Max Bed Temp       | Bed Temp           | Bed Max Temp       | `settings_bed`         |
+| Total Weight     | 1000          | `total_weight`   | Nominal Net Weight  | Total Weight       | Total Weight       | Total Weight       | `initial_weight`       |
+| Remaining Weight | 750           | N/A              | N/A                 | N/A                | N/A                | N/A                | `remaining_weight`     |
+| Spool ID         | 123           | `spool_id`       | Instance UUID*      | ID via URL         | N/A                | N/A                | `spool.id`             |
 
 ---
 
@@ -35,24 +36,24 @@ These are the essential fields required for identifying the material and setting
 
 These fields provide technical material properties, manufacturing tracking, and inventory management data.
 
-| Field (UI)         | Example Value  | OpenSpool       | OpenPrintTag        | OpenTag3D          | Snapmaker          | Spoolman API        |
-| ------------------ | -------------- | ---------------- | ------------------- | ------------------ | ------------------ | ------------------- |
-| Diameter           | 1.75           | `diameter`       | Filament Diameter   | Diameter           | Diameter           | `filament.diameter` |
-| Subtype            | Pro            | `subtype`        | Abbreviation        | Modifier           | Sub Type           | N/A (Extra Field)   |
-| Lot Number         | 2024-A1        | `lot_nr`         | Lot Number          | Batch ID           | Tag UID            | `spool.lot_nr`      |
-| Actual Net Weight  | 1012           | `actual_weight`  | Actual Net Weight   | Measured Weight    | N/A                | N/A (Extra Field)   |
-| Empty Spool Weight | 250            | `empty_weight`   | Empty Spool Weight  | Empty Spool Weight | N/A                | `spool_weight`      |
-| Density            | 1.24           | `density`        | Material Density    | Density            | N/A                | `filament.density`  |
-| Drying Temp        | 50             | `dry_temp`       | Drying Temperature  | Max Dry Temp       | Drying Temp        | N/A (Extra Field)   |
-| Drying Time        | 240            | `dry_time`       | Drying Time         | Dry Time           | Drying Time        | N/A (Extra Field)   |
-| TD (Opacity)       | 6.6            | `td`             | Transm. Distance    | Opacity            | N/A                | N/A (Extra Field)   |
-| Shore Hardness     | 95A            | `shore`          | Shore Hardness      | N/A                | N/A                | N/A (Extra Field)   |
-| Tags               | wood, glitter  | `tags`           | Material Tags       | N/A                | N/A                | N/A (Extra Field)   |
-| Storage Location   | Shelf B3       | `location`       | Storage Location    | N/A                | N/A                | `spool.location`    |
-| Price              | 19.99          | N/A              | N/A                 | N/A                | N/A                | `spool.price`       |
-| Notes              | Dry before use | N/A              | N/A                 | N/A                | N/A                | `spool.comment`     |
-| First Used         | 2024-01-01     | N/A              | N/A                 | N/A                | N/A                | `spool.first_used`  |
-| Last Used          | 2024-05-01     | N/A              | N/A                 | N/A                | N/A                | `spool.last_used`   |
+| Field (UI)         | Example Value  | OpenSpool       | OpenPrintTag        | OpenTag3D          | Snapmaker   | Bambu Lab     | Spoolman API        |
+| ------------------ | -------------- | --------------- | ------------------- | ------------------ | ----------- | ------------- | ------------------- |
+| Diameter           | 1.75           | `diameter`      | Filament Diameter   | Diameter           | Diameter    | Diameter      | `filament.diameter` |
+| Subtype            | Pro            | `subtype`       | Abbreviation        | Modifier           | Sub Type    | Detailed Type | N/A (Extra Field)   |
+| Lot Number         | 2024-A1        | `lot_nr`        | Lot Number          | Batch ID           | Tag UID     | Tag UID       | `spool.lot_nr`      |
+| Actual Net Weight  | 1012           | `actual_weight` | Actual Net Weight   | Measured Weight    | N/A         | N/A           | N/A (Extra Field)   |
+| Empty Spool Weight | 250            | `empty_weight`  | Empty Spool Weight  | Empty Spool Weight | N/A         | N/A           | `spool_weight`      |
+| Density            | 1.24           | `density`       | Material Density    | Density            | N/A         | N/A           | `filament.density`  |
+| Drying Temp        | 50             | `dry_temp`      | Drying Temperature  | Max Dry Temp       | Drying Temp | Drying Temp   | N/A (Extra Field)   |
+| Drying Time        | 240            | `dry_time`      | Drying Time         | Dry Time           | Drying Time | Drying Time   | N/A (Extra Field)   |
+| TD (Opacity)       | 6.6            | `td`            | Transm. Distance    | Opacity            | N/A         | N/A           | N/A (Extra Field)   |
+| Shore Hardness     | 95A            | `shore`         | Shore Hardness      | N/A                | N/A         | N/A           | N/A (Extra Field)   |
+| Tags               | wood, glitter  | `tags`          | Material Tags       | N/A                | N/A         | N/A           | N/A (Extra Field)   |
+| Storage Location   | Shelf B3       | `location`      | Storage Location    | N/A                | N/A         | N/A           | `spool.location`    |
+| Price              | 19.99          | N/A             | N/A                 | N/A                | N/A         | N/A           | `spool.price`       |
+| Notes              | Dry before use | N/A             | N/A                 | N/A                | N/A         | N/A           | `spool.comment`     |
+| First Used         | 2024-01-01     | N/A             | N/A                 | N/A                | N/A         | N/A           | `spool.first_used`  |
+| Last Used          | 2024-05-01     | N/A             | N/A                 | N/A                | N/A         | N/A           | `spool.last_used`   |
 
 ---
 
@@ -84,5 +85,13 @@ These fields provide technical material properties, manufacturing tracking, and 
 *   **Spoolman Linking**: Since official tags cannot be modified, they can be linked to Spoolman by setting the spool's **Lot Number** in Spoolman to the tag's 8-character hex UID (e.g. `A1B2C3D4`). 
     - The search is performed as an **exact match** (using quotes in the API).
     - The device will automatically find and sync with the corresponding spool on scan.
-*   **Support**: **Read-only**. Official tags are signed with an RSA-2048 private key owned by Snapmaker.
 *   **Fields**: Supports Brand, Material Type, Subtype, Color, Diameter, Weight, and Temperature settings.
+
+### Bambu Lab (Proprietary)
+*   **Storage**: Mifare Classic 1K Sectors 0-6.
+*   **Authentication**: Proprietary HKDF-SHA256 derived keys.
+*   **Support Level**: **Read-only**.
+    - Official tags are signed with an RSA-2048 private key owned by Bambu Lab.
+    - To activate this feature, you MUST provide the **Secret Salt** via the Serial Terminal: `set bambu_salt <hex_string>`.
+*   **Spoolman Linking**: Linked via **Lot Number** (exact match of the tag's 4-byte UID, e.g. `04A1B2C3`).
+*   **Fields**: Supports Brand ("Bambu Lab"), Material ID, Type, Detailed Type, Color, Weight, and all Temperature settings.
