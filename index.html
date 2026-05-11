@@ -458,6 +458,30 @@
         </footer>
     </div>
 
+    <!-- GoatCounter Analytics - No cookies, no banner needed -->
+    <script data-goatcounter="https://cheapspooldisplay.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
+
+    <script>
+        // Track successful flashes as custom events
+        document.addEventListener('DOMContentLoaded', () => {
+            const installButton = document.querySelector('esp-web-install-button');
+            if (installButton) {
+                installButton.addEventListener('state-changed', (ev) => {
+                    // 'FINISHED' is the state when the flash process completes successfully
+                    if (ev.detail && ev.detail.state === 'FINISHED') {
+                        if (window.goatcounter && window.goatcounter.count) {
+                            window.goatcounter.count({
+                                path:  'flash-success',
+                                title: 'Successful Flash',
+                                event: true
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>
