@@ -6,7 +6,7 @@ size_t WriteGuard::estimateSize(const OpenSpoolData& data, const std::string& fo
     if (format == "openprinttag") return 300; // Rough average
     
     // JSON estimation
-    StaticJsonDocument<1024> doc;
+    JsonDocument doc;
     doc["protocol"] = data.protocol;
     doc["version"] = data.version;
     if (!data.type.empty()) doc["type"] = data.type;

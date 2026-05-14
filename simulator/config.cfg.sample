@@ -18,3 +18,7 @@ tag_format=ask
 
 # Bambu Lab RFID (Secret Salt)
 bambu_salt=
+
+# CYD 2-USB version (ESP32-2432S028R) hardware fixes
+# set to 1 to invert colors and apply gamma fix
+cyd2usb=0

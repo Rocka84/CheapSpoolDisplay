@@ -128,6 +128,14 @@ void ConfigManager::setBambuSalt(const std::string &salt) {
   preferences.putString("bambu_salt", salt.c_str());
 }
 
+bool ConfigManager::getCYD2USB() {
+  return preferences.getBool("cyd2usb", false);
+}
+
+void ConfigManager::setCYD2USB(bool enabled) {
+  preferences.putBool("cyd2usb", enabled);
+}
+
 #else
 // SIMULATOR IMPLEMENTATION
 #include <fstream>
@@ -149,6 +157,7 @@ void ConfigManager::loadSimConfig() {
   simConfig["sleep_timeout"] = "5";
   simConfig["u1_host"] = "192.168.1.50";
   simConfig["tag_format"] = "ask";
+  simConfig["cyd2usb"] = "0";
 
   std::ifstream file("simulator/config.cfg");
   if (!file.is_open())
@@ -277,6 +286,15 @@ std::string ConfigManager::getBambuSalt() {
 
 void ConfigManager::setBambuSalt(const std::string &salt) {
   simConfig["bambu_salt"] = salt;
+}
+
+bool ConfigManager::getCYD2USB() {
+  auto it = simConfig.find("cyd2usb");
+  return (it != simConfig.end() && it->second == "1");
+}
+
+void ConfigManager::setCYD2USB(bool enabled) {
+  simConfig["cyd2usb"] = enabled ? "1" : "0";
 }
 
 #endif

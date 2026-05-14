@@ -44,11 +44,11 @@ void setup() {
 
   // Initialize UI (Display and LVGL)
 
-  // Initialize UI (Display and LVGL)
-  DisplayUI::init();
-
   // Initialize Config
   ConfigManager::init();
+
+  // Initialize UI (Display and LVGL)
+  DisplayUI::init();
 
 #ifndef USE_SDL2
   // Initialize NFC

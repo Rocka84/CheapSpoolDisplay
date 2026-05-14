@@ -56,6 +56,10 @@ public:
   static std::string getBambuSalt();
   static void setBambuSalt(const std::string &salt);
 
+  // Display Settings
+  static bool getCYD2USB();
+  static void setCYD2USB(bool enabled);
+
 private:
 #ifndef USE_SDL2
   static Preferences preferences;

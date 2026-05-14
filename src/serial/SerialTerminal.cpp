@@ -65,6 +65,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.println("  set u1_host <hostname>");
     Serial.println("  set tag_format <openspool|openprinttag|opentag3d|ask>");
     Serial.println("  set bambu_salt <hex_string>");
+    Serial.println("  set cyd2usb <0|1> (Invert colors/fix gamma for 2-USB boards)");
     Serial.println("  get config");
     Serial.println("  format (Erases all settings)");
     return;
@@ -85,6 +86,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.printf("set u1_host %s\n", ConfigManager::getU1Host().c_str());
     Serial.printf("set tag_format %s\n", ConfigManager::getTagFormat().c_str());
     Serial.printf("set bambu_salt %s\n", ConfigManager::getBambuSalt().c_str());
+    Serial.printf("set cyd2usb %d\n", ConfigManager::getCYD2USB());
     return;
   }
 
@@ -101,6 +103,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     ConfigManager::setU1Host("");
     ConfigManager::setTagFormat("ask");
     ConfigManager::setBambuSalt("");
+    ConfigManager::setCYD2USB(false);
     Serial.println("Configuration formatted/erased.");
     return;
   }
@@ -199,6 +202,10 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     } else if (key.equalsIgnoreCase("bambu_salt")) {
       ConfigManager::setBambuSalt(value.c_str());
       Serial.println("Bambu Lab Secret Salt saved.");
+    } else if (key.equalsIgnoreCase("cyd2usb")) {
+      bool val = (value == "1" || value.equalsIgnoreCase("true") || value.equalsIgnoreCase("on"));
+      ConfigManager::setCYD2USB(val);
+      Serial.printf("CYD2USB mode %s. REBOOT REQUIRED to apply display changes!\n", val ? "ENABLED" : "DISABLED");
     } else {
       Serial.printf("Error: Unknown key '%s'\n", key.c_str());
     }

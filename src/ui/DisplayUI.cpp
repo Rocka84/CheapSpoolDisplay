@@ -201,7 +201,17 @@ static uint32_t my_tick_get_cb(void) { return millis(); }
 void DisplayUI::init() {
 #ifndef USE_SDL2
   tft.begin();
-  tft.invertDisplay(true);
+  if (ConfigManager::getCYD2USB()) {
+    tft.invertDisplay(true);
+    // Gamma correction for 2-USB version of CYD (ESP32-2432S028R)
+    uint8_t g_val[] = {0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08, 0x4E, 0xF1, 0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00};
+    tft.writecommand(0xE0); // Positive Gamma Correction
+    for (uint8_t i = 0; i < 15; i++) {
+        tft.writedata(g_val[i]);
+    }
+  } else {
+    tft.invertDisplay(false);
+  }
   tft.setRotation(0); // Portrait
   tft.fillScreen(TFT_BLACK);
 
