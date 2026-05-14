@@ -74,3 +74,16 @@ You can find 3D printable case files for this project inside the [cad/](../cad) 
 - [Case Lid (STL)](../cad/CheapSpoolDisplay%20-%20Case%20lid.stl)
 
 - **Onshape Project**: [View source CAD on Onshape](https://cad.onshape.com/documents/a60add6f8ee1de5614ac75fe/w/16328b69bac76c64c87c96b5/e/ff77dffe6e5e288726fe3b2e)
+## 4. CYD Hardware Versions (1-USB vs. 2-USB)
+
+There are two main versions of the "Cheap Yellow Display" on the market:
+- **Original (1-USB)**: Features a single Micro-USB port for power and programming.
+- **Newer (2-USB / ESP32-2432S028R)**: Features two USB ports (one Micro-USB and one USB-C).
+
+### Color & Gamma Fix for 2-USB Version
+The 2-USB version often uses a different display panel that appears with **inverted colors** (e.g., black appears white) and washed-out gamma by default.
+
+To fix this, connect to the Serial Terminal and run:
+`set cyd2usb 1`
+
+After running the command, **restart the device**. The firmware will then apply the correct color inversion and a specific gamma correction table to make the display look vibrant and correct.

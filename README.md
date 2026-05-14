@@ -72,6 +72,9 @@ The device stores settings in non-volatile memory (NVS). Type `help` in the Seri
 > [!IMPORTANT]
 > **Bambu Lab RFID Support**: Reading official Bambu Lab tags is disabled by default. You must provide the **Secret Salt** via the serial command `set bambu_salt <hex_string>` to enable this feature. See the [Bambu Lab Support Documentation](docs/SUPPORTED_STANDARDS.md#bambu-lab-proprietary) for instructions on how to obtain and format the salt.
 
+> [!TIP]
+> **Inverted Colors?** If your display appears inverted (black is white), you have a newer 2-USB version of the CYD. Run `set cyd2usb 1` in the Serial Terminal and reboot to fix it.
+
 ### 2. Webhook HTTP Method Detection
 The device determines the HTTP method based on your Webhook URL:
 - **GET Mode**: Triggered if the URL contains the `{spool_id}` placeholder (e.g. `http://api.com/load?spool={spool_id}`).

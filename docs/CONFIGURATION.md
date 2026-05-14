@@ -21,7 +21,17 @@ CheapSpoolDisplay can be configured via a Serial Terminal (115200 baud) when con
 | `set display_timeout <sec>` | Set the screen auto-off time (0 = always on) |
 | `set sleep_timeout <sec>` | Set the idle time before deep sleep |
 | `set power_mode <0\|1\|2>` | Set the power behavior (0=Always On, 1=Deep Sleep, 2=Smart USB) |
+| `set cyd2usb <0\|1>` | Fix inverted colors/gamma for 2-USB boards |
 | `format` | Erases all configuration and resets to defaults |
+
+## CYD hardware versions
+If your display has two USB ports (one micro-USB and one USB-C), colors probably appear inverted (black appears white, etc.). To fix this:
+
+1. Connect via Serial Terminal.
+2. Run: `set cyd2usb 1`
+3. Restart the device.
+
+This setting also applies a specific gamma correction table to fix the washed-out look typical of these newer panels.
 
 ## Configuration Keys
 
