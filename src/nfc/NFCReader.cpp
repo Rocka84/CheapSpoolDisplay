@@ -4,6 +4,7 @@
 #include "../data/SnapmakerTag.h"
 #include "../data/BambuLabTag.h"
 #include "../config/ConfigManager.h"
+#include "../power/PowerManager.h"
 #include <vector>
 
 // Hardware pins for CYD SD Card slot
@@ -106,52 +107,70 @@ bool NFCReader::scanForTag(OpenSpoolData &data) {
   Serial.println("ISO15693 Tag detected!");
   
   PayloadResult res = readNDEFPayload();
-  if (res.type == PayloadType::UNKNOWN) return false;
+  if (res.type == PayloadType::UNKNOWN) {
+    PowerManager::indicateError();
+    return false;
+  }
+
+  bool success = false;
+  if (res.type == PayloadType::OPEN_SPOOL_JSON) {
+    std::string jsonStr(res.data.begin(), res.data.end());
+    success = OpenSpoolParser::parseJson(jsonStr, data);
+  } else if (res.type == PayloadType::OPEN_TAG_3D_BINARY) {
+    success = OpenTag3DParser::parseBinary(res.data, data);
+  } else if (res.type == PayloadType::OPEN_PRINT_TAG_CBOR) {
+    success = OpenPrintTagParser::parse(res.data, data);
+  }
+
+  if (success) PowerManager::indicateSuccess();
+  else PowerManager::indicateError();
+  return success;
 #else
   if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
     return false;
   }
 
+  bool success = false;
+
   // Check if it's a Snapmaker (Mifare Classic 1K) tag
   MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
   if (piccType == MFRC522::PICC_TYPE_MIFARE_1K) {
     if (readSnapmakerTag(data)) {
-        mfrc522.PICC_HaltA();
-        mfrc522.PCD_StopCrypto1();
-        return true;
-    }
-
-    // Check if it's a Bambu Lab tag (only if salt is configured)
-    if (!ConfigManager::getBambuSalt().empty()) {
+        success = true;
+    } else if (!ConfigManager::getBambuSalt().empty()) {
+        // Check if it's a Bambu Lab tag (only if salt is configured)
         if (readBambuTag(data)) {
-            mfrc522.PICC_HaltA();
-            mfrc522.PCD_StopCrypto1();
-            return true;
+            success = true;
         }
     }
   }
 
-  Serial.println("ISO14443A Tag detected!");
+  if (!success) {
+    Serial.println("ISO14443A Tag detected!");
+    PayloadResult res = readNDEFPayload();
+    if (res.type != PayloadType::UNKNOWN) {
+        if (res.type == PayloadType::OPEN_SPOOL_JSON) {
+            std::string jsonStr(res.data.begin(), res.data.end());
+            success = OpenSpoolParser::parseJson(jsonStr, data);
+        } else if (res.type == PayloadType::OPEN_TAG_3D_BINARY) {
+            success = OpenTag3DParser::parseBinary(res.data, data);
+        } else if (res.type == PayloadType::OPEN_PRINT_TAG_CBOR) {
+            success = OpenPrintTagParser::parse(res.data, data);
+        }
+    }
+  }
 
-  PayloadResult res = readNDEFPayload();
   mfrc522.PICC_HaltA();
   mfrc522.PCD_StopCrypto1();
 
-  if (res.type == PayloadType::UNKNOWN) {
-    return false;
+  if (success) {
+    PowerManager::indicateSuccess();
+  } else {
+    PowerManager::indicateError();
   }
+
+  return success;
 #endif
-
-  if (res.type == PayloadType::OPEN_SPOOL_JSON) {
-    std::string jsonStr(res.data.begin(), res.data.end());
-    return OpenSpoolParser::parseJson(jsonStr, data);
-  } else if (res.type == PayloadType::OPEN_TAG_3D_BINARY) {
-    return OpenTag3DParser::parseBinary(res.data, data);
-  } else if (res.type == PayloadType::OPEN_PRINT_TAG_CBOR) {
-    return OpenPrintTagParser::parse(res.data, data);
-  }
-
-  return false;
 }
 
 bool NFCReader::writeTag(const OpenSpoolData &data) {

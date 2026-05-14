@@ -15,24 +15,25 @@ Two modules are supported. Choose based on the tags you intend to use:
 | **OpenSpool**      | ✅ ISO14443A only       | ✅ Full support            |
 | **OpenPrintTag**   | ✅ ISO14443A only       | ✅ Full support            |
 | **OpenTag3D**      | ✅ ISO14443A only       | ✅ Full support            |
-| **Snapmaker**      | ✅ Read-only            | ❌ Not yet implemented     |
+| **Bambu Lab**      | ✅ Yes                  | ❌ No (Missing Crypto1)    |
+| **Snapmaker**      | ✅ Read-only            | ❌ No (Missing Crypto1)    |
 
 ### Wiring Reference
 
 Please wire your chosen RFID module to the CYD as follows:
 
-| RFID Pin      | CYD Pin (Connector)   | Location Description          |
-| :------------ | :-------------------- | :-----------------------------|
-| `3.3V`        | `3.3V`                | 3.3V rail                     |
-| `GND`         | `GND`                 | Ground / 6th pin from left    |
-| `SCK`         | `IO18`                | 5th pin from left             |
-| `MOSI`        | `IO23`                | 3rd pin from left             |
-| `MISO`        | `IO19`                | 7th pin from left             |
-| `SDA` (CS)    | `IO5`                 | 2nd pin from left             |
-| `RST`         | `IO22`                | Available on P3/CN1 connector |
-| `BUSY`*       | `IO27`                | Available on P3/CN1 connector |
+| RFID Pin       | CYD Pin       | Location Description          |
+| :------------- | :------------ | :-----------------------------|
+| `3.3V` / `5V`  | `3.3V` / `5V` | Power rail (see note)         |
+| `GND`          | `GND`         | Ground / 6th pin from left    |
+| `SDA` (CS/NSS) | `IO5`         | 2nd pin from left             |
+| `MOSI`         | `IO23`        | 3rd pin from left             |
+| `SCK`          | `IO18`        | 5th pin from left             |
+| `MISO`         | `IO19`        | 7th pin from left             |
+| `RST`          | `IO22`        | Available on P3/CN1 connector |
+| `BUSY`*        | `IO27`        | Available on P3/CN1 connector |
 
-*\*Note: `BUSY` pin is only required for the **PN5180** module.*
+*\*Note: `BUSY` pin is only required for the **PN5180** module. Also, while the MFRC522 runs on `3.3V`, the **PN5180** module requires `5V` on its VCC pin to provide enough power for the antenna driver (TVDD) to read ISO15693 tags reliably.*
 
 *(Note: With the board oriented as shown in the image below, **Pin 1 is on the far left**.)*
 

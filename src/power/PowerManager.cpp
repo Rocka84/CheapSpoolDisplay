@@ -13,9 +13,15 @@
 #define ADC_USB_THRESHOLD 2600 // Roughly equates to > 4.2V on a 1/2 divider
 #endif
 
+// RGB LED pins (active-low on CYD)
+#define LED_RED 4
+#define LED_GREEN 16
+#define LED_BLUE 17
+
 unsigned long PowerManager::lastActivityTime = 0;
 bool PowerManager::displayIsOff = false;
 unsigned long PowerManager::buttonPressStart = 0;
+unsigned long PowerManager::ledOffTime = 0;
 
 #define SLEEP_BUTTON_PIN 0
 #define SLEEP_HOLD_MS 2000
@@ -26,6 +32,14 @@ unsigned long PowerManager::buttonPressStart = 0;
 #endif
 
 void PowerManager::init() {
+  // Turn off RGB LED (active-low on CYD)
+  pinMode(LED_RED, OUTPUT);
+  digitalWrite(LED_RED, HIGH);
+  pinMode(LED_GREEN, OUTPUT);
+  digitalWrite(LED_GREEN, HIGH);
+  pinMode(LED_BLUE, OUTPUT);
+  digitalWrite(LED_BLUE, HIGH);
+
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   pinMode(SLEEP_BUTTON_PIN, INPUT_PULLUP);
@@ -75,6 +89,13 @@ bool PowerManager::isPoweredByUSB() {
 }
 
 void PowerManager::tick() {
+  if (ledOffTime > 0 && millis() > ledOffTime) {
+    digitalWrite(LED_RED, HIGH);
+    digitalWrite(LED_GREEN, HIGH);
+    digitalWrite(LED_BLUE, HIGH);
+    ledOffTime = 0;
+  }
+
   if (digitalRead(SLEEP_BUTTON_PIN) == LOW) {
     if (buttonPressStart == 0) buttonPressStart = millis();
     else if (millis() - buttonPressStart >= SLEEP_HOLD_MS) enterDeepSleep();
@@ -107,4 +128,14 @@ void PowerManager::tick() {
   if (idleTimeMs > sleepTimeoutMs) {
     enterDeepSleep();
   }
+}
+
+void PowerManager::indicateSuccess() {
+  digitalWrite(LED_GREEN, LOW);
+  ledOffTime = millis() + 500;
+}
+
+void PowerManager::indicateError() {
+  digitalWrite(LED_RED, LOW);
+  ledOffTime = millis() + 500;
 }

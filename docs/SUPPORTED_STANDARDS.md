@@ -82,16 +82,28 @@ These fields provide technical material properties, manufacturing tracking, and 
 *   **Storage**: Mifare Classic 1K Sectors 0-9.
 *   **Authentication**: Proprietary HKDF-derived keys.
 *   **Support Level**: Read-only.
-*   **Spoolman Linking**: Since official tags cannot be modified, they can be linked to Spoolman by setting the spool's **Lot Number** in Spoolman to the tag's 8-character hex UID (e.g. `A1B2C3D4`). 
-    - The search is performed as an **exact match** (using quotes in the API).
-    - The device will automatically find and sync with the corresponding spool on scan.
+*   **Spoolman Linking**:
+    - The device uses the tag's **8-character hex UID** (e.g. `A1B2C3D4`).
+    - After scanning a tag, you can find this ID in the **Lot nr** field on the device's **Extended Data** screen.
+    - Set the **Lot Number** in Spoolman to this hex string for automatic syncing.
 *   **Fields**: Supports Brand, Material Type, Subtype, Color, Diameter, Weight, and Temperature settings.
 
 ### Bambu Lab (Proprietary)
 *   **Storage**: Mifare Classic 1K Sectors 0-6.
-*   **Authentication**: Proprietary HKDF-SHA256 derived keys.
+*   **Authentication**: Proprietary keys derived using HMAC-SHA256.
 *   **Support Level**: **Read-only**.
-    - Official tags are signed with an RSA-2048 private key owned by Bambu Lab.
-    - To activate this feature, you MUST provide the **Secret Salt** via the Serial Terminal: `set bambu_salt <hex_string>`.
-*   **Spoolman Linking**: Linked via **Lot Number** (exact match of the tag's 4-byte UID, e.g. `04A1B2C3`).
+    - Official tags are digitally signed and cannot be modified.
+    - To enable reading these tags, you must provide the **32-byte Secret Salt** via the Serial Terminal.
+
+#### Setting the Secret Salt:
+1.  Find the salt in the [Bambu Research Group](https://github.com/queengooborg/Bambu-Lab-RFID-Tag-Guide) documentation.
+2.  It is usually provided as a C-style array: `0x1a, 0x2b, 0xc3, ...`
+3.  Remove the `0x` prefixes and commas to create a single continuous 64-character hex string: `1A2BC3...`
+4.  Connect to the device via Serial Terminal and run:
+    `set bambu_salt 1A2BC3...`
+
+*   **Spoolman Linking**:
+    - The device derives a consistent **10-character hex identifier** from the Tray UID (Block 9) and Production Date (Block 12).
+    - After scanning a tag, you can find this ID in the **Lot nr** field on the device's **Extended Data** screen.
+    - Set the **Lot Number** in Spoolman to this 10-character hex string for automatic syncing.
 *   **Fields**: Supports Brand ("Bambu Lab"), Material ID, Type, Detailed Type, Color, Weight, and all Temperature settings.

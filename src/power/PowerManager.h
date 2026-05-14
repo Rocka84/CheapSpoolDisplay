@@ -12,6 +12,9 @@ public:
   static void wakeDisplay();
   static void enterDeepSleep();
 
+  static void indicateSuccess();
+  static void indicateError();
+
 private:
   static bool isPoweredByUSB();
   static void turnDisplayOff();
@@ -19,6 +22,7 @@ private:
   static unsigned long lastActivityTime;
   static bool displayIsOff;
   static unsigned long buttonPressStart;
+  static unsigned long ledOffTime;
 };
 
 #endif // POWER_MGR_H
