@@ -137,10 +137,15 @@ bool NFCReader::scanForTag(OpenSpoolData &data) {
   if (piccType == MFRC522::PICC_TYPE_MIFARE_1K) {
     if (readSnapmakerTag(data)) {
         success = true;
-    } else if (!ConfigManager::getBambuSalt().empty()) {
-        // Check if it's a Bambu Lab tag (only if salt is configured)
-        if (readBambuTag(data)) {
+    } else {
+        // Not a Snapmaker tag. Try Bambu Lab.
+        int bambuResult = readBambuTag(data);
+        if (bambuResult == 1) {
             success = true;
+        } else if (bambuResult == -1) {
+            // It's likely a Bambu tag but we can't read it (missing or wrong salt)
+            DisplayUI::showToast("Bambu Lab tag locked.\nMissing or wrong salt!", true);
+            success = false; 
         }
     }
   }
@@ -473,12 +478,12 @@ bool NFCReader::readSnapmakerTag(OpenSpoolData &data) {
 #endif
 }
 
-bool NFCReader::readBambuTag(OpenSpoolData &data) {
+int NFCReader::readBambuTag(OpenSpoolData &data) {
 #ifdef USE_PN5180
-  return false;
+  return 0;
 #else
   std::string saltHex = ConfigManager::getBambuSalt();
-  if (saltHex.empty()) return false;
+  if (saltHex.empty()) return -1; // No salt configured = can't even try, but it's a Mifare 1K
 
   uint8_t salt[16];
   hexToBytes(saltHex, salt, 16);
@@ -505,7 +510,7 @@ bool NFCReader::readBambuTag(OpenSpoolData &data) {
           Serial.print(sector);
           Serial.print(": ");
           Serial.println(mfrc522.GetStatusCodeName(status));
-          return false;
+          return -1; // Authentication failed = likely wrong salt
       }
 
       // Read blocks (0-2, block 3 is trailer)
@@ -524,9 +529,9 @@ bool NFCReader::readBambuTag(OpenSpoolData &data) {
   // Parse the data
   if (BambuLabTagParser::parse(rawData, mfrc522.uid.uidByte, data)) {
       Serial.println("Bambu Lab tag parsed successfully!");
-      return true;
+      return 1;
   }
 
-  return false;
+  return 0;
 #endif
 }
