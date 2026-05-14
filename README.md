@@ -69,6 +69,9 @@ The device stores settings in non-volatile memory (NVS). Type `help` in the Seri
 > [!NOTE]
 > Wi-Fi will only initialize if a **Webhook**, **Spoolman**, or **Snapmaker U1 Host** is set. If these fields are empty, the device remains offline.
 
+> [!IMPORTANT]
+> **Bambu Lab RFID Support**: Reading official Bambu Lab tags is disabled by default. You must provide the **Secret Salt** via the serial command `set bambu_salt <hex_string>` to enable this feature. See the [Bambu Lab Support Documentation](docs/SUPPORTED_STANDARDS.md#bambu-lab-proprietary) for instructions on how to obtain and format the salt.
+
 ### 2. Webhook HTTP Method Detection
 The device determines the HTTP method based on your Webhook URL:
 - **GET Mode**: Triggered if the URL contains the `{spool_id}` placeholder (e.g. `http://api.com/load?spool={spool_id}`).
