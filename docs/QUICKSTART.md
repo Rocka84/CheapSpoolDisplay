@@ -19,8 +19,10 @@ See [HARDWARE_SETUP.md](HARDWARE_SETUP.md) for details.
 ## 3. Flash the Firmware
 1.  Connect the CYD to your PC via USB.
 2.  Open the **[CheapSpoolDisplay Web Installer](https://Rocka84.github.io/CheapSpoolDisplay)**.
-3.  Click **Connect** and select your CYD's COM port.
-4.  Follow the prompts to **Install** the latest firmware.
+3.  Click the button matching your wired NFC module: **Flash Device (MFRC522)** or **Flash Device (PN5180)**.
+    > [!IMPORTANT]
+    > You must choose the version that matches your physical module, otherwise the NFC reader will fail to initialize on boot.
+4.  Select your CYD's COM port in the connection window and follow the prompts to install the firmware.
 
 ## 4. Configure the Device
 See [CONFIGURATION.md](CONFIGURATION.md) for details.

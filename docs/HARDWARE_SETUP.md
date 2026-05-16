@@ -6,17 +6,20 @@ The RFID modules communicate via SPI. To keep the screen functional and high-per
 
 ## 1. Choosing an NFC Module
 
+> [!WARNING]
+> **Firmware Matching Required**: You must flash the firmware variant that matches your purchased module. If you wire a **PN5180** but flash the **MFRC522** variant (or vice versa), the reader will fail to initialize on boot. You can select your correct module in the Web Installer's dropdown menu before flashing.
+
 Two modules are supported. Choose based on the tags you intend to use:
 
-| Feature            | MFRC522 (Standard)      | PN5180 (Advanced)          |
+| Feature            | MFRC522                 | PN5180                     |
 | :----------------- | :---------------------- | :------------------------- |
 | **ISO14443A**      | ✅ Yes (NTAG, Mifare)   | ✅ Yes (NTAG, Ultralight)  |
 | **ISO15693**       | ❌ No                   | ✅ Yes (ICODE SLIX)        |
 | **OpenSpool**      | ✅ ISO14443A only       | ✅ Full support            |
 | **OpenPrintTag**   | ✅ ISO14443A only       | ✅ Full support            |
 | **OpenTag3D**      | ✅ ISO14443A only       | ✅ Full support            |
-| **Bambu Lab**      | ✅ Yes                  | ❌ No (Missing Crypto1)    |
-| **Snapmaker**      | ✅ Read-only            | ❌ No (Missing Crypto1)    |
+| **Bambu Lab**      | ☑️ Read-only            | ☑️ Read-only               |
+| **Snapmaker**      | ☑️ Read-only            | ☑️ Read-only               |
 
 ### Wiring Reference
 

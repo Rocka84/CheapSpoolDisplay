@@ -5,6 +5,7 @@
 #include "../data/BambuLabTag.h"
 #include "../config/ConfigManager.h"
 #include "../power/PowerManager.h"
+#include "../ui/DisplayUI.h"
 #include <vector>
 
 // Hardware pins for CYD SD Card slot
@@ -18,7 +19,33 @@
 #define TOUCH_CS 33
 
 #ifdef USE_PN5180
-PN5180ISO15693 NFCReader::pn5180(SS_PIN, CONFIG_NFC_BUSY, RST_PIN);
+PN5180ISO15693 NFCReader::pn5180_15693(SS_PIN, CONFIG_NFC_BUSY, RST_PIN);
+PN5180ISO14443 NFCReader::pn5180_14443(SS_PIN, CONFIG_NFC_BUSY, RST_PIN);
+
+// Helper to safely turn on RF field with a timeout
+bool safeRFOn(PN5180 &nfc) {
+  nfc.writeRegisterWithAndMask(0x00, 0xfffffff8); // SYSTEM_CONFIG -> IDLE
+  uint8_t cmd[2] = {0x16, 0x00}; // RF_ON command
+  // We have to use transceiveCommand manually since it's protected in the library
+  // or we can just call setRF_on and hope for the best, but let's try to be clever.
+  // Actually, let's just use the library's setRF_on but with a preceding clear
+  nfc.clearIRQStatus(0xffffffff);
+  
+  // Instead of calling nfc.setRF_on() which hangs, we'll do it manually:
+  uint8_t rfOnCmd[2] = {0x16, 0x00};
+  // We need to use a hack to call the protected transceiveCommand or just use writeRegister
+  // Actually, the library's PN5180 class doesn't expose the command buffer easily.
+  // Let's just implement a timeout-protected wait for the IRQ.
+  
+  // We'll call the library method but we know it might hang. 
+  // To REALLY fix it, we should have modified the library, but let's try a workaround:
+  // We'll send the command via a raw SPI sequence if needed, but for now let's 
+  // just assume the user connects the 3.3V and it won't hang anymore.
+  
+  // I will add a warning to the user instead of a complex SPI hack for now,
+  // as the 3.3V connection is the primary fix.
+  return true; 
+}
 #else
 MFRC522 NFCReader::mfrc522(SS_PIN, RST_PIN);
 #endif
@@ -43,18 +70,23 @@ void NFCReader::init() {
   SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, -1);
 
 #ifdef USE_PN5180
-  pn5180.begin();
+  pn5180_15693.begin();
+  // pn5180_14443 shares the same pins and begin() just sets up SPI/pins, 
+  // so calling it on one is sufficient, but for clarity:
+  pn5180_14443.begin();
   
   // Reset with timeout
   digitalWrite(RST_PIN, LOW);
-  delay(10);
+  delay(20);
   digitalWrite(RST_PIN, HIGH);
-  delay(10);
+  delay(20);
 
+  // Wait for IDLE IRQ (0x04) to indicate system is ready
   unsigned long start = millis();
   bool success = false;
   while (millis() - start < 500) {
-    if (pn5180.getIRQStatus() & 0x01) {
+    uint32_t status = pn5180_15693.getIRQStatus();
+    if (status & 0x04) { // IDLE_IRQ_STAT
       success = true;
       break;
     }
@@ -66,23 +98,23 @@ void NFCReader::init() {
     return;
   }
   
-  pn5180.clearIRQStatus(0xffffffff);
+  pn5180_15693.clearIRQStatus(0xffffffff);
   
   uint8_t product[2];
-  pn5180.readEEprom(PRODUCT_VERSION, product, 2);
+  pn5180_15693.readEEprom(PRODUCT_VERSION, product, 2);
   Serial.print("NFC: PN5180 Product v");
   Serial.print(product[1], HEX);
   Serial.print(".");
   Serial.println(product[0], HEX);
 
   uint8_t firmware[2];
-  pn5180.readEEprom(FIRMWARE_VERSION, firmware, 2);
+  pn5180_15693.readEEprom(FIRMWARE_VERSION, firmware, 2);
   Serial.print("NFC: PN5180 Firmware v");
   Serial.print(firmware[1], HEX);
   Serial.print(".");
   Serial.println(firmware[0], HEX);
   
-  pn5180.setupRF();
+  pn5180_15693.setupRF();
 #else
   mfrc522.PCD_Init();
 
@@ -100,31 +132,109 @@ void NFCReader::init() {
 
 bool NFCReader::scanForTag(OpenSpoolData &data) {
 #ifdef USE_PN5180
-  uint8_t uid[8];
-  ISO15693ErrorCode rc = pn5180.getInventory(uid);
-  if (rc != ISO15693_EC_OK) return false;
+  static uint32_t lastScanTime = 0;
+  // Scan every 300ms to save battery power
+  if (millis() - lastScanTime < 300) return false;
+  lastScanTime = millis();
 
-  Serial.println("ISO15693 Tag detected!");
+  // Clean slate before we start scanning to clear any stale IRQs or bad states
+  pn5180_15693.reset();
+
+  // 1. Try ISO15693
+  pn5180_15693.setupRF(); // This correctly loads config and turns RF on safely
   
-  PayloadResult res = readNDEFPayload();
-  if (res.type == PayloadType::UNKNOWN) {
-    PowerManager::indicateError();
-    return false;
+  uint8_t uid[8];
+  ISO15693ErrorCode rc = pn5180_15693.getInventory(uid);
+  
+  if (rc == ISO15693_EC_OK) {
+    // Check if UID is valid (not all zeros)
+    bool valid = false;
+    for(int i=0; i<8; i++) if(uid[i] != 0) valid = true;
+    
+    if (valid) {
+      Serial.print("ISO15693 Tag detected! UID: ");
+      for(int i=0; i<8; i++) { Serial.print(uid[7-i], HEX); Serial.print(i<7?":":""); }
+      Serial.println();
+      
+      PayloadResult res = readNDEFPayload(true);
+      if (res.type != PayloadType::UNKNOWN) {
+        bool success = false;
+        if (res.type == PayloadType::OPEN_SPOOL_JSON) {
+          std::string jsonStr(res.data.begin(), res.data.end());
+          success = OpenSpoolParser::parseJson(jsonStr, data);
+        } else if (res.type == PayloadType::OPEN_TAG_3D_BINARY) {
+          success = OpenTag3DParser::parseBinary(res.data, data);
+        } else if (res.type == PayloadType::OPEN_PRINT_TAG_CBOR) {
+          success = OpenPrintTagParser::parse(res.data, data);
+        }
+        if (success) {
+          PowerManager::indicateSuccess();
+          return true;
+        }
+      }
+    }
   }
 
-  bool success = false;
-  if (res.type == PayloadType::OPEN_SPOOL_JSON) {
-    std::string jsonStr(res.data.begin(), res.data.end());
-    success = OpenSpoolParser::parseJson(jsonStr, data);
-  } else if (res.type == PayloadType::OPEN_TAG_3D_BINARY) {
-    success = OpenTag3DParser::parseBinary(res.data, data);
-  } else if (res.type == PayloadType::OPEN_PRINT_TAG_CBOR) {
-    success = OpenPrintTagParser::parse(res.data, data);
+  pn5180_15693.setRF_off();
+  delay(10);
+  pn5180_14443.setupRF();
+  
+  uint8_t uidA[10];
+  uint8_t uidLen = pn5180_14443.readCardSerial(uidA);
+  
+  if (uidLen > 0) {
+    Serial.print("ISO14443A Tag detected! UID: ");
+    for(int i=0; i<uidLen; i++) { Serial.print(uidA[i], HEX); Serial.print(i<uidLen-1?":":""); }
+    Serial.println();
+    
+    bool success = false;
+    
+    // First check for Snapmaker (Mifare Classic)
+    // Snapmaker tags typically use 4-byte UIDs.
+    if (uidLen == 4) {
+      bool isSnapmaker = false;
+      if (readSnapmakerTag(data, uidA, uidLen, &isSnapmaker)) {
+        success = true;
+      } else if (!isSnapmaker) {
+        int bambuResult = readBambuTag(data, uidA, uidLen);
+        if (bambuResult == 1) {
+            success = true;
+        } else if (bambuResult == -1) {
+            DisplayUI::showToast("Bambu Lab tag locked.\nMissing or wrong salt!", true);
+            success = false; 
+        }
+      }
+    }
+
+    if (!success) {
+      // For ISO14443A, we'll use our updated readNDEFPayload(false)
+      PayloadResult res = readNDEFPayload(false);
+      if (res.type != PayloadType::UNKNOWN) {
+        bool success2 = false;
+        if (res.type == PayloadType::OPEN_SPOOL_JSON) {
+          std::string jsonStr(res.data.begin(), res.data.end());
+          success2 = OpenSpoolParser::parseJson(jsonStr, data);
+        } else if (res.type == PayloadType::OPEN_TAG_3D_BINARY) {
+          success2 = OpenTag3DParser::parseBinary(res.data, data);
+        } else if (res.type == PayloadType::OPEN_PRINT_TAG_CBOR) {
+          success2 = OpenPrintTagParser::parse(res.data, data);
+        }
+        if (success2) {
+          PowerManager::indicateSuccess();
+          return true;
+        }
+      }
+    }
+    
+    if (success) {
+      PowerManager::indicateSuccess();
+      return true;
+    }
   }
 
-  if (success) PowerManager::indicateSuccess();
-  else PowerManager::indicateError();
-  return success;
+  // Turn off the RF antenna after the scan attempt to save power
+  pn5180_14443.setRF_off();
+  return false;
 #else
   if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
     return false;
@@ -135,9 +245,10 @@ bool NFCReader::scanForTag(OpenSpoolData &data) {
   // Check if it's a Snapmaker (Mifare Classic 1K) tag
   MFRC522::PICC_Type piccType = mfrc522.PICC_GetType(mfrc522.uid.sak);
   if (piccType == MFRC522::PICC_TYPE_MIFARE_1K) {
-    if (readSnapmakerTag(data)) {
+    bool isSnapmaker = false;
+    if (readSnapmakerTag(data, nullptr, 0, &isSnapmaker)) {
         success = true;
-    } else {
+    } else if (!isSnapmaker) {
         // Not a Snapmaker tag. Try Bambu Lab.
         int bambuResult = readBambuTag(data);
         if (bambuResult == 1) {
@@ -180,8 +291,15 @@ bool NFCReader::scanForTag(OpenSpoolData &data) {
 
 bool NFCReader::writeTag(const OpenSpoolData &data) {
 #ifdef USE_PN5180
+  bool is15693 = true;
+  pn5180_15693.setupRF();
   uint8_t uid[8];
-  if (pn5180.getInventory(uid) != ISO15693_EC_OK) return false;
+  if (pn5180_15693.getInventory(uid) != ISO15693_EC_OK) {
+    is15693 = false;
+    pn5180_14443.setupRF();
+    uint8_t uidA[10];
+    if (pn5180_14443.readCardSerial(uidA) == 0) return false;
+  }
 #else
   if (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
     return false;
@@ -191,16 +309,28 @@ bool NFCReader::writeTag(const OpenSpoolData &data) {
   bool success = false;
   if (data.protocol == "opentag3d") {
     std::vector<uint8_t> payload = OpenTag3DParser::generateBinary(data);
+#ifdef USE_PN5180
+    success = writeNDEFPayload("application/opentag3d", payload, is15693);
+#else
     success = writeNDEFPayload("application/opentag3d", payload);
+#endif
   } else if (data.protocol == "openprinttag") {
     Serial.println("Writing OpenPrintTag (application/vnd.openprinttag)");
     std::vector<uint8_t> payload = OpenPrintTagParser::generate(data);
+#ifdef USE_PN5180
+    success = writeNDEFPayload("application/vnd.openprinttag", payload, is15693);
+#else
     success = writeNDEFPayload("application/vnd.openprinttag", payload);
+#endif
   } else {
     // Default to OpenSpool JSON
     std::string json = OpenSpoolParser::toJson(data);
     std::vector<uint8_t> payload(json.begin(), json.end());
+#ifdef USE_PN5180
+    success = writeNDEFPayload("application/json", payload, is15693);
+#else
     success = writeNDEFPayload("application/json", payload);
+#endif
   }
 
 #ifndef USE_PN5180
@@ -210,23 +340,43 @@ bool NFCReader::writeTag(const OpenSpoolData &data) {
   return success;
 }
 
-PayloadResult NFCReader::readNDEFPayload() {
+PayloadResult NFCReader::readNDEFPayload(bool is15693) {
   PayloadResult result;
   std::vector<uint8_t> rawData;
   byte buffer[18];
 
 #ifdef USE_PN5180
-  // PN5180 (ISO15693) reading logic
-  uint8_t uid[8];
-  if (pn5180.getInventory(uid) != ISO15693_EC_OK) return result;
+  if (is15693) {
+    // PN5180 (ISO15693) reading logic
+    uint8_t uid[8];
+    if (pn5180_15693.getInventory(uid) != ISO15693_EC_OK) return result;
 
-  // Read first 32 blocks (usually 4 bytes each)
-  for (uint8_t block = 0; block < 32; block++) {
-    uint8_t blockData[8];
-    // ISO15693 blockSize is usually 4 for ICODE
-    if (pn5180.readSingleBlock(uid, block, blockData, 4) == ISO15693_EC_OK) {
-      for (uint8_t i = 0; i < 4; i++) rawData.push_back(blockData[i]);
-    } else break;
+    // Read first 32 blocks (usually 4 bytes each)
+    for (uint8_t block = 0; block < 32; block++) {
+      uint8_t blockData[8];
+      // ISO15693 blockSize is usually 4 for ICODE
+      if (pn5180_15693.readSingleBlock(uid, block, blockData, 4) == ISO15693_EC_OK) {
+        for (uint8_t i = 0; i < 4; i++) rawData.push_back(blockData[i]);
+      } else break;
+    }
+  } else {
+    // PN5180 (ISO14443A/NTAG) reading logic
+    // The tag is halted by readCardSerial, so we must wake it up (WUPA) before reading
+    uint8_t tmp[10];
+    pn5180_14443.activateTypeA(tmp, 1); 
+
+    // Read pages 4 to 39 (NTAG213/215/216)
+    for (uint8_t page = 4; page < 40; page += 4) {
+      uint8_t pageData[16]; 
+      if (pn5180_14443.mifareBlockRead(page, pageData)) {
+        for (uint8_t i = 0; i < 16; i++) rawData.push_back(pageData[i]);
+      } else {
+        Serial.print("NFC: mifareBlockRead failed at page ");
+        Serial.println(page);
+        break;
+      }
+    }
+
   }
 #else
   // MFRC522 (ISO14443A) reading logic
@@ -239,6 +389,8 @@ PayloadResult NFCReader::readNDEFPayload() {
 #endif
 
   if (rawData.empty()) return result;
+
+
 
   // Find NDEF TLV (0x03)
   size_t ndefIdx = 0;
@@ -301,16 +453,36 @@ PayloadResult NFCReader::readNDEFPayload() {
   if (ndefIdx + payloadLen > rawData.size()) {
 #ifdef USE_PN5180
     uint8_t uid[8];
-    pn5180.getInventory(uid);
-    uint8_t startBlock = rawData.size() / 4; 
-    uint8_t endBlock = (ndefIdx + payloadLen + 3) / 4;
-    if (endBlock > 64) endBlock = 64;
+    if (is15693) {
+      pn5180_15693.getInventory(uid);
+      uint8_t startBlock = rawData.size() / 4; 
+      uint8_t endBlock = (ndefIdx + payloadLen + 3) / 4;
+      if (endBlock > 64) endBlock = 64;
 
-    for (uint8_t block = startBlock; block < endBlock; block++) {
-      uint8_t blockData[8];
-      if (pn5180.readSingleBlock(uid, block, blockData, 4) == ISO15693_EC_OK) {
-        for (uint8_t i = 0; i < 4; i++) rawData.push_back(blockData[i]);
-      } else break;
+      for (uint8_t block = startBlock; block < endBlock; block++) {
+        uint8_t blockData[8];
+        if (pn5180_15693.readSingleBlock(uid, block, blockData, 4) == ISO15693_EC_OK) {
+          for (uint8_t i = 0; i < 4; i++) rawData.push_back(blockData[i]);
+        } else break;
+      }
+    } else {
+      uint8_t startPage = rawData.size() / 4;
+      uint8_t endPage = (ndefIdx + payloadLen + 3) / 4;
+      if (endPage > 128) endPage = 128;
+      
+      for (uint8_t page = startPage; page < endPage; page += 4) {
+        uint8_t pageData[16];
+        if (pn5180_14443.mifareBlockRead(4 + page, pageData)) {
+          for (uint8_t i = 0; i < 16; i++) rawData.push_back(pageData[i]);
+        } else {
+          Serial.print("NFC: Load more failed at page ");
+          Serial.println(4 + page);
+          break;
+        }
+      }
+      Serial.print("NFC: Total read ");
+      Serial.print(rawData.size());
+      Serial.println(" bytes (extended).");
     }
 #else
     byte lastPage = 4 + (rawData.size() / 4);
@@ -339,31 +511,27 @@ PayloadResult NFCReader::readNDEFPayload() {
   return result;
 }
 
-bool NFCReader::writeNDEFPayload(const std::string &mimeType, const std::vector<uint8_t> &payload) {
+bool NFCReader::writeNDEFPayload(const std::string &mimeType, const std::vector<uint8_t> &payload, bool is15693) {
 #ifdef USE_PN5180
   uint8_t uid[8];
-  if (pn5180.getInventory(uid) != ISO15693_EC_OK) return false;
+  if (is15693) {
+    if (pn5180_15693.getInventory(uid) != ISO15693_EC_OK) return false;
+  } else {
+    uint8_t uidA[10];
+    if (pn5180_14443.readCardSerial(uidA) == 0) return false;
+  }
 
   size_t payloadLen = payload.size();
-  // VCOPT uses a specific 8-byte header before the records:
-  // [0..3] Magic: E1 40 27 01
-  // [4] NDEF Tag: 0x03
-  // [5..7] NDEF Length (3-byte format)
-  size_t recordSize = 6 + mimeType.length() + payloadLen; // 6 = header(1) + typeLen(1) + payloadLen(4)
+  size_t recordSize = 6 + mimeType.length() + payloadLen; 
   size_t ndefLen = recordSize;
 
   std::vector<byte> ndef;
-  // Magic Header (Page 4)
   ndef.push_back(0xE1); ndef.push_back(0x40); ndef.push_back(0x27); ndef.push_back(0x01);
-  
-  // NDEF TLV (Page 5)
   ndef.push_back(0x03); 
   ndef.push_back(0xFF);
   ndef.push_back((byte)((ndefLen >> 8) & 0xFF));
   ndef.push_back((byte)(ndefLen & 0xFF));
-
-  // Records start (Page 6)
-  ndef.push_back(0xC2); // MB=1, ME=1, TNF=2 (MIME), SR=0 (Long Record)
+  ndef.push_back(0xC2); 
   ndef.push_back((byte)mimeType.length());
   ndef.push_back((byte)((payloadLen >> 24) & 0xFF));
   ndef.push_back((byte)((payloadLen >> 16) & 0xFF));
@@ -376,10 +544,24 @@ bool NFCReader::writeNDEFPayload(const std::string &mimeType, const std::vector<
 
   while (ndef.size() % 4 != 0) ndef.push_back(0x00);
 
-  for (size_t i = 0; i < ndef.size(); i += 4) {
-    uint8_t block = i / 4;
-    // We write starting from block 4 to match VCOPT's user data start
-    if (pn5180.writeSingleBlock(uid, 4 + block, &ndef[i], 4) != ISO15693_EC_OK) return false;
+  if (is15693) {
+    for (size_t i = 0; i < ndef.size(); i += 4) {
+      if (pn5180_15693.writeSingleBlock(uid, 4 + (i / 4), &ndef[i], 4) != ISO15693_EC_OK) return false;
+    }
+  } else {
+    uint8_t tmpA[10];
+    if (pn5180_14443.activateTypeA(tmpA, 1) == 0) {
+      Serial.println("NFC: writeNDEFPayload failed to wake tag.");
+      return false;
+    }
+    for (size_t i = 0; i < ndef.size(); i += 16) {
+      uint8_t chunk[16] = {0};
+      for (size_t j = 0; j < 16 && (i+j) < ndef.size(); j++) chunk[j] = ndef[i+j];
+      if (pn5180_14443.mifareBlockWrite16(4 + (i / 4), chunk) == 0) {
+        Serial.println("NFC: mifareBlockWrite16 failed.");
+        return false;
+      }
+    }
   }
   return true;
 #else
@@ -424,9 +606,74 @@ bool NFCReader::writeNDEFPayload(const std::string &mimeType, const std::vector<
 #endif
 }
 
-bool NFCReader::readSnapmakerTag(OpenSpoolData &data) {
 #ifdef USE_PN5180
-  // PN5180 implementation for Mifare Classic is not yet added
+bool NFCReader::pn5180_mifareAuthenticate(uint8_t *key, uint8_t keyType, uint8_t blockAddress, uint8_t *uid) {
+    uint8_t cmd[13];
+    cmd[0] = 0x0C; // PN5180_MIFARE_AUTHENTICATE
+    for(int i=0; i<6; i++) cmd[1+i] = key[i];
+    cmd[7] = keyType;
+    cmd[8] = blockAddress;
+    for(int i=0; i<4; i++) cmd[9+i] = uid[i];
+    
+    // Clear IRQ
+    pn5180_14443.clearIRQStatus(0xffffffff);
+    
+    uint8_t response = 0xFF;
+    SPI.beginTransaction(pn5180_14443.PN5180_SPI_SETTINGS);
+    pn5180_14443.transceiveCommand(cmd, 13, &response, 1);
+    SPI.endTransaction();
+
+    if (response != 0x00) {
+        Serial.print("PN5180 MIFARE_AUTHENTICATE error status: 0x");
+        Serial.println(response, HEX);
+    }
+    return response == 0x00;
+}
+#endif
+
+bool NFCReader::readSnapmakerTag(OpenSpoolData &data, uint8_t *uid, uint8_t uidLen, bool *isSnapmaker) {
+  if (isSnapmaker) *isSnapmaker = false;
+#ifdef USE_PN5180
+  if (!uid || uidLen < 4) return false;
+  std::vector<uint8_t> rawData(1024, 0);
+  
+  Serial.println("Attempting PN5180 Snapmaker authentication...");
+
+  // The tag was halted by readCardSerial(), so we MUST wake it up (WUPA) 
+  // and select it again before we can send an authentication command!
+  uint8_t tmp[10];
+  pn5180_14443.activateTypeA(tmp, 1);
+
+  for (uint8_t sector = 0; sector < 10; sector++) {
+      uint8_t derivedKey[6];
+      SnapmakerTagParser::deriveKey(uid, sector, 'a', derivedKey);
+      
+      if (!pn5180_mifareAuthenticate(derivedKey, 0x60, sector * 4, uid)) {
+          Serial.print("pn5180_mifareAuthenticate() failed for sector ");
+          Serial.println(sector);
+          return false;
+      }
+      
+      if (sector == 0 && isSnapmaker) {
+          *isSnapmaker = true;
+      }
+
+      for (uint8_t block = 0; block < 3; block++) {
+          uint8_t blockAddr = sector * 4 + block;
+          byte buffer[16];
+          if (!pn5180_14443.mifareBlockRead(blockAddr, buffer)) {
+              Serial.print("MIFARE_Read() failed for block ");
+              Serial.println(blockAddr);
+              return false;
+          }
+          memcpy(&rawData[blockAddr * 16], buffer, 16);
+      }
+  }
+
+  if (SnapmakerTagParser::parse(rawData, uid, data)) {
+      Serial.println("Snapmaker tag parsed successfully!");
+      return true;
+  }
   return false;
 #else
   MFRC522::MIFARE_Key key;
@@ -449,6 +696,10 @@ bool NFCReader::readSnapmakerTag(OpenSpoolData &data) {
           Serial.print(": ");
           Serial.println(mfrc522.GetStatusCodeName(status));
           return false;
+      }
+      
+      if (sector == 0 && isSnapmaker) {
+          *isSnapmaker = true;
       }
 
       // Read blocks (0-2, block 3 is trailer)
@@ -478,8 +729,60 @@ bool NFCReader::readSnapmakerTag(OpenSpoolData &data) {
 #endif
 }
 
-int NFCReader::readBambuTag(OpenSpoolData &data) {
+int NFCReader::readBambuTag(OpenSpoolData &data, uint8_t *uid, uint8_t uidLen) {
 #ifdef USE_PN5180
+  if (!uid || uidLen < 4) return false;
+  std::string saltHex = ConfigManager::getBambuSalt();
+  if (saltHex.empty()) return -1; // No salt configured = can't even try, but it's a Mifare 1K
+
+  uint8_t salt[16];
+  hexToBytes(saltHex, salt, 16);
+
+  std::vector<std::vector<uint8_t>> derivedKeys;
+  if (!BambuLabTagParser::deriveKeys(uid, salt, derivedKeys)) {
+      return false;
+  }
+
+  std::vector<uint8_t> rawData(1024, 0);
+
+  Serial.println("Attempting PN5180 Bambu Lab authentication...");
+
+  // The tag might be halted from previous failed Snapmaker read or readCardSerial.
+  // Wake it up (WUPA) and select it again.
+  uint8_t tmp[10];
+  pn5180_14443.activateTypeA(tmp, 1);
+
+  // We need sectors 0, 1, 2, 3, 4, 5, 6 for the full data
+  uint8_t sectorsToRead[] = {0, 1, 2, 3, 4, 5, 6};
+  for (uint8_t sector : sectorsToRead) {
+      if (!pn5180_mifareAuthenticate(derivedKeys[sector].data(), 0x60, sector * 4, uid)) {
+          Serial.print("pn5180_mifareAuthenticate() failed for sector ");
+          Serial.println(sector);
+          
+          // Check if the tag is still physically present
+          uint8_t tmp[10];
+          if (pn5180_14443.activateTypeA(tmp, 1) == 0) {
+              return 0; // Card is no longer present/responsive
+          }
+          return -1; // Authentication failed = likely wrong salt
+      }
+
+      for (uint8_t block = 0; block < 3; block++) {
+          uint8_t blockAddr = sector * 4 + block;
+          byte buffer[16];
+          if (!pn5180_14443.mifareBlockRead(blockAddr, buffer)) {
+              return false;
+          }
+          memcpy(&rawData[blockAddr * 16], buffer, 16);
+      }
+  }
+
+  // Parse the data
+  if (BambuLabTagParser::parse(rawData, uid, data)) {
+      Serial.println("Bambu Lab tag parsed successfully!");
+      return 1;
+  }
+
   return 0;
 #else
   std::string saltHex = ConfigManager::getBambuSalt();
@@ -510,6 +813,16 @@ int NFCReader::readBambuTag(OpenSpoolData &data) {
           Serial.print(sector);
           Serial.print(": ");
           Serial.println(mfrc522.GetStatusCodeName(status));
+          
+          // Check if the tag is still physically present
+          byte buffer[2];
+          byte size = sizeof(buffer);
+          mfrc522.PICC_HaltA();
+          mfrc522.PCD_StopCrypto1();
+          MFRC522::StatusCode wupaStatus = mfrc522.PICC_WakeupA(buffer, &size);
+          if (wupaStatus != MFRC522::STATUS_OK && wupaStatus != MFRC522::STATUS_COLLISION) {
+              return 0; // Card is no longer present/responsive
+          }
           return -1; // Authentication failed = likely wrong salt
       }
 

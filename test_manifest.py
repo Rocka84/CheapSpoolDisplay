@@ -1,0 +1,16 @@
+import json
+
+manifest = {
+  "name": "CheapSpoolDisplay",
+  "version": "1.8.0",
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        { "path": "./bin/bootloader.bin", "offset": 4096 },
+        { "path": "./bin/partitions.bin", "offset": 32768 },
+        { "path": "./bin/firmware_mfrc522.bin", "offset": 65536 }
+      ]
+    }
+  ]
+}

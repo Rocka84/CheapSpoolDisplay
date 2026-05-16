@@ -3,7 +3,11 @@
 
 #include "../data/OpenSpool.h"
 #ifdef USE_PN5180
+// Hack to bypass library access controls without modifying external code
+#define private public
 #include <PN5180ISO15693.h>
+#include <PN5180ISO14443.h>
+#undef private
 #else
 #include <MFRC522.h>
 #endif
@@ -33,16 +37,20 @@ public:
 
 private:
 #ifdef USE_PN5180
-  static PN5180ISO15693 pn5180;
+  static PN5180ISO15693 pn5180_15693;
+  static PN5180ISO14443 pn5180_14443;
+  
+  // Custom Crypto1 Auth function using the unlocked PN5180 library
+  static bool pn5180_mifareAuthenticate(uint8_t *key, uint8_t keyType, uint8_t blockAddress, uint8_t *uid);
 #else
   static MFRC522 mfrc522;
 #endif
 
   // Protocol-specific readers
-  static PayloadResult readNDEFPayload();
-  static bool readSnapmakerTag(OpenSpoolData &data);
-  static int readBambuTag(OpenSpoolData &data);
-  static bool writeNDEFPayload(const std::string &mimeType, const std::vector<uint8_t> &payload);
+  static PayloadResult readNDEFPayload(bool is15693 = true);
+  static bool readSnapmakerTag(OpenSpoolData &data, uint8_t *uid = nullptr, uint8_t uidLen = 0, bool *isSnapmaker = nullptr);
+  static int readBambuTag(OpenSpoolData &data, uint8_t *uid = nullptr, uint8_t uidLen = 0);
+  static bool writeNDEFPayload(const std::string &mimeType, const std::vector<uint8_t> &payload, bool is15693 = true);
 };
 
 #endif // NFC_READER_H
