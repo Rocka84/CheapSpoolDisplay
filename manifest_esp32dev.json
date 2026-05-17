@@ -1,0 +1,23 @@
+{
+  "name": "CheapSpoolDisplay (MFRC522)",
+  "version": "1.8.0",
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "./bin/bootloader.bin",
+          "offset": 4096
+        },
+        {
+          "path": "./bin/partitions.bin",
+          "offset": 32768
+        },
+        {
+          "path": "./bin/firmware_esp32dev.bin",
+          "offset": 65536
+        }
+      ]
+    }
+  ]
+}

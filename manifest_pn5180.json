@@ -1,5 +1,5 @@
 {
-  "name": "CheapSpoolDisplay",
+  "name": "CheapSpoolDisplay (PN5180)",
   "version": "1.8.0",
   "builds": [
     {
@@ -14,7 +14,7 @@
           "offset": 32768
         },
         {
-          "path": "./bin/firmware.bin",
+          "path": "./bin/firmware_pn5180.bin",
           "offset": 65536
         }
       ]

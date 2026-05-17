@@ -22,8 +22,8 @@ Follow the [Quickstart Guide](docs/QUICKSTART.md) to get your device flashed and
 ## Hardware Requirements
 - **ESP32 Cheap Yellow Display (CYD)**
 - **RFID Module**:
-  - **MFRC522** (Standard ISO14443A support)
-  - **PN5180** (Advanced ISO15693/ICODE support)
+  - **MFRC522** (ISO14443A support)
+  - **PN5180** (ISO15693/ICODE support)
 
 ## 3D Printed Case
 You can find a 3D printable case for this project inside the [cad/](./cad) directory:
@@ -41,16 +41,24 @@ See the [docs](./docs) folder or [online documentation](https://rocka84.github.i
 You can flash the firmware and set up your Wi-Fi directly from your PC browser (Chrome/Edge)! 
 
 1. Navigate to the online Web Installer: **[Launch CheapSpoolDisplay Web Installer](https://Rocka84.github.io/CheapSpoolDisplay)**
-2. Follow the instructions in the Installer.
-3. Once flashed, use the integrated **Serial Terminal** to configure the device (see [Post-Flash Configuration](#post-flash-configuration)).
+2. Click the button matching your wired hardware: **Flash Device (MFRC522)** or **Flash Device (PN5180)**.
+   > [!WARNING]
+   > You must choose the variant that matches your wired hardware! Flashing the incorrect module will prevent the NFC reader from initializing.
+3. Follow the prompts to select your COM port and complete the installation.
+4. Once flashed, use the integrated **Serial Terminal** (click **Logs & Console**) to configure the device (see [Post-Flash Configuration](#post-flash-configuration)).
 
 ### Option 2: PlatformIO
 1. Clone this repository.
 2. Connect your CYD to your PC via USB.
-3. Run the upload command in the terminal: 
-   ```bash
-   pio run -t upload
-   ```
+3. Upload the firmware using the correct environment for your NFC module:
+   - For **MFRC522**:
+     ```bash
+     pio run -e esp32dev -t upload
+     ```
+   - For **PN5180**:
+     ```bash
+     pio run -e pn5180 -t upload
+     ```
 4. Run `pio device monitor` to configure the device (see [Post-Flash Configuration](#post-flash-configuration)).
 
 ## Post-Flash Configuration

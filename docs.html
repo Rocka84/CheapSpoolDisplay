@@ -429,21 +429,22 @@
 
             // Handle browser navigation (back/forward)
             window.addEventListener('popstate', (e) => {
-                if (e.state && e.state.id) {
-                    loadDoc(e.state.id, false);
-                } else {
-                    loadDoc(docFiles[0].id, false);
-                }
+                const hashParts = window.location.hash.split('#').filter(Boolean);
+                const docId = hashParts[0] || docFiles[0].id;
+                const anchorId = hashParts[1];
+                loadDoc(docId, false, anchorId);
             });
 
             // Load initial document based on hash or default to first
-            const hashId = window.location.hash.replace('#', '');
-            const initialDoc = docFiles.find(d => d.id === hashId) || docFiles[0];
-            loadDoc(initialDoc.id, true);
+            const hashParts = window.location.hash.split('#').filter(Boolean);
+            const docId = hashParts[0] || docFiles[0].id;
+            const anchorId = hashParts[1];
+            
+            loadDoc(docId, true, anchorId);
         }
 
         // Fetch and render the markdown file
-        async function loadDoc(id, pushState = true) {
+        async function loadDoc(id, pushState = true, anchorId = null) {
             const doc = docFiles.find(d => d.id === id);
             if (!doc) return;
 
@@ -466,7 +467,8 @@
 
             // Update URL Hash
             if (pushState) {
-                window.history.pushState({ id: id }, doc.title, `#${id}`);
+                const newHash = anchorId ? `#${id}#${anchorId}` : `#${id}`;
+                window.history.pushState({ id: id, anchor: anchorId }, doc.title, newHash);
             }
             document.title = `CheapSpoolDisplay | ${doc.title}`;
 
@@ -499,6 +501,17 @@
 
                 // Generate TOC
                 generateTOC(id);
+
+                // Scroll to anchor if provided
+                if (anchorId) {
+                    // Give it a tiny bit of time for IDs to be assigned by generateTOC
+                    setTimeout(() => {
+                        const element = document.getElementById(anchorId);
+                        if (element) {
+                            element.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    }, 100);
+                }
 
             } catch (error) {
                 console.error('Error fetching document:', error);

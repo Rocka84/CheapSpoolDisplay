@@ -19,8 +19,10 @@ See [HARDWARE_SETUP.md](HARDWARE_SETUP.md) for details.
 ## 3. Flash the Firmware
 1.  Connect the CYD to your PC via USB.
 2.  Open the **[CheapSpoolDisplay Web Installer](https://Rocka84.github.io/CheapSpoolDisplay)**.
-3.  Click **Connect** and select your CYD's COM port.
-4.  Follow the prompts to **Install** the latest firmware.
+3.  Click the button matching your wired NFC module: **Flash Device (MFRC522)** or **Flash Device (PN5180)**.
+    > [!IMPORTANT]
+    > You must choose the version that matches your physical module, otherwise the NFC reader will fail to initialize on boot.
+4.  Select your CYD's COM port in the connection window and follow the prompts to install the firmware.
 
 ## 4. Configure the Device
 See [CONFIGURATION.md](CONFIGURATION.md) for details.
@@ -34,11 +36,11 @@ See [CONFIGURATION.md](CONFIGURATION.md) for details.
     *   `set spoolman <URL>` to enable Spoolman enrichment (e.g., `http://192.168.1.50:8000`)
     *   `set u1_host <IP_OR_HOSTNAME>:7125` to enable Snapmaker U1 loading
     *   `set tools <1-16>` to set the number of toolheads
-    *   `set bambu_salt <HEX_STRING>` to enable [Bambu Lab Tag support](#bambu-lab-tags)
+    *   `set bambu_salt <HEX_STRING>` to enable [Bambu Lab Tag support](docs.html#supported-standards#section-3)
     *   `set display_timeout <seconds>` to adjust screen auto-off timings (0=Always On)
     *   `get config` to verify your updated settings anytime
 
 ## Bambu Lab Tags
 Bambu Lab tags are encrypted. To read them, you MUST provide a **Secret Salt** in the configuration. 
-See [CONFIGURATION.md](CONFIGURATION.md#bambu-lab-tags) for details.
+See [supported standards documentation](docs.html#supported-standards#section-3) for details.
 
