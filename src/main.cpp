@@ -295,7 +295,8 @@ void loop() {
 #endif
 
     if (!ConfigManager::getSpoolmanUrl().empty() && networkReady &&
-        (!currentSpoolData.spool_id.empty() || !currentSpoolData.lot_nr.empty())) {
+        (!currentSpoolData.spool_id.empty() || !currentSpoolData.lot_nr.empty() ||
+         !currentSpoolData.hardware_uid.empty())) {
       DisplayUI::showFetchingOverlay();
       lv_timer_handler(); // Force overlay render before blocking
       NetworkManager::fetchSpoolmanData(currentSpoolData);

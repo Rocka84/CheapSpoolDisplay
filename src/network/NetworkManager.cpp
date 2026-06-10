@@ -116,59 +116,93 @@ bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
   }
 
   if (!u1_host.empty()) {
-    // Snapmaker U1 Direct API Integration (OpenSpool U1 Extended Format)
+    // Snapmaker U1 Direct API Integration
     JsonDocument doc;
     doc["channel"] = toolhead_id;
     JsonObject info = doc["info"].to<JsonObject>();
 
-    info["VENDOR"] = data.brand;
+    // --- Attempt CARD_UID path first ---
+    // Normalize the hardware_uid: strip 0x/0X, colons, hyphens, spaces, quotes,
+    // whitespace; uppercase. Then convert each byte pair to a decimal int.
+    std::string rawUid = data.hardware_uid;
+    Serial.printf("[U1] Raw UID from tag: '%s'\n", rawUid.c_str());
 
-    // Ensure MAIN_TYPE is uppercase as recommended by spec
-    std::string mainType = data.type;
-    for (char &c : mainType)
-      c = toupper(c);
-    info["MAIN_TYPE"] = mainType;
+    std::string normUid;
+    normUid.reserve(rawUid.size());
+    for (char c : rawUid) {
+      if (c == ' ' || c == ':' || c == '-' || c == '\t' || c == '\n' || c == '\r' || c == '"')
+        continue;
+      normUid += (char)toupper((unsigned char)c);
+    }
+    if (normUid.size() >= 2 && normUid[0] == '0' && normUid[1] == 'X')
+      normUid = normUid.substr(2);
 
-    info["SUB_TYPE"] = data.subtype;
+    Serial.printf("[U1] Normalized UID: '%s'\n", normUid.c_str());
 
-    // Convert HEX to decimal int for RGB_1
-    int rgb = 0;
-    std::string hex = data.color_hex;
-    if (!hex.empty()) {
-      if (hex[0] == '#')
-        hex = hex.substr(1);
-      try {
-        rgb = std::stoi(hex, nullptr, 16);
-      } catch (...) {
-        rgb = 0;
+    // Validate: non-empty, even length, only hex chars
+    bool uidValid = !normUid.empty() && (normUid.size() % 2 == 0);
+    if (uidValid) {
+      for (char c : normUid) {
+        if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))) {
+          uidValid = false;
+          break;
+        }
       }
     }
-    info["RGB_1"] = rgb;
-    info["ALPHA"] = data.alpha.empty() ? 255 : std::stoi(data.alpha, nullptr, 16);
 
-    // Temperature parsing
-    auto s2i = [](const std::string &s) {
-      try {
-        return std::stoi(s);
-      } catch (...) {
-        return 0;
+    if (uidValid) {
+      // Build CARD_UID as array of decimal byte values
+      JsonArray cardUid = info["CARD_UID"].to<JsonArray>();
+      std::string byteLog = "[";
+      for (size_t i = 0; i < normUid.size(); i += 2) {
+        int byteVal = std::stoi(normUid.substr(i, 2), nullptr, 16);
+        cardUid.add(byteVal);
+        byteLog += std::to_string(byteVal);
+        if (i + 2 < normUid.size()) byteLog += ",";
       }
-    };
-    info["HOTEND_MIN_TEMP"] = s2i(data.min_temp);
-    info["HOTEND_MAX_TEMP"] = s2i(data.max_temp);
-    info["BED_TEMP"] = s2i(data.bed_min_temp);
-    
-    int s_id = 0;
-    try { s_id = std::stoi(data.spool_id); } catch(...) { s_id = 0; }
-    info["SPOOL_ID"] = s_id;
+      byteLog += "]";
+      Serial.printf("[U1] Sending CARD_UID: %s\n", byteLog.c_str());
+    } else {
+      // Fallback: no valid UID — send full vendor/material/color data
+      if (!rawUid.empty())
+        Serial.println("[U1] UID invalid, falling back to vendor/material payload");
+
+      info["VENDOR"] = data.brand;
+
+      std::string mainType = data.type;
+      for (char &c : mainType) c = toupper(c);
+      info["MAIN_TYPE"] = mainType;
+
+      info["SUB_TYPE"] = data.subtype;
+
+      int rgb = 0;
+      std::string hex = data.color_hex;
+      if (!hex.empty()) {
+        if (hex[0] == '#') hex = hex.substr(1);
+        try { rgb = std::stoi(hex, nullptr, 16); } catch (...) { rgb = 0; }
+      }
+      info["RGB_1"] = rgb;
+      info["ALPHA"] = data.alpha.empty() ? 255 : std::stoi(data.alpha, nullptr, 16);
+
+      auto s2i = [](const std::string &s) {
+        try { return std::stoi(s); } catch (...) { return 0; }
+      };
+      info["HOTEND_MIN_TEMP"] = s2i(data.min_temp);
+      info["HOTEND_MAX_TEMP"] = s2i(data.max_temp);
+      info["BED_TEMP"] = s2i(data.bed_min_temp);
+
+      int s_id = 0;
+      try { s_id = std::stoi(data.spool_id); } catch (...) { s_id = 0; }
+      info["SPOOL_ID"] = s_id;
+    }
 
     std::string payload;
     serializeJson(doc, payload);
+    Serial.printf("[U1] Payload: %s\n", payload.c_str());
 
     std::string u1_url = "http://" + u1_host;
-    if (u1_host.find(':') == std::string::npos) {
+    if (u1_host.find(':') == std::string::npos)
       u1_url += ":7125";
-    }
     u1_url += "/printer/filament_detect/set";
 
 #ifndef USE_SDL2
@@ -176,16 +210,19 @@ bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
     http.begin(u1_url.c_str());
     http.addHeader("Content-Type", "application/json");
     int code = http.POST(payload.c_str());
-    // Consume response to avoid 'flush() fail on fd' errors
-    http.getString();
+    std::string response = http.getString().c_str();
     http.end();
+    Serial.printf("[U1] Response %d: %s\n", code, response.c_str());
     return (code >= 200 && code < 300);
 #else
     CURL *curl = curl_easy_init();
     if (!curl)
       return false;
+    std::string response;
     curl_easy_setopt(curl, CURLOPT_URL, u1_url.c_str());
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
     struct curl_slist *headers = NULL;
     headers = curl_slist_append(headers, "Content-Type: application/json");
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -193,7 +230,9 @@ bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
     CURLcode res = curl_easy_perform(curl);
     long code = 0;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+    curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
+    Serial.printf("[U1] Response %ld: %s\n", code, response.c_str());
     return (res == CURLE_OK && code >= 200 && code < 300);
 #endif
   }
@@ -269,8 +308,8 @@ bool NetworkManager::fetchSpoolmanData(OpenSpoolData &data) {
   }
 
   if (data.spool_id.empty()) {
-    if (data.hardware_uid.empty()) return false;
-    // Fallback: search by External ID (Tag UID)
+    if (data.hardware_uid.empty() && data.lot_nr.empty()) return false;
+    // Fallback: search by card_uid or lot_nr
     if (fetchSpoolmanByExternalId(data)) {
         // Continue to fetch full details if we found an ID
     } else {
@@ -319,9 +358,23 @@ bool NetworkManager::fetchSpoolmanData(OpenSpoolData &data) {
   return false;
 }
 
+// Normalize a UID string: uppercase, strip spaces/colons/hyphens/tabs/newlines/quotes, remove 0x prefix.
+static std::string normalizeUid(const std::string &uid) {
+  std::string out;
+  out.reserve(uid.size());
+  for (char c : uid) {
+    if (c == ' ' || c == ':' || c == '-' || c == '\t' || c == '\n' || c == '\r' || c == '"')
+      continue;
+    out += (char)toupper((unsigned char)c);
+  }
+  if (out.size() >= 2 && out[0] == '0' && out[1] == 'X')
+    out = out.substr(2);
+  return out;
+}
+
 bool NetworkManager::fetchSpoolmanByExternalId(OpenSpoolData &data) {
   std::string baseUrl = ConfigManager::getSpoolmanUrl();
-  if (baseUrl.empty() || data.hardware_uid.empty()) {
+  if (baseUrl.empty() || (data.hardware_uid.empty() && data.lot_nr.empty())) {
     return false;
   }
 
@@ -331,10 +384,9 @@ bool NetworkManager::fetchSpoolmanByExternalId(OpenSpoolData &data) {
 
   if (baseUrl.back() == '/')
     baseUrl.pop_back();
-  
-  // Spoolman API: GET /api/v1/spool?lot_nr="<LOT>"&allow_archived=true
-  // We use quotes to ensure exact match for the lot_nr
-  std::string api_url = baseUrl + "/api/v1/spool?lot_nr=%22" + data.lot_nr + "%22&allow_archived=true";
+
+  // Fetch all spools (including archived) so both card_uids and lot_nr can be checked in one pass.
+  std::string api_url = baseUrl + "/api/v1/spool?allow_archived=true";
 
   std::string payload;
   long response_code = 0;
@@ -359,22 +411,64 @@ bool NetworkManager::fetchSpoolmanByExternalId(OpenSpoolData &data) {
   }
 #endif
 
-  if (response_code == 200) {
-    // Parse response (JSON list of spools)
-    JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, payload);
-    if (!error && doc.is<JsonArray>() && doc.as<JsonArray>().size() > 0) {
-        // Take the first matching spool
-        JsonObject first = doc[0];
-        if (first["id"].is<std::string>()) {
-            data.spool_id = first["id"].as<std::string>();
+  if (response_code != 200) return false;
+
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, payload);
+  if (error || !doc.is<JsonArray>()) return false;
+
+  JsonArray spools = doc.as<JsonArray>();
+  std::string normHwUid = normalizeUid(data.hardware_uid);
+  int lotNrMatchIdx = -1;
+
+  for (int i = 0; i < (int)spools.size(); i++) {
+    JsonObject spool = spools[i];
+
+    // 1. card_uids check (priority)
+    if (!normHwUid.empty()) {
+      JsonVariant cardUidsVar = spool["extra"]["card_uids"];
+      if (!cardUidsVar.isNull()) {
+        std::string cardUidsStr = cardUidsVar.as<std::string>();
+        // Spoolman encodes extra values as JSON strings — strip surrounding quotes.
+        if (cardUidsStr.size() >= 2 && cardUidsStr.front() == '"' && cardUidsStr.back() == '"')
+          cardUidsStr = cardUidsStr.substr(1, cardUidsStr.size() - 2);
+
+        // Split comma-separated list and compare each entry.
+        size_t start = 0;
+        while (start <= cardUidsStr.size()) {
+          size_t end = cardUidsStr.find(',', start);
+          if (end == std::string::npos) end = cardUidsStr.size();
+          if (normalizeUid(cardUidsStr.substr(start, end - start)) == normHwUid) {
+            if (spool["id"].is<int>())
+              data.spool_id = std::to_string(spool["id"].as<int>());
+            else
+              data.spool_id = spool["id"].as<std::string>();
+            Serial.println("[Spoolman] Matched by card_uid");
             return true;
-        } else if (first["id"].is<int>()) {
-            data.spool_id = std::to_string(first["id"].as<int>());
-            return true;
+          }
+          start = end + 1;
         }
+      }
+    }
+
+    // 2. Remember first lot_nr match as fallback.
+    if (lotNrMatchIdx < 0 && !data.lot_nr.empty()) {
+      JsonVariant lotVar = spool["lot_nr"];
+      if (!lotVar.isNull() && lotVar.as<std::string>() == data.lot_nr)
+        lotNrMatchIdx = i;
     }
   }
+
+  // Fallback: lot_nr
+  if (lotNrMatchIdx >= 0) {
+    JsonObject spool = spools[lotNrMatchIdx];
+    if (spool["id"].is<int>())
+      data.spool_id = std::to_string(spool["id"].as<int>());
+    else
+      data.spool_id = spool["id"].as<std::string>();
+    return true;
+  }
+
   return false;
 }
 

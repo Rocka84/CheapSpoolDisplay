@@ -54,7 +54,9 @@ void SerialTerminal::processCommand(const String &cmdLine) {
 
   if (cmd.equalsIgnoreCase("help") || cmd == "?") {
     Serial.println("Available commands:");
-    Serial.println("  set wifi <ssid> <password>");
+    Serial.println("  set wifi <ssid> <password>  (SSID must not contain spaces)");
+    Serial.println("  set wifi_ssid <ssid>         (SSID may contain spaces)");
+    Serial.println("  set wifi_pass <password>     (password may contain spaces)");
     Serial.println("  set webhook <http://...>");
     Serial.println("  set spoolman <http://...>");
     Serial.println("  set wifi_timeout <seconds> (10-300)");
@@ -73,9 +75,16 @@ void SerialTerminal::processCommand(const String &cmdLine) {
 
   if (cmd.equalsIgnoreCase("get config")) {
     Serial.println("[Current Config]");
+    std::string ssid = ConfigManager::getWifiSSID();
     std::string pass = ConfigManager::getWifiPass();
     std::string redactedPass = pass.empty() ? "" : "********";
-    Serial.printf("set wifi %s %s\n", ConfigManager::getWifiSSID().c_str(), redactedPass.c_str());
+    // Use separate commands when SSID contains spaces so the output is directly re-enterable
+    if (ssid.find(' ') != std::string::npos) {
+      Serial.printf("set wifi_ssid %s\n", ssid.c_str());
+      Serial.printf("set wifi_pass %s\n", redactedPass.c_str());
+    } else {
+      Serial.printf("set wifi %s %s\n", ssid.c_str(), redactedPass.c_str());
+    }
     Serial.printf("set webhook %s\n", ConfigManager::getWebhook().c_str());
     Serial.printf("set spoolman %s\n", ConfigManager::getSpoolmanUrl().c_str());
     Serial.printf("set wifi_timeout %d\n", ConfigManager::getWifiTimeout());
@@ -125,7 +134,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     if (key.equalsIgnoreCase("wifi")) {
       int thirdSpace = cmd.indexOf(' ', secondSpace + 1);
       if (thirdSpace == -1) {
-        // Assume the rest of the string is just the SSID (no password network)
+        // Only SSID provided — open network (no password)
         ConfigManager::setWifiSSID(value.c_str());
         ConfigManager::setWifiPass("");
         Serial.println("Saved open Wi-Fi network (no password).");
@@ -138,6 +147,14 @@ void SerialTerminal::processCommand(const String &cmdLine) {
         ConfigManager::setWifiPass(pass.c_str());
         Serial.println("Wi-Fi credentials saved.");
       }
+    } else if (key.equalsIgnoreCase("wifi_ssid")) {
+      // Accepts the full rest of the line as SSID — spaces allowed
+      ConfigManager::setWifiSSID(value.c_str());
+      Serial.printf("Wi-Fi SSID saved: %s\n", value.c_str());
+    } else if (key.equalsIgnoreCase("wifi_pass")) {
+      // Accepts the full rest of the line as password — spaces allowed
+      ConfigManager::setWifiPass(value.c_str());
+      Serial.println("Wi-Fi password saved.");
     } else if (key.equalsIgnoreCase("webhook")) {
       ConfigManager::setWebhook(value.c_str());
       Serial.println("Webhook saved.");
