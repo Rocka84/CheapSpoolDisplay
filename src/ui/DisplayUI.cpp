@@ -60,6 +60,7 @@ lv_obj_t *DisplayUI::labelSpoolId = nullptr;
 lv_obj_t *DisplayUI::labelSubtype = nullptr;
 lv_obj_t *DisplayUI::labelLotNr = nullptr;
 lv_obj_t *DisplayUI::keyLotNr = nullptr;
+lv_obj_t *DisplayUI::labelHardwareUid = nullptr;
 lv_obj_t *DisplayUI::labelTemp = nullptr;
 lv_obj_t *DisplayUI::labelBedTemp = nullptr;
 lv_obj_t *DisplayUI::labelDiameter = nullptr;
@@ -764,6 +765,7 @@ void DisplayUI::buildExtendedInfoScreen() {
   create_ext_row("Diameter", &labelDiameter);
   create_ext_row("Subtype", &labelSubtype);
   create_ext_row("Lot Nr", &labelLotNr);
+  create_ext_row("Card UID", &labelHardwareUid);
   create_ext_row("Density", &labelDensity);
   create_ext_row("Actual W.", &labelActualWeight);
   create_ext_row("Empty W.", &labelEmptyWeight);
@@ -2060,6 +2062,7 @@ void DisplayUI::showExtendedInfoScreen() {
   set_field(labelDiameter, spool.diameter, "mm");
   set_field(labelSubtype, spool.subtype);
   set_field(labelLotNr, spool.lot_nr);
+  set_field(labelHardwareUid, spool.hardware_uid);
   set_field(labelDensity, spool.density, "g/cm3");
   set_field(labelActualWeight, spool.actual_weight, "g");
   set_field(labelEmptyWeight, spool.empty_weight, "g");
