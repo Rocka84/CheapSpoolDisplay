@@ -1,6 +1,6 @@
 #include "DisplayUI.h"
 #include "../config/ConfigManager.h"
-#include "../network/NetworkManager.h"
+#include "../network/AppNetworkManager.h"
 #include "../data/OpenTag3D.h"
 #include "../data/OpenPrintTag.h"
 #include "../data/WriteGuard.h"
@@ -474,7 +474,7 @@ void DisplayUI::updateSelectSpoolList(const std::vector<SpoolmanItem> &items,
 
             showFetchingOverlay();
             lv_refr_now(NULL); // Force render before blocking
-            if (NetworkManager::fetchSpoolmanData(data)) {
+            if (AppNetworkManager::fetchSpoolmanData(data)) {
               currentLoadedData = data;
               showInfoScreen(currentLoadedData);
             } else {
@@ -1437,7 +1437,7 @@ void DisplayUI::onLoadSpoolButtonClicked(lv_event_t *e) {
 
   if (tools == 1) {
     // Immediate Webhook Fire
-    if (NetworkManager::sendWebhookPayload(currentLoadedData, 0)) {
+    if (AppNetworkManager::sendWebhookPayload(currentLoadedData, 0)) {
       showToast("Successfully loaded to Printer", false);
     } else {
       showToast("Failed to load to Printer!", true);
@@ -1452,7 +1452,7 @@ void DisplayUI::onLoadSpoolButtonClicked(lv_event_t *e) {
 void DisplayUI::onToolButtonClicked(lv_event_t *e) {
   int toolhead_id = (int)(intptr_t)lv_event_get_user_data(e);
   // Fire Webhook synchronously (simple implementation, can be async later)
-  if (NetworkManager::sendWebhookPayload(currentLoadedData, toolhead_id)) {
+  if (AppNetworkManager::sendWebhookPayload(currentLoadedData, toolhead_id)) {
     showToast("Successfully loaded to Printer", false);
   } else {
     showToast("Failed to load to Printer!", true);
@@ -1485,7 +1485,7 @@ void DisplayUI::onSelectSpoolButtonClicked(lv_event_t *e) {
 
   showFetchingOverlay();
   lv_refr_now(NULL);
-  if (NetworkManager::fetchSpoolmanList(currentSpoolPage, 4, items,
+  if (AppNetworkManager::fetchSpoolmanList(currentSpoolPage, 4, items,
                                         total_count)) {
     updateSelectSpoolList(items, total_count);
     lv_scr_load(selectSpoolScreen); 
@@ -1503,7 +1503,7 @@ void DisplayUI::onPrevPageClicked(lv_event_t *e) {
 
     showFetchingOverlay();
     lv_refr_now(NULL);
-    if (NetworkManager::fetchSpoolmanList(currentSpoolPage, 4, items,
+    if (AppNetworkManager::fetchSpoolmanList(currentSpoolPage, 4, items,
                                           total_count)) {
       updateSelectSpoolList(items, total_count);
     }
@@ -1518,7 +1518,7 @@ void DisplayUI::onNextPageClicked(lv_event_t *e) {
 
   showFetchingOverlay();
   lv_refr_now(NULL);
-  if (NetworkManager::fetchSpoolmanList(nextPage, 4, items, total_count)) {
+  if (AppNetworkManager::fetchSpoolmanList(nextPage, 4, items, total_count)) {
     if (!items.empty()) {
       currentSpoolPage = nextPage;
       updateSelectSpoolList(items, total_count);

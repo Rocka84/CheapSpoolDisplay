@@ -5,7 +5,7 @@
 #include "ui/DisplayUI.h"
 
 #include "config/ConfigManager.h"
-#include "network/NetworkManager.h"
+#include "network/AppNetworkManager.h"
 
 #ifndef USE_SDL2
 #include "nfc/NFCReader.h"
@@ -81,7 +81,7 @@ void loop() {
   PowerManager::tick();
 
   // WiFi idle timeout
-  NetworkManager::tick();
+  AppNetworkManager::tick();
 
   // If display is off and screen gets touched, wake it up
   if (PowerManager::isDisplayOff() && ts.getTouch().zRaw > 0) {
@@ -98,7 +98,7 @@ void loop() {
 
   // Poll WiFi state; update UI only on change
   static bool lastWifiState = false;
-  bool wifiNow = NetworkManager::isWiFiConnected();
+  bool wifiNow = AppNetworkManager::isWiFiConnected();
   if (wifiNow != lastWifiState) {
     lastWifiState = wifiNow;
     DisplayUI::updateWiFiStatus(wifiNow);
@@ -298,7 +298,7 @@ void loop() {
         (!currentSpoolData.spool_id.empty() || !currentSpoolData.lot_nr.empty())) {
       DisplayUI::showFetchingOverlay();
       lv_timer_handler(); // Force overlay render before blocking
-      NetworkManager::fetchSpoolmanData(currentSpoolData);
+      AppNetworkManager::fetchSpoolmanData(currentSpoolData);
       DisplayUI::hideFetchingOverlay();
     }
 

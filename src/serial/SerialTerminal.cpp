@@ -54,7 +54,8 @@ void SerialTerminal::processCommand(const String &cmdLine) {
 
   if (cmd.equalsIgnoreCase("help") || cmd == "?") {
     Serial.println("Available commands:");
-    Serial.println("  set wifi <ssid> <password>");
+    Serial.println("  set wifi_ssid <ssid>");
+    Serial.println("  set wifi_pass <password>");
     Serial.println("  set webhook <http://...>");
     Serial.println("  set spoolman <http://...>");
     Serial.println("  set wifi_timeout <seconds> (10-300)");
@@ -75,7 +76,8 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.println("[Current Config]");
     std::string pass = ConfigManager::getWifiPass();
     std::string redactedPass = pass.empty() ? "" : "********";
-    Serial.printf("set wifi %s %s\n", ConfigManager::getWifiSSID().c_str(), redactedPass.c_str());
+    Serial.printf("set wifi_ssid %s\n", ConfigManager::getWifiSSID().c_str());
+    Serial.printf("set wifi_pass %s\n", redactedPass.c_str());
     Serial.printf("set webhook %s\n", ConfigManager::getWebhook().c_str());
     Serial.printf("set spoolman %s\n", ConfigManager::getSpoolmanUrl().c_str());
     Serial.printf("set wifi_timeout %d\n", ConfigManager::getWifiTimeout());
@@ -122,22 +124,14 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     key.trim();
     value.trim();
 
-    if (key.equalsIgnoreCase("wifi")) {
-      int thirdSpace = cmd.indexOf(' ', secondSpace + 1);
-      if (thirdSpace == -1) {
-        // Assume the rest of the string is just the SSID (no password network)
-        ConfigManager::setWifiSSID(value.c_str());
-        ConfigManager::setWifiPass("");
-        Serial.println("Saved open Wi-Fi network (no password).");
-      } else {
-        String ssid = cmd.substring(secondSpace + 1, thirdSpace);
-        String pass = cmd.substring(thirdSpace + 1);
-        ssid.trim();
-        pass.trim();
-        ConfigManager::setWifiSSID(ssid.c_str());
-        ConfigManager::setWifiPass(pass.c_str());
-        Serial.println("Wi-Fi credentials saved.");
-      }
+    if (key.equalsIgnoreCase("wifi_ssid")) {
+      ConfigManager::setWifiSSID(value.c_str());
+      Serial.printf("Wi-Fi SSID saved: %s\n", value.c_str());
+    } else if (key.equalsIgnoreCase("wifi_pass")) {
+      ConfigManager::setWifiPass(value.c_str());
+      Serial.println("Wi-Fi password saved.");
+    } else if (key.equalsIgnoreCase("wifi")) {
+      Serial.println("Error: The command 'set wifi' was replaced by 'set wifi_ssid' and 'set wifi_pass'.");
     } else if (key.equalsIgnoreCase("webhook")) {
       ConfigManager::setWebhook(value.c_str());
       Serial.println("Webhook saved.");

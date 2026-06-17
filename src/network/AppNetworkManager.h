@@ -4,7 +4,7 @@
 #include "../data/OpenSpool.h"
 #include <string>
 
-class NetworkManager {
+class AppNetworkManager {
 public:
   static void connectWiFi();
   static void tick();

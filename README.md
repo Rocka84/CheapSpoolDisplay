@@ -65,7 +65,8 @@ You can flash the firmware and set up your Wi-Fi directly from your PC browser (
 The device stores settings in non-volatile memory (NVS). Type `help` in the Serial Terminal to see all available commands.
 
 ### 1. Settings
-- `set wifi YourWiFiName YourWiFiPassword` (Set your WiFi credentials)
+- `set wifi_ssid YourWiFiName` (Set your WiFi network name)
+- `set wifi_pass YourWiFiPassword` (Set your WiFi password)
 - `set webhook http://your-hook-url/webhook?spool={spool_id}&tool={toolhead}` (Set your webhook URL)
 - `set spoolman http://your-spoolman-ip:8000` (Set your Spoolman URL)
 - `set u1_host your-u1-ip:7125` (Enable Snapmaker U1 loading)

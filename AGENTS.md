@@ -39,8 +39,8 @@ You do **not** need to flash the ESP32 to test UI changes! The project includes 
 - `src/network/` - WiFi setup, Spoolman API clients, and Webhook/U1 HTTP request handling.
 - `src/serial/` - CLI interface via the USB serial port for device configuration.
 - `src/power/` - Battery voltage monitoring (ADC) and sleep management heuristics.
-- `docs/` - User-facing documentation and hardware setup guides.
-- `scripts/` - Python pre/post scripts for PlatformIO (e.g., binary copying, version injection).
+- `docs/` - User-facing documentation and hardware setup guides. **This is the source of truth.** Do not edit `web/docs/` directly.
+- `scripts/` - Python pre/post scripts for PlatformIO, and bash scripts like `copy_docs.sh` to sync docs to the `web/` folder.
 - `simulator/` - Mock data and configs for the native UI simulator.
 
 ## 6. Global Rules & Code Conventions
@@ -57,6 +57,7 @@ You do **not** need to flash the ESP32 to test UI changes! The project includes 
 ## 8. Agentic Workflow
 1. Read the user's prompt carefully.
 2. If UI changes are requested, modify `src/ui/`, build the `simulator` environment, and run it to verify.
-3. Keep `notes.md` updated if you complete tasks or find new known issues.
-4. Keep `AGENTS.md` updated if the project architecture, dependencies, hardware integrations, or core guidelines change.
-5. If a task involves complex logic, use your `brainstorming` skill before writing code.
+3. **Documentation:** The files in `docs/` and the root `README.md` are the source of truth. If you edit them, you MUST run `./scripts/copy_docs.sh` to update the `web/` directory. Do not edit `web/docs/` or `web/README.md` directly.
+4. Keep `notes.md` updated if you complete tasks or find new known issues.
+5. Keep `AGENTS.md` updated if the project architecture, dependencies, hardware integrations, or core guidelines change.
+6. If a task involves complex logic, use your `brainstorming` skill before writing code.

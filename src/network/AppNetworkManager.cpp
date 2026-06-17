@@ -1,4 +1,4 @@
-#include "NetworkManager.h"
+#include "AppNetworkManager.h"
 #include "../config/ConfigManager.h"
 #include "../data/OpenSpool.h"
 #include "WebhookFormatter.h"
@@ -21,7 +21,7 @@ static bool ensureWiFi() {
     lastNetworkActivity = millis();
     return true;
   }
-  NetworkManager::connectWiFi();
+  AppNetworkManager::connectWiFi();
   if (WiFi.status() == WL_CONNECTED)
     lastNetworkActivity = millis();
   return (WiFi.status() == WL_CONNECTED);
@@ -30,7 +30,7 @@ static bool ensureWiFi() {
 #endif
 }
 
-void NetworkManager::tick() {
+void AppNetworkManager::tick() {
 #ifndef USE_SDL2
   if (WiFi.status() == WL_CONNECTED &&
       millis() - lastNetworkActivity > WIFI_IDLE_TIMEOUT_MS) {
@@ -40,7 +40,7 @@ void NetworkManager::tick() {
 #endif
 }
 
-bool NetworkManager::isWiFiConnected() {
+bool AppNetworkManager::isWiFiConnected() {
 #ifndef USE_SDL2
   return WiFi.status() == WL_CONNECTED;
 #else
@@ -48,7 +48,7 @@ bool NetworkManager::isWiFiConnected() {
 #endif
 }
 
-void NetworkManager::connectWiFi() {
+void AppNetworkManager::connectWiFi() {
 #ifndef USE_SDL2
   std::string ssid = ConfigManager::getWifiSSID();
   std::string pass = ConfigManager::getWifiPass();
@@ -100,7 +100,7 @@ static size_t HeaderCallback(void *contents, size_t size, size_t nmemb, void *us
 }
 #endif
 
-bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
+bool AppNetworkManager::sendWebhookPayload(const OpenSpoolData &data,
                                         int toolhead_id) {
   std::string spool_id = data.spool_id;
   std::string url = ConfigManager::getWebhook();
@@ -262,7 +262,7 @@ bool NetworkManager::sendWebhookPayload(const OpenSpoolData &data,
 #endif
 }
 
-bool NetworkManager::fetchSpoolmanData(OpenSpoolData &data) {
+bool AppNetworkManager::fetchSpoolmanData(OpenSpoolData &data) {
   std::string baseUrl = ConfigManager::getSpoolmanUrl();
   if (baseUrl.empty()) {
     return false;
@@ -319,7 +319,7 @@ bool NetworkManager::fetchSpoolmanData(OpenSpoolData &data) {
   return false;
 }
 
-bool NetworkManager::fetchSpoolmanByExternalId(OpenSpoolData &data) {
+bool AppNetworkManager::fetchSpoolmanByExternalId(OpenSpoolData &data) {
   std::string baseUrl = ConfigManager::getSpoolmanUrl();
   if (baseUrl.empty() || data.hardware_uid.empty()) {
     return false;
@@ -378,7 +378,7 @@ bool NetworkManager::fetchSpoolmanByExternalId(OpenSpoolData &data) {
   return false;
 }
 
-bool NetworkManager::fetchSpoolmanList(int page, int limit, std::vector<SpoolmanItem>& items, int& total_count) {
+bool AppNetworkManager::fetchSpoolmanList(int page, int limit, std::vector<SpoolmanItem>& items, int& total_count) {
   std::string baseUrl = ConfigManager::getSpoolmanUrl();
   if (baseUrl.empty()) {
     return false;

@@ -1,7 +1,12 @@
 Import("env")
 
 import os
-from PIL import Image
+try:
+    from PIL import Image
+except ImportError:
+    print("Pre-Build: Pillow not found. Installing via uv...")
+    env.Execute('"$PYTHONEXE" -m uv pip install Pillow')
+    from PIL import Image
 
 def generate_logo():
     input_path = "web/logo.png"
