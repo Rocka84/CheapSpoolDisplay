@@ -2,9 +2,9 @@ Import("env")
 import os
 import json
 
+import glob
 proj_dir = env.get("PROJECT_DIR")
 version_path = os.path.join(proj_dir, "VERSION")
-manifest_path = os.path.join(proj_dir, "web", "manifest.json")
 
 # Read version from VERSION (the source of truth)
 try:
@@ -18,14 +18,16 @@ except Exception as e:
 print(f"Injecting PROJECT_VERSION={version} from VERSION")
 env.Append(CPPDEFINES=[("PROJECT_VERSION", f'\\"{version}\\"')])
 
-# Keep web/manifest.json automatically synced
-try:
-    with open(manifest_path, "r") as f:
-        manifest = json.load(f)
-    if manifest.get("version") != version:
-        print(f"Updating web/manifest.json version to {version}")
-        manifest["version"] = version
-        with open(manifest_path, "w") as f:
-            json.dump(manifest, f, indent=2)
-except Exception as e:
-    print(f"Warning: Could not sync web/manifest.json: {e}")
+# Keep web/manifest*.json automatically synced
+manifests = glob.glob(os.path.join(proj_dir, "web", "manifest*.json"))
+for m_path in manifests:
+    try:
+        with open(m_path, "r") as f:
+            manifest = json.load(f)
+        if manifest.get("version") != version:
+            print(f"Updating {os.path.basename(m_path)} version to {version}")
+            manifest["version"] = version
+            with open(m_path, "w") as f:
+                json.dump(manifest, f, indent=2)
+    except Exception as e:
+        print(f"Warning: Could not sync {os.path.basename(m_path)}: {e}")
