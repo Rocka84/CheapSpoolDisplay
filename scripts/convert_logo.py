@@ -1,4 +1,5 @@
-Import("env")
+Import("env") # type: ignore
+env = globals().get("env")
 
 import os
 try:

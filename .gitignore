@@ -10,6 +10,7 @@ platformio.ini.local
 simulator/config.cfg
 .cache/
 compile_commands.json
+device.cfg
 
 # Dynamic Web Content
 web/docs/
