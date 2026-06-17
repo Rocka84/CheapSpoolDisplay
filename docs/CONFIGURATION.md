@@ -10,7 +10,8 @@ CheapSpoolDisplay can be configured via a Serial Terminal (115200 baud) when con
 | :--- | :--- |
 | `help` | Show available commands |
 | `get config` | Show current configuration values |
-| `set wifi <ssid> <password>` | Special command to set Wi-Fi credentials |
+| `set wifi_ssid <ssid>` | Set Wi-Fi network name |
+| `set wifi_pass <password>` | Set Wi-Fi network password |
 | `set spoolman http://<ip>:<port>` | Set the Spoolman server URL |
 | `set webhook http://...` | Set the webhook URL |
 | `set u1_host <ip>:<port>` | Set the Snapmaker U1 host URL |
@@ -37,7 +38,8 @@ This setting also applies a specific gamma correction table to fix the washed-ou
 
 ### Wi-Fi
 
-`set wifi SSID PASSWORD`
+`set wifi_ssid SSID`
+`set wifi_pass PASSWORD`
 
 **Note:** The device will only connect to Wi-Fi when needed (e.g., for Spoolman or Webhooks). You can optionally configure the connection timeout limit using:
 `set wifi_timeout <seconds>` (Default: 60)
@@ -106,7 +108,8 @@ Configures how many seconds the device must be idle before entering deep sleep (
 
 ```bash
 # Set Wi-Fi
-set wifi MySSID MySecretPassword
+set wifi_ssid MySSID
+set wifi_pass MySecretPassword
 
 # Configure Spoolman
 set spoolman http://192.168.1.50:8000

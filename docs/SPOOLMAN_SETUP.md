@@ -21,7 +21,7 @@ To enable Spoolman enrichment, you must configure your Spoolman server URL via t
 
 ## Requirements
 
-- **Wi-Fi**: The device must be configured with a valid SSID and Password (`set wifi ...`).
+- **Wi-Fi**: The device must be configured with a valid SSID and Password (`set wifi_ssid ...` and `set wifi_pass ...`).
 - **NFC Tag**: The tag must include a `spool_id` (OpenSpool format).
 - **Spoolman API**: The device will attempt to reach `${SPOOLMAN_URL}/api/v1/spool/${SPOOL_ID}`.
 
