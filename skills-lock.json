@@ -5,13 +5,61 @@
       "source": "obra/superpowers",
       "sourceType": "github",
       "skillPath": "skills/brainstorming/SKILL.md",
-      "computedHash": "8df9b47092524833138b58682d03f2e153a242e550d1693657afdbee0cc9cdb0"
+      "computedHash": "26a8eb33d548f0c4ead9e7bc13a90c3853398d30345c651245a61a12b869f130"
+    },
+    "build-platformio": {
+      "source": "leokemp223/embed-ai-tool",
+      "sourceType": "github",
+      "skillPath": "skills/build-platformio/SKILL.md",
+      "computedHash": "f92ac34cc17e14c0756043c0c6f16ea3ef756b4815b9e55f21f0d1afebdfbbc2"
     },
     "caveman": {
       "source": "juliusbrussee/caveman",
       "sourceType": "github",
       "skillPath": "skills/caveman/SKILL.md",
-      "computedHash": "dfbf85749fd474feeb0bbe60c779795ecd5dbec0083299b56e68916bc3ddd8c9"
+      "computedHash": "1902fa0b569912d0c05736d8d98a72097d9b82719aac88c0c1d03bb546f9176d"
+    },
+    "debug-platformio": {
+      "source": "leokemp223/embed-ai-tool",
+      "sourceType": "github",
+      "skillPath": "skills/debug-platformio/SKILL.md",
+      "computedHash": "28e560d7ab5ca36c763bd7b59ce9715c244e269d80d2715c79bb1a12e397f1db"
+    },
+    "esp32-firmware-engineer": {
+      "source": "adamlipecz/esp32-firmware-engineer-skill",
+      "sourceType": "github",
+      "skillPath": "esp32-firmware-engineer/SKILL.md",
+      "computedHash": "3df8fc9d1ba783e4f09c59cf728cfb73cecfca89eece4a3b5b7d7e3e62068b6e"
+    },
+    "flash-platformio": {
+      "source": "leokemp223/embed-ai-tool",
+      "sourceType": "github",
+      "skillPath": "skills/flash-platformio/SKILL.md",
+      "computedHash": "e82fdf5d689ecc4f5606c922f9e466ce4cde357d6a8bf8a42c696f9aa91c30dc"
+    },
+    "memory-analysis": {
+      "source": "leokemp223/embed-ai-tool",
+      "sourceType": "github",
+      "skillPath": "skills/memory-analysis/SKILL.md",
+      "computedHash": "86dbd91bd8675f3e39f6c1b2f616f49446a06b4da9c3c147b3d18dc5c1fc2a6c"
+    },
+    "serial-monitor": {
+      "source": "leokemp223/embed-ai-tool",
+      "sourceType": "github",
+      "skillPath": "skills/serial-monitor/SKILL.md",
+      "computedHash": "f3c624bf927b3022d6716a3fd3eddcada8bfea2e773ea24ba3358d99d0667b85"
+    },
+    "static-analysis": {
+      "source": "leokemp223/embed-ai-tool",
+      "sourceType": "github",
+      "skillPath": "skills/static-analysis/SKILL.md",
+      "computedHash": "38db7e57b263efd8ef0b8c127b2c7a8b137e54b51d40f96d14565dca8c09f91f"
+    },
+    "workflow": {
+      "source": "leokemp223/embed-ai-tool",
+      "sourceType": "github",
+      "skillPath": "skills/workflow/SKILL.md",
+      "computedHash": "d630f9abc1be918a4009afa87c203ae579416ae2b1ff4e6383e624c3fecfde27"
     }
   }
 }
