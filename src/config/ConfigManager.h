@@ -48,6 +48,9 @@ public:
   static std::string getU1Host();
   static void setU1Host(const std::string &host);
 
+  static bool getU1SendSpoolId();
+  static void setU1SendSpoolId(bool send);
+
   // Tag Format Settings
   static std::string getTagFormat(); // "openspool", "opentag3d", or "ask"
   static void setTagFormat(const std::string &format);

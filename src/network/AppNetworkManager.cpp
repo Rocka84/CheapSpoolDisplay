@@ -160,7 +160,9 @@ bool AppNetworkManager::sendWebhookPayload(const OpenSpoolData &data,
     
     int s_id = 0;
     try { s_id = std::stoi(data.spool_id); } catch(...) { s_id = 0; }
-    info["SPOOL_ID"] = s_id;
+    if (ConfigManager::getU1SendSpoolId()) {
+      info["SPOOL_ID"] = s_id;
+    }
 
     std::string payload;
     serializeJson(doc, payload);

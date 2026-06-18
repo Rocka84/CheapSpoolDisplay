@@ -64,6 +64,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.println("  set sleep_timeout <seconds> (60-3600)");
     Serial.println("  set power_mode <0=Always On|1=Deep Sleep|2=Smart USB>");
     Serial.println("  set u1_host <hostname>");
+    Serial.println("  set u1_send_spool_id <0|1> (Send SPOOL_ID to U1)");
     Serial.println("  set tag_format <openspool|openprinttag|opentag3d|ask>");
     Serial.println("  set bambu_salt <hex_string>");
     Serial.println("  set cyd2usb <0|1> (Invert colors/fix gamma for 2-USB boards)");
@@ -86,6 +87,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     Serial.printf("set power_mode %d\n", ConfigManager::getPowerMode());
     Serial.printf("set sleep_timeout %d\n", ConfigManager::getSleepTimeout());
     Serial.printf("set u1_host %s\n", ConfigManager::getU1Host().c_str());
+    Serial.printf("set u1_send_spool_id %d\n", ConfigManager::getU1SendSpoolId());
     Serial.printf("set tag_format %s\n", ConfigManager::getTagFormat().c_str());
     Serial.printf("set bambu_salt %s\n", ConfigManager::getBambuSalt().c_str());
     Serial.printf("set cyd2usb %d\n", ConfigManager::getCYD2USB());
@@ -103,6 +105,7 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     ConfigManager::setPowerMode(1);
     ConfigManager::setSleepTimeout(300);
     ConfigManager::setU1Host("");
+    ConfigManager::setU1SendSpoolId(false);
     ConfigManager::setTagFormat("ask");
     ConfigManager::setBambuSalt("");
     ConfigManager::setCYD2USB(false);
@@ -193,6 +196,10 @@ void SerialTerminal::processCommand(const String &cmdLine) {
     } else if (key.equalsIgnoreCase("u1_host")) {
       ConfigManager::setU1Host(value.c_str());
       Serial.println("Snapmaker U1 Host saved.");
+    } else if (key.equalsIgnoreCase("u1_send_spool_id")) {
+      bool val = (value == "1" || value.equalsIgnoreCase("true") || value.equalsIgnoreCase("on"));
+      ConfigManager::setU1SendSpoolId(val);
+      Serial.printf("U1 Send SPOOL_ID %s.\n", val ? "ENABLED" : "DISABLED");
     } else if (key.equalsIgnoreCase("bambu_salt")) {
       ConfigManager::setBambuSalt(value.c_str());
       Serial.println("Bambu Lab Secret Salt saved.");

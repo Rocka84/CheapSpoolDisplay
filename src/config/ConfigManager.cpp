@@ -108,6 +108,14 @@ void ConfigManager::setU1Host(const std::string &host) {
   preferences.putString("u1_host", host.c_str());
 }
 
+bool ConfigManager::getU1SendSpoolId() {
+  return preferences.getBool("u1_spool_id", false);
+}
+
+void ConfigManager::setU1SendSpoolId(bool send) {
+  preferences.putBool("u1_spool_id", send);
+}
+
 std::string ConfigManager::getTagFormat() {
   if (!preferences.isKey("tag_format"))
     return "ask";
@@ -156,6 +164,7 @@ void ConfigManager::loadSimConfig() {
   simConfig["power_mode"] = "0"; // Always On for simulator
   simConfig["sleep_timeout"] = "5";
   simConfig["u1_host"] = "192.168.1.50";
+  simConfig["u1_spool_id"] = "0";
   simConfig["tag_format"] = "ask";
   simConfig["cyd2usb"] = "0";
 
@@ -265,6 +274,15 @@ std::string ConfigManager::getU1Host() {
 }
 
 void ConfigManager::setU1Host(const std::string &host) {}
+
+bool ConfigManager::getU1SendSpoolId() {
+  auto it = simConfig.find("u1_spool_id");
+  return (it != simConfig.end() && it->second == "1");
+}
+
+void ConfigManager::setU1SendSpoolId(bool send) {
+  simConfig["u1_spool_id"] = send ? "1" : "0";
+}
 
 std::string ConfigManager::getTagFormat() {
   auto it = simConfig.find("tag_format");
