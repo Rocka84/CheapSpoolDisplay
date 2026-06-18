@@ -31,8 +31,8 @@ void test_nvs_wifi_credentials() {
 void test_nvs_webhook_url() {
   std::string fake_url = "http://192.168.1.10:8000/webhook";
 
-  ConfigManager::setWebhookUrl(fake_url);
-  std::string read_url = ConfigManager::getWebhookUrl();
+  ConfigManager::setWebhook(fake_url);
+  std::string read_url = ConfigManager::getWebhook();
 
   TEST_ASSERT_EQUAL_STRING(fake_url.c_str(), read_url.c_str());
 }
@@ -41,11 +41,11 @@ void test_nvs_format_erases_data() {
   // Assume previous tests wrote data. Now erase it.
   ConfigManager::setWifiSSID("");
   ConfigManager::setWifiPass("");
-  ConfigManager::setWebhookUrl("");
+  ConfigManager::setWebhook("");
 
   TEST_ASSERT_EQUAL_STRING("", ConfigManager::getWifiSSID().c_str());
   TEST_ASSERT_EQUAL_STRING("", ConfigManager::getWifiPass().c_str());
-  TEST_ASSERT_EQUAL_STRING("", ConfigManager::getWebhookUrl().c_str());
+  TEST_ASSERT_EQUAL_STRING("", ConfigManager::getWebhook().c_str());
 }
 
 void setup() {
