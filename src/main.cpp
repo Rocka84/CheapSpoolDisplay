@@ -52,6 +52,7 @@ void setup() {
 
 #ifndef USE_SDL2
   // Initialize NFC
+  Serial.println("Initializing NFC Reader...");
   NFCReader::init();
 
   // Initialize Power Manager

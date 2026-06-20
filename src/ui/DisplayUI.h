@@ -113,6 +113,8 @@ private:
   static lv_obj_t *labelSubtype;
   static lv_obj_t *labelLotNr;
   static lv_obj_t *keyLotNr;
+  static lv_obj_t *labelCardUid;
+  static lv_obj_t *keyCardUid;
   static lv_obj_t *labelDiameter;
   static lv_obj_t *keyDiameter;
   static lv_obj_t *labelTemp;

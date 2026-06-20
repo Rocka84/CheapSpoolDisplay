@@ -181,6 +181,13 @@ bool OpenSpoolParser::enrichFromSpoolman(const std::string &json,
   if (doc["last_used"].is<std::string>()) {
     data.last_used = doc["last_used"].as<std::string>();
   }
+  if (doc["extra"]["card_uids"].is<std::string>()) {
+    std::string raw = doc["extra"]["card_uids"].as<std::string>();
+    if (raw.length() >= 2 && raw.front() == '"' && raw.back() == '"') {
+      raw = raw.substr(1, raw.length() - 2);
+    }
+    data.card_uids = raw;
+  }
 
   // Finalize temperature ranges: if only one side is present, mirror it
   if (data.min_temp.empty() && !data.max_temp.empty()) data.min_temp = data.max_temp;

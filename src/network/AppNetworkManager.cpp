@@ -163,6 +163,17 @@ bool AppNetworkManager::sendWebhookPayload(const OpenSpoolData &data,
     if (ConfigManager::getU1SendSpoolId()) {
       info["SPOOL_ID"] = s_id;
     }
+    
+    if (!data.hardware_uid.empty()) {
+      JsonArray uidArr = info["CARD_UID"].to<JsonArray>();
+      for (size_t i = 0; i + 1 < data.hardware_uid.length(); i += 2) {
+        std::string byteStr = data.hardware_uid.substr(i, 2);
+        try {
+          int byteVal = std::stoi(byteStr, nullptr, 16);
+          uidArr.add(byteVal);
+        } catch(...) {}
+      }
+    }
 
     std::string payload;
     serializeJson(doc, payload);
@@ -209,13 +220,14 @@ bool AppNetworkManager::sendWebhookPayload(const OpenSpoolData &data,
 
   if (useGet) {
     std::string formattedUrl =
-        WebhookFormatter::formatUrl(url, spool_id, toolhead_id);
+        WebhookFormatter::formatUrl(url, spool_id, toolhead_id, data.hardware_uid);
     http.begin(formattedUrl.c_str());
     httpResponseCode = http.GET();
   } else {
     JsonDocument doc;
     doc["spool_id"] = spool_id;
     doc["toolhead"] = toolhead_id;
+    doc["card_uid"] = data.hardware_uid;
     String jsonString;
     serializeJson(doc, jsonString);
     http.begin(url.c_str());
@@ -237,7 +249,7 @@ bool AppNetworkManager::sendWebhookPayload(const OpenSpoolData &data,
 
   std::string formattedUrl = url;
   if (useGet) {
-    formattedUrl = WebhookFormatter::formatUrl(url, spool_id, toolhead_id);
+    formattedUrl = WebhookFormatter::formatUrl(url, spool_id, toolhead_id, data.hardware_uid);
   }
 
   curl_easy_setopt(curl, CURLOPT_URL, formattedUrl.c_str());
@@ -247,6 +259,7 @@ bool AppNetworkManager::sendWebhookPayload(const OpenSpoolData &data,
     JsonDocument doc;
     doc["spool_id"] = spool_id;
     doc["toolhead"] = toolhead_id;
+    doc["card_uid"] = data.hardware_uid;
     std::string jsonStr;
     serializeJson(doc, jsonStr);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonStr.c_str());
@@ -316,7 +329,35 @@ bool AppNetworkManager::fetchSpoolmanData(OpenSpoolData &data) {
 #endif
 
   if (response_code == 200) {
-    return OpenSpoolParser::enrichFromSpoolman(payload, data);
+    bool enriched = OpenSpoolParser::enrichFromSpoolman(payload, data);
+    if (enriched) {
+        if (!data.hardware_uid.empty()) {
+            bool migration_needed = false;
+            std::string new_uids;
+            if (data.card_uids.empty()) {
+                migration_needed = true;
+                new_uids = data.hardware_uid;
+            } else if (data.card_uids.find(data.hardware_uid) == std::string::npos) {
+                migration_needed = true;
+                new_uids = data.card_uids + "," + data.hardware_uid;
+            }
+            
+            if (migration_needed) {
+                updateSpoolmanExtraField(data.spool_id, "card_uids", "\"" + new_uids + "\"");
+                data.card_uids = new_uids;
+            }
+        } else if (!data.card_uids.empty()) {
+            // No physical tag was scanned, but Spoolman has associated tags. 
+            // Load the first card_uid so it gets sent to the printer.
+            size_t comma_pos = data.card_uids.find(',');
+            if (comma_pos != std::string::npos) {
+                data.hardware_uid = data.card_uids.substr(0, comma_pos);
+            } else {
+                data.hardware_uid = data.card_uids;
+            }
+        }
+    }
+    return enriched;
   }
   return false;
 }
@@ -334,49 +375,59 @@ bool AppNetworkManager::fetchSpoolmanByExternalId(OpenSpoolData &data) {
   if (baseUrl.back() == '/')
     baseUrl.pop_back();
   
-  // Spoolman API: GET /api/v1/spool?lot_nr="<LOT>"&allow_archived=true
-  // We use quotes to ensure exact match for the lot_nr
-  std::string api_url = baseUrl + "/api/v1/spool?lot_nr=%22" + data.lot_nr + "%22&allow_archived=true";
-
-  std::string payload;
-  long response_code = 0;
-
+  auto performGet = [&](const std::string& api_url) -> bool {
+    std::string payload;
+    long response_code = 0;
 #ifndef USE_SDL2
-  HTTPClient http;
-  http.begin(api_url.c_str());
-  response_code = http.GET();
-  payload = http.getString().c_str();
-  http.end();
+    HTTPClient http;
+    http.begin(api_url.c_str());
+    response_code = http.GET();
+    payload = http.getString().c_str();
+    http.end();
 #else
-  CURL *curl = curl_easy_init();
-  if (curl) {
-    curl_easy_setopt(curl, CURLOPT_URL, api_url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &payload);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
-    CURLcode res = curl_easy_perform(curl);
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
-    curl_easy_cleanup(curl);
-  }
+    CURL *curl = curl_easy_init();
+    if (curl) {
+      curl_easy_setopt(curl, CURLOPT_URL, api_url.c_str());
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+      curl_easy_setopt(curl, CURLOPT_WRITEDATA, &payload);
+      curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+      curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+      CURLcode res = curl_easy_perform(curl);
+      curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+      curl_easy_cleanup(curl);
+    }
 #endif
+    if (response_code == 200) {
+      JsonDocument doc;
+      DeserializationError error = deserializeJson(doc, payload);
+      if (!error && doc.is<JsonArray>() && doc.as<JsonArray>().size() > 0) {
+          JsonObject first = doc[0];
+          if (first["id"].is<std::string>()) {
+              data.spool_id = first["id"].as<std::string>();
+              return true;
+          } else if (first["id"].is<int>()) {
+              data.spool_id = std::to_string(first["id"].as<int>());
+              return true;
+          }
+      }
+    }
+    return false;
+  };
 
-  if (response_code == 200) {
-    // Parse response (JSON list of spools)
-    JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, payload);
-    if (!error && doc.is<JsonArray>() && doc.as<JsonArray>().size() > 0) {
-        // Take the first matching spool
-        JsonObject first = doc[0];
-        if (first["id"].is<std::string>()) {
-            data.spool_id = first["id"].as<std::string>();
-            return true;
-        } else if (first["id"].is<int>()) {
-            data.spool_id = std::to_string(first["id"].as<int>());
-            return true;
-        }
+  // 1. Search by UID using partial match
+  std::string api_url_uid = baseUrl + "/api/v1/spool?extra.card_uids=" + data.hardware_uid + "&allow_archived=true";
+  if (performGet(api_url_uid)) {
+    return true;
+  }
+
+  // 2. Fallback to lot_nr
+  if (!data.lot_nr.empty()) {
+    std::string api_url_lot = baseUrl + "/api/v1/spool?lot_nr=%22" + data.lot_nr + "%22&allow_archived=true";
+    if (performGet(api_url_lot)) {
+      return true;
     }
   }
+
   return false;
 }
 
@@ -436,4 +487,43 @@ bool AppNetworkManager::fetchSpoolmanList(int page, int limit, std::vector<Spool
     return OpenSpoolParser::parseSpoolmanList(payload, items, total_count);
   }
   return false;
+}
+
+bool AppNetworkManager::updateSpoolmanExtraField(const std::string& spool_id, const std::string& key, const std::string& value) {
+  std::string baseUrl = ConfigManager::getSpoolmanUrl();
+  if (baseUrl.empty() || spool_id.empty()) return false;
+  if (!ensureWiFi()) return false;
+  if (baseUrl.back() == '/') baseUrl.pop_back();
+
+  std::string api_url = baseUrl + "/api/v1/spool/" + spool_id;
+  
+  JsonDocument doc;
+  doc["extra"][key] = value;
+  std::string payload;
+  serializeJson(doc, payload);
+
+  long response_code = 0;
+#ifndef USE_SDL2
+  HTTPClient http;
+  http.begin(api_url.c_str());
+  http.addHeader("Content-Type", "application/json");
+  response_code = http.PATCH(payload.c_str());
+  http.getString();
+  http.end();
+#else
+  CURL *curl = curl_easy_init();
+  if (curl) {
+    curl_easy_setopt(curl, CURLOPT_URL, api_url.c_str());
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload.c_str());
+    struct curl_slist *headers = NULL;
+    headers = curl_slist_append(headers, "Content-Type: application/json");
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+    CURLcode res = curl_easy_perform(curl);
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+    curl_easy_cleanup(curl);
+  }
+#endif
+  return (response_code >= 200 && response_code < 300);
 }

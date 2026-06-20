@@ -6,7 +6,8 @@
 class WebhookFormatter {
 public:
   static std::string formatUrl(const std::string &url,
-                               const std::string &spool_id, int toolhead_id);
+                               const std::string &spool_id, int toolhead_id,
+                               const std::string &card_uid);
 };
 
 #endif // WEBHOOK_FORMATTER_H

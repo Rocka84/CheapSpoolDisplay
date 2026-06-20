@@ -24,6 +24,7 @@ struct OpenSpoolData {
   std::string alpha;
   std::string diameter;
   std::string hardware_uid; // Hardware serial/UID for read-only tags
+  std::string card_uids;    // Spoolman extra.card_uid (can be multiple)
 
   // Technical & Manufacturing fields
   std::string actual_weight;
@@ -81,6 +82,7 @@ struct OpenSpoolData {
     first_used = "";
     last_used = "";
     hardware_uid = "";
+    card_uids = "";
   }
 };
 

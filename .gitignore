@@ -16,3 +16,4 @@ device.cfg
 web/docs/
 web/cad/
 web/README.md
+tmp/**
