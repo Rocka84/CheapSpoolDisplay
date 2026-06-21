@@ -1,1 +1,13 @@
-{"protocol":"openspool","version":"1.000","type":"PLA","color_hex":"#23514F","brand":"Das Filament","spool_id":"14","min_temp":"220","max_temp":"220","bed_min_temp":"60","bed_max_temp":"60","alpha":"FF"}
+{
+    "protocol": "openspool",
+    "version": "1.000",
+    "type": "PLA",
+    "color_hex": "#23514F",
+    "brand": "Das Filament",
+    "min_temp": "220",
+    "max_temp": "220",
+    "bed_min_temp": "60",
+    "bed_max_temp": "60",
+    "alpha": "FF",
+    "card_uids": "04A1B2C3D4E5F6"
+}

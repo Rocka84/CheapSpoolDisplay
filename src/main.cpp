@@ -275,7 +275,7 @@ void loop() {
                 printf("  Brand: %s\n", currentSpoolData.brand.c_str());
                 printf("  Material: %s\n", currentSpoolData.type.c_str());
                 printf("  Color: %s\n", currentSpoolData.color_hex.c_str());
-                printf("  Lot Number (for Spoolman): %s\n", currentSpoolData.lot_nr.c_str());
+                printf("  Tag UID: %s\n", currentSpoolData.hardware_uid.c_str());
               } else {
                 printf("Error parsing simulator/spool.bambu!\n");
               }
@@ -296,7 +296,7 @@ void loop() {
 #endif
 
     if (!ConfigManager::getSpoolmanUrl().empty() && networkReady &&
-        (!currentSpoolData.spool_id.empty() || !currentSpoolData.lot_nr.empty())) {
+        (!currentSpoolData.spool_id.empty() || !currentSpoolData.lot_nr.empty() || !currentSpoolData.hardware_uid.empty())) {
       DisplayUI::showFetchingOverlay();
       lv_timer_handler(); // Force overlay render before blocking
       AppNetworkManager::fetchSpoolmanData(currentSpoolData);

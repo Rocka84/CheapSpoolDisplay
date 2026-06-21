@@ -74,6 +74,8 @@ bool OpenSpoolParser::parseJson(const std::string &json, OpenSpoolData &data) {
   if (doc["notes"].is<std::string>()) data.notes = doc["notes"].as<std::string>();
   if (doc["first_used"].is<std::string>()) data.first_used = doc["first_used"].as<std::string>();
   if (doc["last_used"].is<std::string>()) data.last_used = doc["last_used"].as<std::string>();
+  if (doc["hardware_uid"].is<std::string>()) data.hardware_uid = doc["hardware_uid"].as<std::string>();
+  if (doc["card_uids"].is<std::string>()) data.hardware_uid = doc["card_uids"].as<std::string>(); // Alias for simulator
 
   // Protocol check according to OpenSpool spec
   if (data.protocol != "openspool") {
@@ -298,6 +300,7 @@ std::string OpenSpoolParser::toJson(const OpenSpoolData &data) {
   if (!data.notes.empty()) doc["notes"] = data.notes;
   if (!data.first_used.empty()) doc["first_used"] = data.first_used;
   if (!data.last_used.empty()) doc["last_used"] = data.last_used;
+  if (!data.hardware_uid.empty()) doc["hardware_uid"] = data.hardware_uid;
 
   std::string output;
   serializeJson(doc, output);

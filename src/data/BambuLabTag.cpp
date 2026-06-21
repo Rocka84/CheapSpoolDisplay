@@ -80,23 +80,6 @@ bool BambuLabTagParser::parse(const std::vector<uint8_t> &data,
   output.max_temp = std::to_string(extractUint16LE(&data[HOTEND_MAX_POS]));
   output.min_temp = std::to_string(extractUint16LE(&data[HOTEND_MIN_POS]));
 
-  // Block 9: Tray UID (consistent across both tags of a spool)
-  // We hex-ify the first 5 bytes for a compact but unique lot_nr (max 10 chars for UI)
-  char lotBuf[11];
-  const uint8_t* trayData = &data[TRAY_UID_POS];
-  snprintf(lotBuf, sizeof(lotBuf), "%02X%02X%02X%02X%02X", 
-           trayData[0], trayData[1], trayData[2], trayData[3],
-           trayData[4]);
-  output.lot_nr = lotBuf;
-
-  // Set lot_nr fallback to hardware UID if still empty (though Tray UID should be there)
-  if (output.lot_nr == "0000000000000000" && uid) {
-    char uidBuf[13];
-    snprintf(uidBuf, sizeof(uidBuf), "%02X%02X%02X%02X", uid[0], uid[1], uid[2],
-             uid[3]);
-    output.lot_nr = uidBuf;
-  }
-
   return true;
 }
 

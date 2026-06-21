@@ -9,5 +9,6 @@
   "bed_min_temp": "55",
   "bed_max_temp": "65",
   "spool_id": 12,
-  "subtype": "Basic"
+  "subtype": "Basic",
+  "card_uids": "04123456789ABC"
 }
