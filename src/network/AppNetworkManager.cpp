@@ -374,10 +374,24 @@ bool AppNetworkManager::fetchSpoolmanByExternalId(OpenSpoolData &data) {
 
   if (baseUrl.back() == '/')
     baseUrl.pop_back();
-  
-  auto performGet = [&](const std::string& api_url) -> bool {
+
+  int offset = 0;
+  int limit = 20; // Use small chunk to save ESP32 memory
+  bool isVanilla = false;
+
+  while (true) {
+    std::string api_url;
+    if (offset == 0 && !isVanilla) {
+        // Try the direct query first (works if PR #904 is active)
+        api_url = baseUrl + "/api/v1/spool?extra.card_uids=" + data.hardware_uid + "&allow_archived=true&limit=" + std::to_string(limit) + "&offset=0";
+    } else {
+        // Pagination fallback for Vanilla Spoolman
+        api_url = baseUrl + "/api/v1/spool?allow_archived=true&limit=" + std::to_string(limit) + "&offset=" + std::to_string(offset);
+    }
+
     std::string payload;
     long response_code = 0;
+
 #ifndef USE_SDL2
     HTTPClient http;
     http.begin(api_url.c_str());
@@ -388,6 +402,81 @@ bool AppNetworkManager::fetchSpoolmanByExternalId(OpenSpoolData &data) {
     CURL *curl = curl_easy_init();
     if (curl) {
       curl_easy_setopt(curl, CURLOPT_URL, api_url.c_str());
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+      curl_easy_setopt(curl, CURLOPT_WRITEDATA, &payload);
+      curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+      curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5L);
+      CURLcode res = curl_easy_perform(curl);
+      curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+      curl_easy_cleanup(curl);
+    }
+#endif
+
+    if (response_code == 200) {
+      JsonDocument doc;
+      DeserializationError error = deserializeJson(doc, payload);
+      if (!error && doc.is<JsonArray>()) {
+          JsonArray arr = doc.as<JsonArray>();
+          if (arr.size() == 0) {
+              // Reached end of DB or no matches found
+              break;
+          }
+
+          bool foundMatch = false;
+          for (JsonObject spool : arr) {
+              if (spool["extra"].is<JsonObject>() && spool["extra"]["card_uids"].is<std::string>()) {
+                  std::string card_uids = spool["extra"]["card_uids"].as<std::string>();
+                  if (card_uids.find(data.hardware_uid) != std::string::npos) {
+                      // Found our spool!
+                      if (spool["id"].is<std::string>()) {
+                          data.spool_id = spool["id"].as<std::string>();
+                          foundMatch = true;
+                          break;
+                      } else if (spool["id"].is<int>()) {
+                          data.spool_id = std::to_string(spool["id"].as<int>());
+                          foundMatch = true;
+                          break;
+                      }
+                  }
+              }
+          }
+
+          if (foundMatch) {
+              return true;
+          }
+
+          // If we reach here, we didn't find the UID in this batch.
+          // This means either the DB doesn't have it, or it's Vanilla Spoolman and we need to keep paginating.
+          isVanilla = true;
+          offset += arr.size();
+          
+          if (arr.size() < limit) {
+              // Last page
+              break;
+          }
+      } else {
+          break; // JSON error or not an array
+      }
+    } else {
+        break; // HTTP error
+    }
+  }
+
+  // 2. Fallback to lot_nr
+  if (!data.lot_nr.empty()) {
+    std::string api_url_lot = baseUrl + "/api/v1/spool?lot_nr=%22" + data.lot_nr + "%22&allow_archived=true";
+    std::string payload;
+    long response_code = 0;
+#ifndef USE_SDL2
+    HTTPClient http;
+    http.begin(api_url_lot.c_str());
+    response_code = http.GET();
+    payload = http.getString().c_str();
+    http.end();
+#else
+    CURL *curl = curl_easy_init();
+    if (curl) {
+      curl_easy_setopt(curl, CURLOPT_URL, api_url_lot.c_str());
       curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
       curl_easy_setopt(curl, CURLOPT_WRITEDATA, &payload);
       curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
@@ -410,21 +499,6 @@ bool AppNetworkManager::fetchSpoolmanByExternalId(OpenSpoolData &data) {
               return true;
           }
       }
-    }
-    return false;
-  };
-
-  // 1. Search by UID using partial match
-  std::string api_url_uid = baseUrl + "/api/v1/spool?extra.card_uids=" + data.hardware_uid + "&allow_archived=true";
-  if (performGet(api_url_uid)) {
-    return true;
-  }
-
-  // 2. Fallback to lot_nr
-  if (!data.lot_nr.empty()) {
-    std::string api_url_lot = baseUrl + "/api/v1/spool?lot_nr=%22" + data.lot_nr + "%22&allow_archived=true";
-    if (performGet(api_url_lot)) {
-      return true;
     }
   }
 
