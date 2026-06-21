@@ -84,26 +84,33 @@ void test_openspool_deserialization_bad_json(void) {
 void test_webhook_format_no_placeholders(void) {
   std::string url = "http://example.com/api";
   TEST_ASSERT_EQUAL_STRING("http://example.com/api",
-                           WebhookFormatter::formatUrl(url, "123", 4).c_str());
+                           WebhookFormatter::formatUrl(url, "123", 4, "UID123").c_str());
 }
 
 void test_webhook_format_spool_id(void) {
   std::string url = "http://example.com/api?spool={spool_id}";
   TEST_ASSERT_EQUAL_STRING("http://example.com/api?spool=123",
-                           WebhookFormatter::formatUrl(url, "123", 4).c_str());
+                           WebhookFormatter::formatUrl(url, "123", 4, "UID123").c_str());
 }
 
 void test_webhook_format_toolhead(void) {
   std::string url = "http://example.com/api?tool={toolhead}";
   TEST_ASSERT_EQUAL_STRING("http://example.com/api?tool=4",
-                           WebhookFormatter::formatUrl(url, "a", 4).c_str());
+                           WebhookFormatter::formatUrl(url, "a", 4, "UID123").c_str());
 }
 
 void test_webhook_format_both(void) {
   std::string url = "http://example.com/api?spool={spool_id}&tool={toolhead}";
   TEST_ASSERT_EQUAL_STRING(
       "http://example.com/api?spool=abc-def&tool=2",
-      WebhookFormatter::formatUrl(url, "abc-def", 2).c_str());
+      WebhookFormatter::formatUrl(url, "abc-def", 2, "UID123").c_str());
+}
+
+void test_webhook_format_card_uid(void) {
+  std::string url = "http://example.com/api?card={card_uid}";
+  TEST_ASSERT_EQUAL_STRING(
+      "http://example.com/api?card=04B0A0A0A0A0A0",
+      WebhookFormatter::formatUrl(url, "123", 4, "04B0A0A0A0A0A0").c_str());
 }
 
 void test_openspool_color_normalization(void) {
@@ -156,13 +163,13 @@ void test_openspool_enrichment_partial(void) {
 
 void test_webhook_format_multi_placeholders(void) {
   std::string url = "http://api.com/{spool_id}/{spool_id}/{toolhead}";
-  std::string result = WebhookFormatter::formatUrl(url, "abc", 1);
+  std::string result = WebhookFormatter::formatUrl(url, "abc", 1, "");
   TEST_ASSERT_EQUAL_STRING("http://api.com/abc/abc/1", result.c_str());
 }
 
 void test_webhook_format_malformed_placeholder(void) {
   std::string url = "http://api.com/{spool_id"; // No closing brace
-  std::string result = WebhookFormatter::formatUrl(url, "abc", 1);
+  std::string result = WebhookFormatter::formatUrl(url, "abc", 1, "");
   TEST_ASSERT_EQUAL_STRING("http://api.com/{spool_id", result.c_str());
 }
 
@@ -259,6 +266,7 @@ int main(int argc, char **argv) {
   RUN_TEST(test_webhook_format_spool_id);
   RUN_TEST(test_webhook_format_toolhead);
   RUN_TEST(test_webhook_format_both);
+  RUN_TEST(test_webhook_format_card_uid);
   RUN_TEST(test_webhook_format_multi_placeholders);
   RUN_TEST(test_webhook_format_malformed_placeholder);
   RUN_TEST(test_opentag3d_parsing);

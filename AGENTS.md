@@ -53,6 +53,7 @@ You do **not** need to flash the ESP32 to test UI changes! The project includes 
 - Check the `notes.md` file in the project root. It contains the user's running scratchpad of ideas, known issues, and ToDo lists.
 - **Bambu Lab & Snapmaker Proprietary Tags:** Read-only support exists. Writing requires reverse-engineering or keys that are not public. Bambu Lab needs a secret salt configured via CLI (`set bambu_salt`).
 - **Power Management:** Custom heuristics map 3.3V-4.15V ADC readings to battery percentages, accounting for active load voltage sag.
+- **Spoolman Tag Linking:** We no longer generate fake `lot_nr` values for proprietary tags. All physical tags are native tracked in Spoolman via the `extra.card_uids` field (mapped to the physical `hardware_uid`). The UI features an interactive "Link Spool" button when an unknown tag is scanned to associate it easily. *Note: We currently have a fallback pagination mechanism in `AppNetworkManager.cpp` to support vanilla Spoolman instances without PR #904 (which adds query support for `extra` fields). Once PR #904 is officially merged into Spoolman, this workaround should be removed.*
 
 ## 8. Agentic Workflow
 1. Read the user's prompt carefully.

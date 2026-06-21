@@ -156,6 +156,12 @@ bool NFCReader::scanForTag(OpenSpoolData &data) {
       for(int i=0; i<8; i++) { Serial.print(uid[7-i], HEX); Serial.print(i<7?":":""); }
       Serial.println();
       
+      char uidStr[32] = {0};
+      for(int i=0; i<8; i++) {
+        sprintf(uidStr + strlen(uidStr), "%02X", uid[7-i]);
+      }
+      if (data.hardware_uid.empty()) data.hardware_uid = uidStr;
+      
       PayloadResult res = readNDEFPayload(true);
       if (res.type != PayloadType::UNKNOWN) {
         bool success = false;
@@ -186,6 +192,12 @@ bool NFCReader::scanForTag(OpenSpoolData &data) {
     Serial.print("ISO14443A Tag detected! UID: ");
     for(int i=0; i<uidLen; i++) { Serial.print(uidA[i], HEX); Serial.print(i<uidLen-1?":":""); }
     Serial.println();
+    
+    char uidStr[32] = {0};
+    for(int i=0; i<uidLen; i++) {
+        sprintf(uidStr + strlen(uidStr), "%02X", uidA[i]);
+    }
+    if (data.hardware_uid.empty()) data.hardware_uid = uidStr;
     
     bool success = false;
     
@@ -280,6 +292,16 @@ bool NFCReader::scanForTag(OpenSpoolData &data) {
   mfrc522.PCD_StopCrypto1();
 
   if (success) {
+    // Add the hardware UID to the data
+    char uidStr[32] = {0};
+    for (byte i = 0; i < mfrc522.uid.size; i++) {
+        sprintf(uidStr + strlen(uidStr), "%02X", mfrc522.uid.uidByte[i]);
+    }
+    // Assign the hardware UID if not already assigned
+    if (data.hardware_uid.empty()) {
+        data.hardware_uid = uidStr;
+    }
+
     PowerManager::indicateSuccess();
   } else {
     PowerManager::indicateError();

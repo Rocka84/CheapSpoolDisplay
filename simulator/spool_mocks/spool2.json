@@ -8,6 +8,8 @@
   "max_temp": "250",
   "bed_min_temp": "70",
   "bed_max_temp": "80",
-  "spool_id": 20,
-  "subtype": "Basic"
+  "spool_id": "42",
+  "subtype": "Basic",
+  "notes": "Fast printing",
+  "card_uids": "04FF00EE11DD22"
 }

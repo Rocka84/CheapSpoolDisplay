@@ -46,7 +46,7 @@ Ideas
     * sends information as GCODE to the printer similar to example implementation
     * address of U1 must be configurable
     * when configured, ignore webhook
-5. Support Snapmaker Proprietary tags
+5. ~~Support Snapmaker Proprietary tags~~
     * Complexity: High.
     * Official Snapmaker tags on spools use Mifare Classic 1K tags (ISO14443A)
     * Proprietary encrypted format with RSA signatures (hard to write, but readable)
@@ -126,7 +126,7 @@ Known issues
     * ~~on the scan screen, placing the new button above the create button was not a good idea. Put both buttons side by side at the bottom and label them "Spoolman" and "New".~~ Fixed!
     * ~~the screenshot shows the spool data screen instead of the spool list screen.~~ Fixed!
     * ~~the last few pixels of the bottom entry of the list is cut off.~~ Fixed!
-* Sometimes fetching data from spoolman takes a moment. When a tag is scanned, the device should show a "Fetching data from spoolman" message. When the data is fetched, the device should show the info screen.
+* ~~Sometimes fetching data from spoolman takes a moment. When a tag is scanned, the device should show a "Fetching data from spoolman" message. When the data is fetched, the device should show the info screen.~~
 * ~~When a color from spoolman has an alpha value, the color is displayed as "Unknown". We need to come up with a way to handle alpha values. They should not get lost but also don't break other things like loading a spool to the printer or writing valid tags.~~ Fixed!
 
 

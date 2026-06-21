@@ -14,6 +14,7 @@ public:
   static bool fetchSpoolmanData(OpenSpoolData &data);
   static bool fetchSpoolmanByExternalId(OpenSpoolData &data);
   static bool fetchSpoolmanList(int page, int limit, std::vector<SpoolmanItem>& items, int& total_count);
+  static bool updateSpoolmanExtraField(const std::string& spool_id, const std::string& key, const std::string& value);
 };
 
 #endif // NETWORK_MANAGER_H

@@ -60,6 +60,8 @@ lv_obj_t *DisplayUI::labelSpoolId = nullptr;
 lv_obj_t *DisplayUI::labelSubtype = nullptr;
 lv_obj_t *DisplayUI::labelLotNr = nullptr;
 lv_obj_t *DisplayUI::keyLotNr = nullptr;
+lv_obj_t *DisplayUI::labelCardUid = nullptr;
+lv_obj_t *DisplayUI::keyCardUid = nullptr;
 lv_obj_t *DisplayUI::labelTemp = nullptr;
 lv_obj_t *DisplayUI::labelBedTemp = nullptr;
 lv_obj_t *DisplayUI::labelDiameter = nullptr;
@@ -127,6 +129,9 @@ int DisplayUI::currentSpoolPage = 0;
 OpenSpoolData DisplayUI::backupLoadedData;
 bool DisplayUI::writePending = false;
 uint32_t DisplayUI::writeStartTime = 0;
+bool DisplayUI::isLinkingSpool = false;
+lv_obj_t *DisplayUI::linkSpoolBtn = nullptr;
+lv_obj_t *DisplayUI::selectSpoolTitle = nullptr;
 lv_obj_t *DisplayUI::toastObj = nullptr;
 lv_timer_t *DisplayUI::toastTimer = nullptr;
 lv_obj_t *DisplayUI::wifiIcon = nullptr;
@@ -379,11 +384,11 @@ void DisplayUI::buildSelectSpoolScreen() {
   lv_obj_set_style_text_color(selectSpoolScreen, lv_color_white(), 0);
   lv_obj_set_style_text_font(selectSpoolScreen, font_combined_14, 0);
 
-  lv_obj_t *title = lv_label_create(selectSpoolScreen);
-  lv_label_set_text(title, "Select Spool");
-  lv_obj_set_style_text_font(title, font_combined_20, 0);
-  lv_obj_set_style_text_color(title, lv_color_white(), 0);
-  lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 15);
+  selectSpoolTitle = lv_label_create(selectSpoolScreen);
+  lv_label_set_text(selectSpoolTitle, "Select Spool");
+  lv_obj_set_style_text_font(selectSpoolTitle, font_combined_20, 0);
+  lv_obj_set_style_text_color(selectSpoolTitle, lv_color_white(), 0);
+  lv_obj_align(selectSpoolTitle, LV_ALIGN_TOP_MID, 0, 15);
 
   spoolListCont = lv_obj_create(selectSpoolScreen);
   lv_obj_set_size(spoolListCont, 220, 180);
@@ -471,10 +476,14 @@ void DisplayUI::updateSelectSpoolList(const std::vector<SpoolmanItem> &items,
 
             OpenSpoolData data;
             data.spool_id = id;
+            if (isLinkingSpool) {
+                data.hardware_uid = currentLoadedData.hardware_uid;
+            }
 
             showFetchingOverlay();
             lv_refr_now(NULL); // Force render before blocking
             if (AppNetworkManager::fetchSpoolmanData(data)) {
+              isLinkingSpool = false;
               currentLoadedData = data;
               showInfoScreen(currentLoadedData);
             } else {
@@ -630,6 +639,15 @@ void DisplayUI::buildInfoScreen() {
   lv_obj_set_style_bg_opa(weightBar, LV_OPA_COVER, LV_PART_INDICATOR);
   lv_obj_set_style_radius(weightBar, 4, 0);
   create_row("Spool ID", &labelSpoolId);
+  linkSpoolBtn = lv_btn_create(lv_obj_get_parent(labelSpoolId));
+  lv_obj_set_size(linkSpoolBtn, 110, 24);
+  lv_obj_align(linkSpoolBtn, LV_ALIGN_TOP_LEFT, 80, -2);
+  apply_indigo_btn_style(linkSpoolBtn);
+  lv_obj_add_event_cb(linkSpoolBtn, onLinkSpoolButtonClicked, LV_EVENT_CLICKED, NULL);
+  lv_obj_t *lBtnLbl = lv_label_create(linkSpoolBtn);
+  lv_label_set_text(lBtnLbl, "Link Spool");
+  lv_obj_center(lBtnLbl);
+  lv_obj_add_flag(linkSpoolBtn, LV_OBJ_FLAG_HIDDEN);
   create_row("Nozzle T.", &labelTemp);
   create_row("Bed T.", &labelBedTemp);
 
@@ -764,6 +782,7 @@ void DisplayUI::buildExtendedInfoScreen() {
   create_ext_row("Diameter", &labelDiameter);
   create_ext_row("Subtype", &labelSubtype);
   create_ext_row("Lot Nr", &labelLotNr);
+  create_ext_row("Card UID", &labelCardUid);
   create_ext_row("Density", &labelDensity);
   create_ext_row("Actual W.", &labelActualWeight);
   create_ext_row("Empty W.", &labelEmptyWeight);
@@ -1136,7 +1155,14 @@ void DisplayUI::showInfoScreen(const OpenSpoolData &spool) {
 
   lv_label_set_text(labelBrand, displayData.brand.c_str());
   lv_label_set_text(labelType, displayData.type.c_str());
-  lv_label_set_text(labelSpoolId, spool.spool_id.c_str());
+  if (spool.spool_id.empty() && !spool.hardware_uid.empty()) {
+      lv_obj_add_flag(labelSpoolId, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_clear_flag(linkSpoolBtn, LV_OBJ_FLAG_HIDDEN);
+  } else {
+      lv_obj_clear_flag(labelSpoolId, LV_OBJ_FLAG_HIDDEN);
+      lv_obj_add_flag(linkSpoolBtn, LV_OBJ_FLAG_HIDDEN);
+      lv_label_set_text(labelSpoolId, spool.spool_id.empty() ? "---" : spool.spool_id.c_str());
+  }
 
   std::string tempStr;
   if (spool.min_temp == spool.max_temp || spool.max_temp.empty()) {
@@ -1475,7 +1501,28 @@ void DisplayUI::onCreateNewButtonClicked(lv_event_t *e) {
 
 void DisplayUI::showSelectSpoolScreen() { 
   if (!selectSpoolScreen) buildSelectSpoolScreen();
+  if (selectSpoolTitle) {
+      lv_label_set_text(selectSpoolTitle, isLinkingSpool ? "Link to Spool" : "Select Spool");
+  }
   lv_scr_load(selectSpoolScreen); 
+}
+
+void DisplayUI::onLinkSpoolButtonClicked(lv_event_t *e) {
+  isLinkingSpool = true;
+  currentSpoolPage = 0;
+  std::vector<SpoolmanItem> items;
+  int total_count = 0;
+
+  showFetchingOverlay();
+  lv_refr_now(NULL);
+  if (AppNetworkManager::fetchSpoolmanList(currentSpoolPage, 4, items,
+                                        total_count)) {
+    updateSelectSpoolList(items, total_count);
+    showSelectSpoolScreen();
+  } else {
+    showToast("Spoolman lookup failed", true);
+  }
+  hideFetchingOverlay();
 }
 
 void DisplayUI::onSelectSpoolButtonClicked(lv_event_t *e) {
@@ -1488,7 +1535,8 @@ void DisplayUI::onSelectSpoolButtonClicked(lv_event_t *e) {
   if (AppNetworkManager::fetchSpoolmanList(currentSpoolPage, 4, items,
                                         total_count)) {
     updateSelectSpoolList(items, total_count);
-    lv_scr_load(selectSpoolScreen); 
+    isLinkingSpool = false;
+    showSelectSpoolScreen(); 
   } else {
     showToast("Spoolman lookup failed", true);
   }
@@ -2060,6 +2108,7 @@ void DisplayUI::showExtendedInfoScreen() {
   set_field(labelDiameter, spool.diameter, "mm");
   set_field(labelSubtype, spool.subtype);
   set_field(labelLotNr, spool.lot_nr);
+  set_field(labelCardUid, spool.hardware_uid);
   set_field(labelDensity, spool.density, "g/cm3");
   set_field(labelActualWeight, spool.actual_weight, "g");
   set_field(labelEmptyWeight, spool.empty_weight, "g");

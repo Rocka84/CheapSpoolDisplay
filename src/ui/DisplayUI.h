@@ -72,6 +72,7 @@ private:
   static void onNextPageClicked(lv_event_t *e);
   static void onMoreInfoButtonClicked(lv_event_t *e);
   static void onMoreEditButtonClicked(lv_event_t *e);
+  static void onLinkSpoolButtonClicked(lv_event_t *e);
 
   // Validation
   static bool validateField(lv_obj_t *ta);
@@ -100,6 +101,7 @@ private:
   static OpenSpoolData backupLoadedData;
   static bool writePending;
   static uint32_t writeStartTime;
+  static bool isLinkingSpool;
 
   // Toast management
   static lv_obj_t *toastObj;
@@ -113,6 +115,8 @@ private:
   static lv_obj_t *labelSubtype;
   static lv_obj_t *labelLotNr;
   static lv_obj_t *keyLotNr;
+  static lv_obj_t *labelCardUid;
+  static lv_obj_t *keyCardUid;
   static lv_obj_t *labelDiameter;
   static lv_obj_t *keyDiameter;
   static lv_obj_t *labelTemp;
@@ -132,6 +136,8 @@ private:
   static lv_obj_t *spoolmanBtn;
   static lv_obj_t *createNewBtn;
   static lv_obj_t *moreInfoBtn;
+  static lv_obj_t *linkSpoolBtn;
+  static lv_obj_t *selectSpoolTitle;
 
   // Extended Info Elements
   static lv_obj_t *labelDensity;
